@@ -1,0 +1,21 @@
+暗黑RPG（个人学习项目）— 美术与音效署名
+========================================
+
+本项目美术资产来自 FLARE（Free/Libre Action Roleplaying Engine）游戏素材：
+
+  作者：Clint Bellanger 及 FLARE Team
+  来源：https://github.com/flareteam/flare-game
+  许可证：CC-BY-SA 3.0 (https://creativecommons.org/licenses/by-sa/3.0/)
+
+包含资产：
+  - 亚马逊（女性英雄）分层精灵：身体/皮甲/长弓（avatar/female/*）
+  - 怪物精灵：skeleton, skeleton_archer, zombie, goblin, minotaur
+  - 等距地块：tileset_grassland
+  - UI 血条：bar_hp / bar_mp / bar_xp
+
+依 CC-BY-SA 3.0：本项目基于上述素材的衍生美术文件同样以 CC-BY-SA 3.0 共享。
+
+音效（如使用）：CC0 / public domain，来源 OpenGameArt / Freesound CC0 / Kenney，
+具体清单见 assets/audio/SOURCES.txt。
+
+游戏引擎：Phaser 3（MIT License）。
