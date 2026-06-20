@@ -295,7 +295,7 @@ const now=()=>performance.now()/1000;
 
 // ---------- audio (WebAudio 程序化音效+BGM, 无素材) ----------
 let AC=null, muted=false, music=null;
-function initAudio(){ if(AC)return; try{ AC=new (window.AudioContext||window.webkitAudioContext)(); /* 程序化drone已停用, 改真·章节BGM */ }catch(e){} }
+function initAudio(){ preloadSFX(); if(AC)return; try{ AC=new (window.AudioContext||window.webkitAudioContext)(); /* 程序化drone已停用, 改真·章节BGM */ }catch(e){} }
 // M8 每章真实BGM (Kevin MacLeod CC-BY, 见assets/bgm/CREDITS.md)
 const BGM={1:'assets/bgm/chapter1_graveyard.mp3',2:'assets/bgm/chapter2_desolation.mp3',3:'assets/bgm/chapter3_firedepths.mp3',4:'assets/bgm/chapter4_frost.mp3',5:'assets/bgm/chapter5_throne.mp3'};
 let _bgm=null, _curAct=0;
@@ -339,7 +339,15 @@ function updateMusic(){ if(!music||!AC)return; const t=AC.currentTime;
       try{ music.lead.frequency.setValueAtTime(n,t); const g=music.leadG.gain; g.cancelScheduledValues(t); g.setValueAtTime(0.0001,t); g.linearRampToValueAtTime(0.038,t+0.1); g.exponentialRampToValueAtTime(0.0001,t+2.4);}catch(e){} }
   }
 }
+// 真采样音效(CC0, 优先于程序化WebAudio; cloneNode池化支持重叠)
+const SFX_SAMPLES={hit:'assets/sfx/hit.mp3',crit:'assets/sfx/crit.mp3',kill:'assets/sfx/kill.mp3','loot-rare':'assets/sfx/loot-rare.mp3',boss:'assets/sfx/boss.mp3',level:'assets/sfx/level.mp3'};
+const SFX_VOL={hit:0.5,crit:0.58,kill:0.5,'loot-rare':0.5,boss:0.62,level:0.55};
+const _sfxBuf={}; let _sfxReady=false;
+function preloadSFX(){ if(_sfxReady)return; _sfxReady=true; for(const k in SFX_SAMPLES){ try{ const a=new Audio(SFX_SAMPLES[k]); a.preload='auto'; a.volume=SFX_VOL[k]||0.55; _sfxBuf[k]=a; }catch(e){} } }
+function playSample(type){ const tpl=_sfxBuf[type]; if(!tpl)return false; try{ const n=tpl.cloneNode(); n.volume=tpl.volume; const p=n.play(); if(p&&p.catch)p.catch(()=>{}); return true; }catch(e){ return false; } }
 function sfx(type){
+  if(muted) return;
+  if(SFX_SAMPLES[type] && playSample(type)) return; // 采样优先, 失败回退WebAudio
   if(!AC||muted) return; const t=AC.currentTime;
   const o=AC.createOscillator(), g=AC.createGain(); o.connect(g); g.connect(AC.destination);
   let f=440,d=0.1,vol=0.14,wave='square',ramp=0;
@@ -584,7 +592,9 @@ const player={
   loadout:['dash','cleave','nova'], unlocked:['dash','cleave','nova'],
 };
 function usePotion(){
-  if(player.dead||player.pots<=0||player.potCd>0||player.hp>=player.maxhp) return;
+  if(player.dead||player.pots<=0) return;
+  if(player.hp>=player.maxhp){ banner('生命已满','#9ed89e'); return; } // 非静默
+  if(player.potCd>0 && player.hp>player.maxhp*0.25) return; // 残血急救取消冷却(D2容错)
   player.pots--; player.potCd=1.2; player.hp=Math.min(player.maxhp,player.hp+player.maxhp*0.30);
   ringFx(player.x,player.y,46,'#5ed85e');
   for(let i=0;i<16;i++){const a=Math.random()*TAU;particles.push({x:player.x,y:player.y+10,vx:Math.cos(a)*40,vy:-rnd(40,120),life:rnd(.4,.8),t:0,c:'#7dff9a',r:rnd(2,3)});}
@@ -593,7 +603,8 @@ function usePotion(){
 }
 // 蓝药水(D2 法力药): 红蓝双药 belt
 function useMpPotion(){
-  if(player.dead||player.mpPots<=0||player.mpPotCd>0||player.mp>=player.maxmp) return;
+  if(player.dead||player.mpPots<=0||player.mpPotCd>0) return;
+  if(player.mp>=player.maxmp){ banner('法力已满','#6b8aff'); return; } // 非静默
   player.mpPots--; player.mpPotCd=1.0; player.mp=Math.min(player.maxmp,player.mp+player.maxmp*0.5);
   ringFx(player.x,player.y,42,'#5a8fe0');
   for(let i=0;i<14;i++){const a=Math.random()*TAU;particles.push({x:player.x,y:player.y+10,vx:Math.cos(a)*36,vy:-rnd(40,110),life:rnd(.4,.8),t:0,c:'#7db6ff',r:rnd(2,3)});}
@@ -1049,8 +1060,8 @@ const CLASSES={
 function useSkill(id){
   if(player.dead||paused||inCamp) return; // 营地禁技能(防位移穿墙+投射物堆积)
   const s=SKILLS[id]; if(!s) return;
-  if((player.cd[id]||0)>0) return;
-  if(s.mp && player.mp<s.mp) return;
+  if((player.cd[id]||0)>0){ sfx('hit'); return; } // 冷却中: 短促反馈(非静默)
+  if(s.mp && player.mp<s.mp){ banner('法力不足','#6b8aff'); sfx('hit'); return; } // 蓝不足: 提示音+红字(非静默)
   if(s.mp) player.mp-=s.mp;
   player.cd[id]=s.cd*(player.uniques&&player.uniques.cdr?0.75:1); // 疾影之冠: CD-25%
   const ps=pstat(); const slv=player.skillLvl[id]||1; ps.dmg*=(1+(slv-1)*(SKILL_GROW[id]||0.14)); // 技能等级成长(per-skill曲线: 走刀技平缓/招牌大招陡)
@@ -1436,7 +1447,8 @@ function update(dt){
   player.moving = Math.hypot(player.x-_px, player.y-_py) > 0.2;
   // ----- player basic attack (auto when enemy in range) -----
   player.atkT-=dt; player.swing=Math.max(0,player.swing-dt);
-  let atkTarget=move&&move.enemy?move.enemy:nearestEnemy(player.x,player.y,player.atkRange+10);
+  let atkTarget=move&&move.enemy?move.enemy:null; // 自动锁定: 精英/Boss加权(集火大怪, 不被杂兵抢)
+  if(!atkTarget){ let bw=1e9; for(const e of enemies){ const rd=dist(player.x,player.y,e.x,e.y); if(rd>player.atkRange+10+e.r)continue; const w=rd/(e.boss?2.2:e.elite?1.6:1); if(w<bw){bw=w;atkTarget=e;} } }
   if(atkTarget && dist(player.x,player.y,atkTarget.x,atkTarget.y)<player.atkRange+atkTarget.r && player.atkT<=0){
     player.atkT=ps.atkInt; player.face=Math.atan2(atkTarget.y-player.y,atkTarget.x-player.x); player.swing=0.2;
     const crit0=Math.random()*100<ps.crit;
@@ -1469,8 +1481,11 @@ function update(dt){
     // 硬直: 打断 AI
     if(e.stun>0){ e.stun-=dt; continue; }
     // 自爆娃娃: 贴近玩家即引爆(D2 Undead Stygian Doll)
-    if(e.suicide && dist(e.x,e.y,player.x,player.y)<e.r+player.r+10){ ringFx(e.x,e.y,90,'#ffd76b'); ringFx(e.x,e.y,60,'#ff7a2e'); shake(10,0.2);
-      if(dist(e.x,e.y,player.x,player.y)<90) hurtPlayer(Math.min(e.dmg*1.5,player.maxhp*0.22)); e.hp=0; killEnemy(e,false); continue; } // 评审P2:2.2→1.5+上限22%血
+    if(e.suicide){ // 自爆娃娃: 贴近→0.45s引信+危险圈预警(给反应窗)→爆炸
+      if(e.fuse>0){ e.fuse-=dt; e.moving=false;
+        if(e.fuse<=0){ ringFx(e.x,e.y,90,'#ffd76b'); ringFx(e.x,e.y,60,'#ff7a2e'); shake(10,0.2);
+          if(dist(e.x,e.y,player.x,player.y)<90) hurtPlayer(Math.min(e.dmg*1.5,player.maxhp*0.22)); e.hp=0; killEnemy(e,false); } continue; }
+      if(dist(e.x,e.y,player.x,player.y)<e.r+player.r+18){ e.fuse=0.45; sfx('hit'); continue; } }
     // 堕落巫医: 周期召唤堕落者(D2 Shaman)
     if(e.summon){ e.sumT=(e.sumT==null?rnd(3,5):e.sumT)-dt;
       if(e.sumT<=0 && enemies.length<60){ e.sumT=rnd(5,7); ringFx(e.x,e.y,40,e.c); spawnEnemy(e.summon,e.x+rnd(-40,40),e.y+rnd(-40,40),Math.pow(1.21,stage-1)); } }
@@ -1877,6 +1892,9 @@ function drawEnemy(e){
   // Boss 砸地蓄力预警红圈(涨大)
   if(e.boss && e.slamWarn>0){ const R=135*e.slamWarn; X.fillStyle='rgba(255,40,30,'+(0.12+e.slamWarn*0.22).toFixed(3)+')';
     X.beginPath(); X.arc(e.x,e.y,R,0,TAU); X.fill(); X.strokeStyle='#ff3b2e'; X.lineWidth=3; X.beginPath(); X.arc(e.x,e.y,135,0,TAU); X.stroke(); X.lineWidth=1; }
+  // 自爆娃娃引信危险圈(爆炸半径预警, 闪烁加速)
+  if(e.fuse>0){ const a=0.2+Math.abs(Math.sin(now()*16))*0.3; X.fillStyle='rgba(255,60,30,'+a.toFixed(2)+')'; X.beginPath(); X.arc(e.x,e.y,90,0,TAU); X.fill();
+    X.strokeStyle='#ff3b2e'; X.lineWidth=3; X.beginPath(); X.arc(e.x,e.y,90,0,TAU); X.stroke(); X.lineWidth=1; }
   const r=e.r, bob=Math.sin(now()*3+e.x*0.05)*r*0.06, x=e.x, y=e.y-bob, c=e.hitFlash>0?'#ffffff':e.c, dk=e.hitFlash>0?'#fff':shade(e.c,-50);
   const face=Math.atan2(player.y-e.y,player.x-e.x), fx=Math.cos(face);
   // 阴影
