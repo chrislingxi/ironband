@@ -692,7 +692,7 @@ const ARCH={
   leaper:  {n:'沙跳虫',c:'#cbb060',r:14,hp:40,dmg:13,ms:150,range:28,atk:1.1,xp:14,ranged:false,charger:true},
   bird:    {n:'兀鹫',c:'#8a8a9a',r:12,hp:34,dmg:11,ms:170,range:26,atk:1.0,xp:12,ranged:false},
   shaman:  {n:'堕落巫医',c:'#7a4ca0',r:13,hp:44,dmg:10,ms:70,range:220,atk:1.9,xp:17,ranged:true,summon:'fallen'},
-  succubus:{n:'魅魔',c:'#d06ba0',r:14,hp:48,dmg:14,ms:92,range:230,atk:1.7,xp:16,ranged:true,chillOnHit:true},
+  succubus:{n:'魅魔',c:'#9c3050',r:14,hp:48,dmg:14,ms:92,range:230,atk:1.7,xp:16,ranged:true,chillOnHit:true},
   doll:    {n:'自爆娃娃',c:'#c0c060',r:10,hp:18,dmg:6,ms:150,range:20,atk:0.8,xp:9,ranged:false,suicide:true},
   maggot:  {n:'沙虫',c:'#9bbf6b',r:16,hp:56,dmg:11,ms:64,range:28,atk:1.2,xp:14,ranged:false,split:'larva'},
   larva:   {n:'幼虫',c:'#bcd98b',r:9,hp:14,dmg:6,ms:130,range:20,atk:1.0,xp:4,ranged:false},
@@ -1989,19 +1989,27 @@ function drawEnemy(e){
       X.moveTo(x+r*0.5,y-r*0.8); X.lineTo(x+r*0.85,y-r*1.4); X.lineTo(x+r*0.2,y-r*0.95); X.closePath(); X.fill();
     }
     X.fillStyle='#fff04b'; X.beginPath(); X.arc(x-r*0.2,y-r*0.55,r*0.12,0,TAU); X.arc(x+r*0.2,y-r*0.55,r*0.12,0,TAU); X.fill(); // 发光眼
-  } else if(e.kind==='succubus'){ // 魅魔: 红躯+蝙蝠翼+发光眼
-    X.fillStyle=shade(e.c,-30); for(const s of [-1,1]){ X.beginPath(); X.moveTo(x,y-r*0.2); X.quadraticCurveTo(x+s*r*1.3,y-r*0.9,x+s*r*1.1,y+r*0.3); X.quadraticCurveTo(x+s*r*0.6,y-r*0.1,x,y+r*0.2); X.fill(); } // 翼
-    X.fillStyle=c; X.beginPath(); X.ellipse(x,y,r*0.5,r*0.8,0,0,TAU); X.fill(); X.beginPath(); X.arc(x,y-r*0.6,r*0.34,0,TAU); X.fill();
-    X.fillStyle='#ff3b6b'; X.beginPath(); X.arc(x-r*0.13,y-r*0.62,r*0.1,0,TAU); X.arc(x+r*0.13,y-r*0.62,r*0.1,0,TAU); X.fill();
+  } else if(e.kind==='succubus'){ // 魅魔: 红躯+振翅蝙蝠翼+发光眼(飞行投影+渐变)
+    const flap=Math.sin(now()*6+e.x*0.1)*0.32; // 振翅
+    X.fillStyle='#0006'; X.beginPath(); X.ellipse(x,e.y+r*0.7,r*0.7,r*0.22,0,0,TAU); X.fill(); // 飞行投影
+    X.fillStyle=shade(e.c,-34); for(const s of [-1,1]){ X.beginPath(); X.moveTo(x,y-r*0.2); X.quadraticCurveTo(x+s*r*1.35,y-r*(0.9-flap),x+s*r*1.05,y+r*(0.3+flap*0.5)); X.quadraticCurveTo(x+s*r*0.55,y-r*0.1,x,y+r*0.2); X.fill();
+      X.strokeStyle=shade(e.c,-55); X.lineWidth=1.2; for(let w=1;w<=2;w++){ X.beginPath(); X.moveTo(x+s*r*0.2,y-r*0.1); X.lineTo(x+s*r*(0.5+w*0.35),y-r*(0.5-flap)*w*0.5); X.stroke(); } X.lineWidth=1; } // 翼+翼骨
+    const bg=X.createLinearGradient(x,y-r*0.8,x,y+r*0.8); bg.addColorStop(0,shade(e.c,25)); bg.addColorStop(1,shade(e.c,-20)); X.fillStyle=bg;
+    X.beginPath(); X.ellipse(x,y,r*0.5,r*0.82,0,0,TAU); X.fill(); X.beginPath(); X.arc(x,y-r*0.6,r*0.34,0,TAU); X.fill();
+    X.fillStyle='#ff3b6b'; X.shadowColor='#ff3b6b'; X.shadowBlur=6; X.beginPath(); X.arc(x-r*0.13,y-r*0.62,r*0.1,0,TAU); X.arc(x+r*0.13,y-r*0.62,r*0.1,0,TAU); X.fill(); X.shadowBlur=0;
   } else if(e.kind==='shaman'){ // 堕落巫医: 兜帽+举法杖+骨面具
     X.beginPath(); X.moveTo(x,y-r*0.9); X.lineTo(x-r*0.7,y+r*0.7); X.lineTo(x+r*0.7,y+r*0.7); X.closePath(); X.fill(); // 袍
     X.fillStyle=shade(e.c,20); X.beginPath(); X.arc(x,y-r*0.55,r*0.36,0,TAU); X.fill();
     X.strokeStyle='#caa'; X.lineWidth=r*0.12; X.beginPath(); X.moveTo(x+fx*r*0.6,y-r); X.lineTo(x+fx*r*0.6,y+r*0.5); X.stroke(); X.fillStyle='#6cf'; X.beginPath(); X.arc(x+fx*r*0.6,y-r,r*0.18,0,TAU); X.fill(); X.lineWidth=1;
     X.fillStyle='#fff'; X.beginPath(); X.arc(x-r*0.12,y-r*0.58,r*0.07,0,TAU); X.arc(x+r*0.12,y-r*0.58,r*0.07,0,TAU); X.fill();
-  } else if(e.kind==='bird'){ // 兀鹫: V双翼+尖喙
-    X.fillStyle=c; for(const s of [-1,1]){ X.beginPath(); X.moveTo(x,y); X.lineTo(x+s*r*1.3,y-r*0.6); X.lineTo(x+s*r*0.5,y+r*0.1); X.closePath(); X.fill(); }
-    X.beginPath(); X.ellipse(x,y,r*0.4,r*0.5,0,0,TAU); X.fill();
-    X.fillStyle='#fc6'; X.beginPath(); X.moveTo(x+fx*r*0.3,y-r*0.1); X.lineTo(x+fx*r*0.9,y); X.lineTo(x+fx*r*0.3,y+r*0.15); X.closePath(); X.fill();
+  } else if(e.kind==='bird'){ // 兀鹫: 振翅V双翼+尖喙(飞行投影+渐变)
+    const flap=Math.sin(now()*8+e.x*0.12)*r*0.5; // 振翅起伏
+    X.fillStyle='#0005'; X.beginPath(); X.ellipse(x,e.y+r*0.8,r*0.6,r*0.18,0,0,TAU); X.fill(); // 投影
+    X.fillStyle=shade(e.c,-15); for(const s of [-1,1]){ X.beginPath(); X.moveTo(x,y); X.quadraticCurveTo(x+s*r*0.8,y-r*0.6-flap, x+s*r*1.35,y-r*0.5-flap*0.6); X.quadraticCurveTo(x+s*r*0.7,y-r*0.05, x+s*r*0.5,y+r*0.1); X.closePath(); X.fill(); }
+    const bg=X.createLinearGradient(x,y-r*0.5,x,y+r*0.5); bg.addColorStop(0,shade(e.c,20)); bg.addColorStop(1,shade(e.c,-25)); X.fillStyle=bg;
+    X.beginPath(); X.ellipse(x,y,r*0.4,r*0.52,0,0,TAU); X.fill();
+    X.fillStyle='#fc6'; X.beginPath(); X.moveTo(x+fx*r*0.3,y-r*0.1); X.lineTo(x+fx*r*0.95,y); X.lineTo(x+fx*r*0.3,y+r*0.15); X.closePath(); X.fill();
+    X.fillStyle='#200'; X.beginPath(); X.arc(x+fx*r*0.2,y-r*0.12,r*0.07,0,TAU); X.fill();
   } else if(e.kind==='quill'){ // 刺鼠: 放射尖刺椭圆
     X.strokeStyle=dk; X.lineWidth=2; for(let i=0;i<10;i++){ const a=i/10*TAU; X.beginPath(); X.moveTo(x+Math.cos(a)*r*0.7,y+Math.sin(a)*r*0.7); X.lineTo(x+Math.cos(a)*r*1.3,y+Math.sin(a)*r*1.3); X.stroke(); } X.lineWidth=1;
     X.fillStyle=c; X.beginPath(); X.ellipse(x,y,r*0.7,r*0.55,0,0,TAU); X.fill();
