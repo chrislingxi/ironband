@@ -977,6 +977,10 @@ const SKILLS={
   decoy:{name:'诱饵',ico:'👻',cd:14,mp:18, run(ps){ aoeDamage(player.x,player.y,150,0.5,ps,e=>{e.stun=Math.max(e.stun||0,1.4);}); ringFx(player.x,player.y,150,'#9ad'); shake(6,0.18); sfx('dash'); }},
   innersight:{name:'洞察',ico:'👁️',cd:10,mp:10, run(ps){ aoeDamage(player.x,player.y,170,0.1,ps,e=>{e.vuln=4;}); ringFx(player.x,player.y,170,'#fff3a0'); sfx('nova'); }},
   // ===== 野蛮人 Barbarian (战斗/战吼) =====
+  bw_bash:{name:'猛击',ico:'💢',cd:0.5,mp:0, run(ps){ player.swing=0.2; const fx=Math.cos(player.face),fy=Math.sin(player.face),cx=player.x+fx*32,cy=player.y+fy*32; // D2野蛮人tier-1: 单体重击+击退
+    let best=null,bd=player.atkRange+40; for(const e of enemies){const d=dist(cx,cy,e.x,e.y); if(d<bd){bd=d;best=e;}}
+    if(best){ const c=critRoll(ps); dealDamage(best,ps.dmg*1.6*(c?2:1),true,c); best.kx=fx*260; best.ky=fy*260; best.stun=Math.max(best.stun||0,0.3); ringFx(best.x,best.y,best.r+8,'#ffd76b'); }
+    shake(5,0.1); sfx('swing'); }},
   bw_whirlwind:{name:'旋风斩',ico:'🌪️',cd:0.9,mp:8, run(ps){ player.swing=0.3; const R=88; aoeDamage(player.x,player.y,R,1.4,ps); ringFx(player.x,player.y,R,'#ffd76b'); ringFx(player.x,player.y,R*0.7,'#fff3b0'); shake(7,0.15); sfx('cleave'); }},
   bw_leap:{name:'跳劈',ico:'⬆️',cd:5,mp:12, run(ps){ const dx=Math.cos(player.face),dy=Math.sin(player.face),RANGE=150; let tx=player.x+dx*RANGE,ty=player.y+dy*RANGE;
     for(let i=18;i>=0;i--){const cx=player.x+dx*RANGE*(i/18),cy=player.y+dy*RANGE*(i/18); if(walkable(cx,cy)){tx=cx;ty=cy;break;}} player.x=tx;player.y=ty;
@@ -989,16 +993,16 @@ const SKILLS={
 const SKILL_ORDER=['dash','cleave','slam','frenzy','nova','fireball','chain',
   'iceBolt','fireBolt','chargedBolt','teleport','frostNova','staticField','glacialSpike','lightning','fireBall','chainLightning','blizzard','meteor',
   'multishot','jab','lightningjav','innersight','poisonjav','strafe','guidedarrow','charged','decoy','valkyrie',
-  'bw_whirlwind','bw_berserk','bw_leap','bw_warcry','bw_battleorders']; // 解锁/展示顺序
+  'bw_bash','bw_whirlwind','bw_berserk','bw_leap','bw_warcry','bw_battleorders']; // 解锁/展示顺序
 const SKILL_UNLOCK_LV={dash:1,cleave:1,slam:1,frenzy:6,nova:1,fireball:5,chain:8,
-  iceBolt:1,fireBolt:1,chargedBolt:1,teleport:3,frostNova:6,staticField:6,glacialSpike:10,lightning:12,fireBall:12,chainLightning:14,blizzard:18,meteor:18,
+  iceBolt:1,fireBolt:1,chargedBolt:1,teleport:18,frostNova:6,staticField:6,glacialSpike:10,lightning:12,fireBall:12,chainLightning:14,blizzard:18,meteor:18,
   multishot:1,jab:1,lightningjav:3,innersight:3,poisonjav:5,strafe:5,guidedarrow:8,charged:8,decoy:7,valkyrie:12,
-  bw_whirlwind:1,bw_berserk:1,bw_leap:4,bw_warcry:5,bw_battleorders:12};
+  bw_bash:1,bw_whirlwind:24,bw_berserk:30,bw_leap:10,bw_warcry:5,bw_battleorders:12};
 // 三职业专属技能池(D2式, 选职后只解锁本职技能)
 const CLASS_SKILLS={
   sorceress:['iceBolt','fireBolt','chargedBolt','teleport','frostNova','staticField','glacialSpike','lightning','fireBall','chainLightning','blizzard','meteor'],
   amazon:['multishot','jab','dash','lightningjav','innersight','poisonjav','strafe','guidedarrow','charged','decoy','valkyrie'],
-  barbarian:['bw_whirlwind','bw_berserk','dash','cleave','slam','bw_leap','bw_warcry','frenzy','bw_battleorders'],
+  barbarian:['bw_bash','cleave','dash','bw_whirlwind','bw_berserk','slam','bw_leap','bw_warcry','frenzy','bw_battleorders'],
 };
 // D2式 synergy: 投资同系技能→整系加伤(每关联技能等级+4%)
 const SYNERGY={ fireball:['nova','chain'], nova:['fireball','chain'], chain:['fireball','nova'], cleave:['slam','frenzy'], slam:['cleave','frenzy'],
@@ -1011,9 +1015,9 @@ const SYNERGY={ fireball:['nova','chain'], nova:['fireball','chain'], chain:['fi
 function synergyBonus(id){ const syn=SYNERGY[id]; if(!syn)return 0; let sb=0; for(const k of syn){ if(player.unlocked&&player.unlocked.includes(k)) sb+=Math.min(20,player.skillLvl[k]||1)*0.03; } return sb; }
 // 三正统D2职业: 法师(元素)/亚马逊(弓+标枪)/野蛮人(战斗+战吼), 差异化属性+技能池+被动
 const CLASSES={
-  sorceress:{name:'法师',ico:'🔮',desc:'三系元素 · +精力 · 技能伤害+15%·法力+40',attrs:{eng:6,vit:5,str:0,dex:0},skills:['iceBolt','fireBolt','teleport'], basic:{ranged:true,range:170,c:'#9fd0ff',sp:480}},
-  amazon:   {name:'亚马逊',ico:'🏹',desc:'弓与标枪 · +敏捷/精力 · 攻速+15%·暴击+8%',attrs:{dex:8,eng:3,str:1,vit:0},skills:['multishot','jab','dash'], basic:{ranged:true,range:210,c:'#cfe8a0',sp:560}},
-  barbarian:{name:'野蛮人',ico:'⚔️',desc:'近战狂战 · +力/体 · 全伤害+8%·护甲+60',attrs:{str:6,vit:6,dex:0,eng:0},skills:['bw_whirlwind','bw_berserk','dash'], basic:{ranged:false,range:38}},
+  sorceress:{name:'法师',ico:'🔮',desc:'三系元素(冰/电/火) · 精力主导 · 技能伤+15%·法力+40',attrs:{eng:9,vit:3,dex:2,str:0},skills:['iceBolt','fireBolt','chargedBolt'], basic:{ranged:true,range:170,c:'#9fd0ff',sp:480}},
+  amazon:   {name:'亚马逊',ico:'🏹',desc:'弓与标枪 · 敏捷主导 · 攻速+15%·暴击+8%',attrs:{dex:9,vit:3,str:2,eng:0},skills:['multishot','jab','dash'], basic:{ranged:true,range:210,c:'#cfe8a0',sp:560}},
+  barbarian:{name:'野蛮人',ico:'⚔️',desc:'近战狂战 · 力/体主导 · 全伤+8%·护甲+60',attrs:{str:7,vit:6,dex:1,eng:0},skills:['bw_bash','cleave','dash'], basic:{ranged:false,range:38}},
 };
 function useSkill(id){
   if(player.dead||paused||inCamp) return; // 营地禁技能(防位移穿墙+投射物堆积)
