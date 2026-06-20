@@ -1347,10 +1347,12 @@ function startStage(){
 let last=now();
 function update(dt){
   if(player.dead){ return; }
-  if(inCamp){ // 营地: 仅走位+NPC邻近, 不跑战斗
-    if(joy.active&&(joy.dx||joy.dy)){ player.face=Math.atan2(joy.dy,joy.dx); const sp=pstat().ms*dt;
+  if(inCamp){ // 营地: 走位(摇杆+点地)+NPC邻近, 不跑战斗
+    const sp=pstat().ms*dt; player.moving=false;
+    if(joy.active&&(joy.dx||joy.dy)){ player.face=Math.atan2(joy.dy,joy.dx);
       const nx=player.x+joy.dx*sp, ny=player.y+joy.dy*sp; if(walkable(nx,player.y))player.x=nx; if(walkable(player.x,ny))player.y=ny; player.moving=true; }
-    else player.moving=false;
+    else if(move&&move.x!=null){ const d=dist(player.x,player.y,move.x,move.y); // 点地移动
+      if(d>8){ const a=Math.atan2(move.y-player.y,move.x-player.x); player.face=a; const nx=player.x+Math.cos(a)*sp, ny=player.y+Math.sin(a)*sp; if(walkable(nx,player.y))player.x=nx; if(walkable(player.x,ny))player.y=ny; player.moving=true; } else move=null; }
     cam.x+=(player.x-cam.x)*Math.min(1,dt*6); cam.y+=(player.y-cam.y)*Math.min(1,dt*6);
     nearNPC=null; let best=1.7*TILE;
     for(const n of CAMP_NPCS){ const d=dist(player.x,player.y,(n.gx+0.5)*TILE,(n.gy+0.5)*TILE); if(d<best){best=d;nearNPC=n;} }
@@ -1676,7 +1678,8 @@ function draw(){
   // 火把照明: 玩家周围亮, 边缘渐暗(氛围) + 暖光晕
   const lx=W/2+(player.x-cam.x), ly=H/2+(player.y-cam.y);
   const dg=X.createRadialGradient(lx,ly,Math.min(W,H)*0.14,lx,ly,Math.max(W,H)*0.66);
-  dg.addColorStop(0,'rgba(6,5,11,0)'); dg.addColorStop(0.55,'rgba(6,5,11,0.16)'); dg.addColorStop(1,'rgba(4,3,9,0.72)');
+  if(inCamp){ dg.addColorStop(0,'rgba(40,28,14,0)'); dg.addColorStop(0.6,'rgba(30,22,12,0.10)'); dg.addColorStop(1,'rgba(20,14,8,0.40)'); } // 营地: 暖亮避难所
+  else { dg.addColorStop(0,'rgba(6,5,11,0)'); dg.addColorStop(0.55,'rgba(6,5,11,0.16)'); dg.addColorStop(1,'rgba(4,3,9,0.72)'); }
   X.fillStyle=dg; X.fillRect(0,0,W,H);
   X.globalCompositeOperation='lighter';
   const wg=X.createRadialGradient(lx,ly,0,lx,ly,150);
