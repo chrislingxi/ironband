@@ -1683,8 +1683,11 @@ function draw(){
   for(let y=y0;y<y1;y++)for(let x=x0;x<x1;x++){ if(!MAP[y]||MAP[y][x]===undefined)continue;
     if(MAP[y][x]===0){ const hsh=((x*73856093)^(y*19349663))>>>0; const v=(hsh%22)-11; // 每砖确定性明暗
       X.fillStyle=shade(((x+y)&1)?th.f1:th.f2, v); X.fillRect(x*TILE,y*TILE,TILE,TILE);
-      X.strokeStyle='#00000033'; X.strokeRect(x*TILE,y*TILE,TILE,TILE);
+      // 石板缝(柔和深色, 非硬网格): 顶/左各画细缝, 偶尔加亮边模拟受光→读作石板地而非棋盘格
+      X.fillStyle='#0000001f'; X.fillRect(x*TILE,y*TILE,TILE,2); X.fillRect(x*TILE,y*TILE,2,TILE);
+      X.fillStyle=shade(th.f1,14)+'14'; X.fillRect(x*TILE+2,y*TILE+TILE-2,TILE-2,2);
       if(hsh%5===0){ X.fillStyle='#00000028'; X.fillRect(x*TILE+(hsh%44), y*TILE+((hsh>>4)%44), 6,4); } // 裂纹/斑
+      if(hsh%7===0){ X.fillStyle='#ffffff08'; X.fillRect(x*TILE+(hsh%30)+8, y*TILE+((hsh>>5)%30)+8, 3,3); } // 细碎石粒高光
       if(hsh%9===0){ const dx=x*TILE+((hsh>>2)%48), dy=y*TILE+((hsh>>6)%48); // 章节主题装饰
         if(th.deco==='lava'){ X.fillStyle=th.acc; X.globalAlpha=0.55; X.fillRect(dx,dy,5,2); X.fillRect(dx+1,dy+2,2,3); X.globalAlpha=1; }
         else if(th.deco==='ice'){ X.fillStyle=th.acc; X.globalAlpha=0.20; X.fillRect(dx,dy,4,4); X.globalAlpha=1; }
