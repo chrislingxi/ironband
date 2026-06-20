@@ -2050,6 +2050,10 @@ function drawEnemy(e){
     X.fillStyle='#ffdf6b'; X.beginPath(); X.arc(x-r*0.12,y-r*0.52,r*0.08,0,TAU); X.arc(x+r*0.12,y-r*0.52,r*0.08,0,TAU); X.fill();
   } else if(e.boss){ // Boss: 巨躯; 超级Boss按幕差异化剪影
     const sh = e.isSuper ? (actOf(stage).n) : 0;
+    if(e.isSuper){ // 高完成度化(veteran折中): 自发光描边+呼吸+能量粒子环, 让矢量"像精心设计的魔物"非占位
+      const breath=1+Math.sin(now()*2.2)*0.04; X.save(); X.translate(x,y); X.scale(breath,breath); X.translate(-x,-y); // 呼吸
+      X.save(); X.globalAlpha=0.5; for(let i=0;i<10;i++){ const a=now()*0.8+i/10*TAU, rr=r*1.5+Math.sin(now()*2+i)*r*0.15; X.fillStyle=e.novaC||c; X.beginPath(); X.arc(x+Math.cos(a)*rr,y+Math.sin(a)*rr,3,0,TAU); X.fill(); } X.restore(); // 能量粒子环
+      X.shadowColor=c; X.shadowBlur=22; X.strokeStyle=shade(c,40); X.lineWidth=2.5; } // 自发光(下方剪影fill继承shadow)
     if(sh===1){ // 安妲莉丝(毒): 细长多臂魔后
       X.beginPath(); X.ellipse(x,y+r*0.1,r*0.7,r*1.05,0,0,TAU); X.fill();
       X.strokeStyle=c; X.lineWidth=r*0.18; X.lineCap='round'; for(const s of [-1,1])for(const o of [0.3,0.7]){ X.beginPath(); X.moveTo(x,y-r*0.2); X.lineTo(x+s*r*0.9,y-r*0.2+o*r); X.stroke(); } X.lineCap='butt'; X.lineWidth=1; // 4臂
@@ -2079,6 +2083,7 @@ function drawEnemy(e){
       X.moveTo(x+r*0.5,y-r*0.8); X.lineTo(x+r*0.85,y-r*1.4); X.lineTo(x+r*0.2,y-r*0.95); X.closePath(); X.fill();
     }
     X.fillStyle='#fff04b'; X.beginPath(); X.arc(x-r*0.2,y-r*0.55,r*0.12,0,TAU); X.arc(x+r*0.2,y-r*0.55,r*0.12,0,TAU); X.fill(); // 发光眼
+    if(e.isSuper){ X.shadowBlur=0; X.lineWidth=1; X.restore(); } // 关闭呼吸缩放+自发光
   } else if(e.kind==='succubus'){ // 魅魔: 红躯+振翅蝙蝠翼+发光眼(飞行投影+渐变)
     const flap=Math.sin(now()*6+e.x*0.1)*0.32; // 振翅
     X.fillStyle='#0006'; X.beginPath(); X.ellipse(x,e.y+r*0.7,r*0.7,r*0.22,0,0,TAU); X.fill(); // 飞行投影
