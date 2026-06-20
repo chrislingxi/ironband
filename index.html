@@ -1099,17 +1099,19 @@ function handleDown(sx,sy){
   initAudio();
   if(player.dead) return;
   const w=screenToWorld(sx,sy);
-  // tap enemy = attack-move to it (命中框放大保证小怪可点)
+  // 左半屏(<45%): 永远是摇杆走位, 不抢点怪 — 消除"摇杆vs点怪同手打架"(D3手游标准: 走位摇杆/攻击靠自动锁定+技能键)
+  if(sx < W*0.45){
+    if(joy.active) return;
+    move=null; joy.active=true; joy.bx=sx; joy.by=sy; joy.dx=0; joy.dy=0;
+    joyEl.style.left=sx+'px'; joyEl.style.top=sy+'px'; joyEl.style.display='block';
+    knobEl.style.left='60px'; knobEl.style.top='60px';
+    return true;
+  }
+  // 右半屏: 点怪=攻击锁定(命中框放大), 空地=点地移动
   let target=null,best=1e9;
-  for(const e of enemies){ const d=dist(w.x,w.y,e.x,e.y); const hitR=Math.max(e.r+26,34); if(d<hitR&&d<best){best=d;target=e;} }
-  if(target){ move={enemy:target}; ringFx(target.x,target.y,target.r+10,'#ffe08a'); return; } // 点怪攻击(不动摇杆→可边走边打)
-  if(sx>W*0.6){ move={x:w.x,y:w.y}; ringFx(w.x,w.y,18,'#9fd3ff'); return; } // 右侧空地: 点地移动+涟漪
-  // else engage virtual joystick at touch point (仅当摇杆未激活)
-  if(joy.active) return;
-  move=null; joy.active=true; joy.bx=sx; joy.by=sy; joy.dx=0; joy.dy=0;
-  joyEl.style.left=sx+'px'; joyEl.style.top=sy+'px'; joyEl.style.display='block';
-  knobEl.style.left='60px'; knobEl.style.top='60px';
-  return true; // 表示本次开启了摇杆
+  for(const e of enemies){ const d=dist(w.x,w.y,e.x,e.y); const hitR=Math.max(e.r+30,38); if(d<hitR&&d<best){best=d;target=e;} }
+  if(target){ move={enemy:target}; ringFx(target.x,target.y,target.r+10,'#ffe08a'); return; }
+  move={x:w.x,y:w.y}; ringFx(w.x,w.y,18,'#9fd3ff'); // 右半屏空地: 点地移动
 }
 function handleMove(sx,sy){
   if(!joy.active||player.dead) return;
