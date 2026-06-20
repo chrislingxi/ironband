@@ -634,7 +634,7 @@ const MERC_TYPES={
 function applyMercType(k){ const t=MERC_TYPES[k]||MERC_TYPES.archer; merc.type=k; merc.name=t.name; merc.melee=t.melee; merc.maxhp=t.hp; merc.hp=t.hp; merc.baseDmg=t.dmg; merc.atkInt=t.atk; merc.atkRange=t.range; merc.dmgM=t.dmgM; merc.c=t.c; merc.dead=false; merc.reviveT=0; }
 let move=null; // target {x,y} or enemy
 let enemies=[], projectiles=[], loots=[], floaters=[], particles=[];
-let bag=[]; let stage=1; let win=false; let corpses=[];
+let bag=[]; let stage=1; let win=false; let corpses=[]; let decals=[]; let whiteFlash=0; // decals=持久血迹; whiteFlash=Boss击杀全屏白闪
 // 难度词缀(mutator): 通关后三选一, 作用于下一层
 const MUTATORS=[
   {name:'怪潮',     desc:'+50% 怪量，+60% 掉率',     mon:1.5, drop:1.6},
@@ -760,6 +760,9 @@ function castBossAbil(e,ab){
   else if(ab==='volley'){ sfx('cleave'); for(let i=-2;i<=2;i++){ const a=base+i*0.26; projectiles.push({x:e.x,y:e.y,vx:Math.cos(a)*270,vy:Math.sin(a)*270,life:2,dmg:e.dmg*0.55,fromPlayer:false,c:e.c}); } }
   else if(ab==='manaBurn'){ if(dist(e.x,e.y,player.x,player.y)<320){ player.mp=Math.max(0,player.mp-player.maxmp*0.6); ringFx(player.x,player.y,44,'#6b8aff'); ringFx(player.x,player.y,28,'#aac0ff'); floaters.push({x:player.x,y:player.y-22,vy:-30,t:0,life:1,txt:'法力燃烧!',col:'#6b8aff'}); sfx('nova'); } } // 巴恩招牌(D2 Mana Burn)
 }
+let bossIntroT=0, bossIntroE=null; // Boss登场演出(相机推近+letterbox+名字)
+function bossEntrance(e){ bossIntroT=2.0; bossIntroE=e; ringFx(e.x,e.y,180,e.c); ringFx(e.x,e.y,110,'#fff6c0'); shake(20,0.45); freeze(0.06); sfx('boss');
+  for(let i=0;i<26;i++){ const a=Math.random()*TAU,sp=rnd(80,300); particles.push({x:e.x,y:e.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:rnd(.4,.9),t:0,c:e.c,r:rnd(2,5)}); } }
 function spawnBoss(x,y){
   const bhp=Math.round(1600*Math.pow(1.21,stage-1)), bdmg=Math.round(50*Math.pow(1.20,stage-1)); // V2难度大改v2: Boss血1600×1.33, 伤50×1.20(10h级)
   const v=BOSS_VARIANTS[(stage-1)%BOSS_VARIANTS.length];
@@ -769,7 +772,7 @@ function spawnBoss(x,y){
   if(ab){ e.bossName=ab.name; e.c=ab.c; e.novaC=ab.novaC; e.isSuper=true; e.superAbil=ab.abil; e.abilIdx=0;
     e.phaseLines=ab.lines; e.phaseIdx=0; e.chillAtk=!!ab.chill; e.r=42;
     e.hp=e.maxhp=Math.round(bhp*1.8); e.dmg=Math.round(bdmg*1.3); e.xp=Math.round(120*Math.pow(1.4,actOf(stage).n)); }
-  enemies.push(e);
+  enemies.push(e); bossEntrance(e);
 }
 function populateRoom(r){
   if(r.idx===0) return; // safe spawn room
@@ -863,6 +866,10 @@ function dealDamage(t,amount,fromPlayer,crit,noProc){
 function killEnemy(e,fromPlayer){
   const i=enemies.indexOf(e); if(i<0)return; enemies.splice(i,1);
   corpses.push({x:e.x,y:e.y,r:e.r,c:e.c,t:0,life:0.5,boss:e.boss}); // 死亡淡出残影
+  // 持久血迹(战场狼藉, veteran P1): Boss巨型血泊, 杂兵小斑; 上限120丢最早
+  decals.push({x:e.x+rnd(-4,4),y:e.y+rnd(-3,3),rx:(e.boss?e.r*2.2:e.r*rnd(0.7,1.1)),ry:(e.boss?e.r*1.3:e.r*rnd(0.4,0.7)),rot:Math.random()*TAU,a:e.boss?0.5:rnd(0.28,0.42)});
+  if(decals.length>120) decals.splice(0,decals.length-120);
+  if(e.boss){ freeze(0.34); shake(24,0.5); whiteFlash=0.7; for(let k=0;k<40;k++)particles.push({x:e.x,y:e.y,vx:rnd(-300,300),vy:rnd(-300,300),life:rnd(.4,1.0),t:0,c:pick([e.c,'#fff','#ffd76b']),r:rnd(3,7)}); ringFx(e.x,e.y,200,e.c); ringFx(e.x,e.y,130,'#fff'); } // Boss击杀慢镜+全屏白闪+大爆炸
   if(e.split && !e._nosplit){ for(let s=0;s<2;s++){ const c=spawnEnemy(e.split,e.x+rnd(-30,30),e.y+rnd(-30,30),Math.pow(1.21,stage-1)*0.7,'no'); c._nosplit=true; } } // 沙虫死亡分裂幼虫
   // 烈焰变体: 死亡爆炸(近身玩家受伤)
   if(e.elem && e.elem.k==='fire'){ ringFx(e.x,e.y,68,'#ff7a2e'); ringFx(e.x,e.y,42,'#ffd76b'); shake(7,0.15);
@@ -1394,7 +1401,7 @@ const CAMP_NPCS=[
 function genCamp(){ MW=CAMP_W; MH=CAMP_H; MAP=[];
   for(let y=0;y<MH;y++){ MAP[y]=[]; for(let x=0;x<MW;x++) MAP[y][x]=(x===0||y===0||x===MW-1||y===MH-1)?1:0; }
   rooms=[{x:0,y:0,w:MW,h:MH,idx:0,cleared:true,boss:false,shape:'open'}]; buildWalls(); }
-function enterCamp(){ if(win||paused)return; inCamp=true; paused=false; enemies=[]; projectiles=[]; loots=[]; floaters=[]; particles=[]; rings=[]; corpses=[];
+function enterCamp(){ if(win||paused)return; inCamp=true; paused=false; enemies=[]; projectiles=[]; loots=[]; floaters=[]; particles=[]; rings=[]; corpses=[]; decals=[]; bossIntroT=0;
   genCamp(); player.x=11*TILE; player.y=7*TILE; player.dead=false; move=null; merc.x=player.x-30; merc.y=player.y+20; merc.dead=false;
   cam.x=player.x; cam.y=player.y; banner('⛺ 营地 · 避难所（走近摊位交互）','#ffd76b');
   document.getElementById('campbtn').style.display='none'; document.getElementById('campexit').style.display='flex'; }
@@ -1410,7 +1417,7 @@ function openGamble(){ const cost=Math.round(120*Math.pow(1.14,stage)); if(playe
   player.gold-=cost; const x=Math.random(); const rar= x<0.01?'套装':x<0.10?'暗金':x<0.40?'稀有':'魔法';
   const it=genItem(Math.max(stage,3),null,rar); bag.push(it); sfx('loot-rare'); banner('🎲 赌出：'+it.name+' ['+it.rarity+']',it.color); saveGame(); }
 function startStage(){
-  win=false; enemies=[]; projectiles=[]; loots=[]; floaters=[]; particles=[]; rings=[]; corpses=[];
+  win=false; enemies=[]; projectiles=[]; loots=[]; floaters=[]; particles=[]; rings=[]; corpses=[]; decals=[]; bossIntroT=0;
   spawnedRooms.clear(); // 修复: 跨局/跨层残留key导致房间不刷怪→死锁
   genDungeon(stage);
   const r0=rooms[0];
@@ -1628,8 +1635,11 @@ function update(dt){
   rings=rings.filter(rr=>{ rr.t+=dt; rr.r=rr.max*(rr.t/rr.life); return rr.t<rr.life; });
   corpses=corpses.filter(c=>{ c.t+=dt; return c.t<c.life; });
   player.hitFlash=Math.max(0,player.hitFlash-dt);
-  // camera
-  cam.x+=(player.x-cam.x)*Math.min(1,dt*8); cam.y+=(player.y-cam.y)*Math.min(1,dt*8);
+  whiteFlash=Math.max(0,whiteFlash-dt*2);
+  // camera (Boss登场期相机推近到玩家与Boss之间)
+  if(bossIntroT>0 && bossIntroE){ bossIntroT-=dt; const tx=(player.x+bossIntroE.x)/2, ty=(player.y+bossIntroE.y)/2;
+    cam.x+=(tx-cam.x)*Math.min(1,dt*5); cam.y+=(ty-cam.y)*Math.min(1,dt*5); }
+  else cam.x+=(player.x-cam.x)*Math.min(1,dt*8), cam.y+=(player.y-cam.y)*Math.min(1,dt*8);
   updateHUD(ps);
 }
 let spawnedRooms=new Set();
@@ -1723,6 +1733,11 @@ function draw(){
         else if(th.deco==='soul'){ X.fillStyle=th.acc; X.globalAlpha=0.16; X.beginPath(); X.arc(dx+2,dy+2,3,0,7); X.fill(); X.globalAlpha=1; }
         else { X.fillStyle=th.acc; X.globalAlpha=0.22; X.fillRect(dx,dy,3,3); X.globalAlpha=1; } } } } // bone
   X.fillStyle=th.amb; X.fillRect(x0*TILE,y0*TILE,(x1-x0)*TILE,(y1-y0)*TILE); // 章节氛围叠色
+  // 持久血迹(地面层, 战场狼藉感)
+  for(const d of decals){ if(d.x<cam.x-W/2-40||d.x>cam.x+W/2+40||d.y<cam.y-H/2-40||d.y>cam.y+H/2+40)continue;
+    X.save(); X.translate(d.x,d.y); X.rotate(d.rot); X.globalAlpha=d.a; X.fillStyle='#4a0a0a'; X.beginPath(); X.ellipse(0,0,d.rx,d.ry,0,0,TAU); X.fill();
+    X.globalAlpha=d.a*0.6; X.fillStyle='#2a0606'; X.beginPath(); X.ellipse(d.rx*0.2,d.ry*0.1,d.rx*0.5,d.ry*0.45,0,0,TAU); X.fill(); X.restore(); }
+  X.globalAlpha=1;
   // walls (立体凸起块: 暗投影+前面渐变+顶面提亮+顶棱高光, 强化地牢纵深)
   const WH=14; // 假高度
   for(const w of walls){ if(w.x<cam.x-W/2-TILE||w.x>cam.x+W/2-0||w.y<cam.y-H/2-TILE-WH||w.y>cam.y+H/2)continue;
@@ -1826,8 +1841,16 @@ function draw(){
   if(dmgFlash>0.01){ const g=X.createRadialGradient(W/2,H/2,Math.min(W,H)*0.3,W/2,H/2,Math.max(W,H)*0.7);
     g.addColorStop(0,'rgba(180,0,0,0)'); g.addColorStop(1,'rgba(180,0,0,'+(dmgFlash*0.55).toFixed(3)+')');
     X.fillStyle=g; X.fillRect(0,0,W,H); }
+  if(whiteFlash>0.01){ X.fillStyle='rgba(255,255,255,'+(whiteFlash*0.6).toFixed(3)+')'; X.fillRect(0,0,W,H); } // Boss击杀全屏白闪
   if(!paused && rooms&&rooms.length) drawMinimap();
   drawBossBar();
+  // Boss登场仪式: letterbox黑边(推入收回) + 名号大字淡入
+  if(bossIntroT>0 && bossIntroE){ const p=bossIntroT/2.0, ease=p>0.85?(1-p)/0.15:(p<0.2?p/0.2:1); const barH=Math.min(64,H*0.11)*ease;
+    X.fillStyle='#000'; X.fillRect(0,0,W,barH); X.fillRect(0,H-barH,W,barH);
+    const a=Math.min(1,ease*1.2); X.globalAlpha=a; X.fillStyle=bossIntroE.c||'#ffd000'; X.font='bold '+Math.round(Math.min(46,W*0.07))+'px Georgia,serif'; X.textAlign='center'; X.shadowColor='#000'; X.shadowBlur=10;
+    X.fillText('☠ '+(bossIntroE.bossName||'BOSS'), W/2, H/2-8);
+    if(bossIntroE.isSuper){ X.font='bold 15px Georgia,serif'; X.fillStyle='#fff'; X.fillText('— 章末超级首领 —', W/2, H/2+22); }
+    X.shadowBlur=0; X.globalAlpha=1; }
 }
 // Boss 全宽血条 + 名号 (刷宝高潮节点的仪式感)
 function drawBossBar(){
