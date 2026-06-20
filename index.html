@@ -523,7 +523,11 @@ function genItem(stage,forcedType,forcedRarity){
   const set = (!uniq && rar.n!=='普通' && Math.random()<0.4) ? pick(SETS) : null;
   // 镶嵌孔(D2): 武器/护甲/头盔可带0~3孔
   let nsock=0; if(['weapon','body','helm'].includes(type.k)) nsock=Math.random()<0.55?rint(0,Math.min(3,rar.af)):0;
-  return {id:Math.random().toString(36).slice(2,7),type:type.k,typeName:type.n,ico:type.ico,
+  // 装备属性需求(D2式, 让str/dex非废点): 护甲穿戴要力量(重甲)/敏捷(轻甲), 武器不卡(防职业错配). 温和值=轻投资即可解锁
+  const reqBase=Math.round(3+stage*1.2+rar.af*2); let req=null;
+  if(['body','helm','belt'].includes(type.k)) req={str:reqBase};
+  else if(['gloves','boots'].includes(type.k)) req={dex:reqBase};
+  return {id:Math.random().toString(36).slice(2,7),type:type.k,typeName:type.n,ico:type.ico,req,
     rarity:rar.n,color:rar.c,affs,procs,unique:uniq?uniq.k:null,setId:set?set.id:null,sockets:new Array(nsock).fill(null),
     name: uniq ? uniq.name : (set?'['+set.name+']':'')+((procs.length?'【'+procs[0].n+'】':'')+(rar.af>=3?pick(['残暴的','迅捷的','不朽的','嗜血的','王者']):'')+type.n)};
 }
@@ -782,7 +786,7 @@ function pstat(){ const g=sumGear(player.eq); const fr=player.frenzyT>0; const s
   const cls=player.cls||'warrior'; // 职业被动
   const armor=g.armor+A.dex*0.5+sb.armor+(u.juggernaut?120:0)+(cls==='barbarian'?60:0); const dr=Math.min(0.75,armor/(armor+150+player.lvl*22)); // 护甲减伤(分母拉大降早期肉度, 硬上限75%)
   return {
-  dmg:(player.baseDmg+g.dmg+player.lvl*2)*(1+A.str*0.012)*(1+sb.dmgPct/100)*(u.glasscannon?1.6:1)*(cls==='barbarian'?1.05:1)*(fr?1.25:1)*bersk, // 力量+伤害(去1.12^层双倍, 战力靠装备+属性+技能)
+  dmg:(player.baseDmg+g.dmg+player.lvl*2+A.str*0.5)*(1+A.str*0.012)*(1+sb.dmgPct/100)*(u.glasscannon?1.6:1)*(cls==='barbarian'?1.05:1)*(fr?1.25:1)*bersk, // 力量+伤害(str给+0.5绝对/点+1.2%,让力量流可行)
   maxhp:Math.round((100+g.life+player.lvl*12+A.vit*7)*(1+sb.lifePct/100+(u.giant?0.35:0)+(u.titan?0.5:0))*(u.glasscannon?0.7:1)*(player.boT>0?1.35:1)*((curMod&&curMod.phpMul)||1)), // 体力+生命(野蛮人战斗命令boT+35%)
   maxmp:Math.round(50+player.lvl*4+A.eng*4+(g.mp||0)+(cls==='sorceress'?40:0)), // 精力+法力(+装备法力)
   armor, dr,
@@ -1158,7 +1162,7 @@ function renderCharPanel(){
   // 技能升级
   for(const id of player.unlocked){ const s=SKILLS[id]; if(!s)continue; const lv=player.skillLvl[id]||1; const can=player.skillPoints>0;
     const d=document.createElement('div'); d.className='item'; d.style.width='118px'; d.style.borderColor='#5a7fd0';
-    const syn=Math.round(synergyBonus(id)*100); const synTxt=SYNERGY[id]?`<div class="af" style="font-size:9px;color:#c9a6ff">同系协同 +${syn}% (${SYNERGY[id].map(k=>SKILLS[k].name).join('/')})</div>`:'';
+    const syn=Math.round(synergyBonus(id)*100); const synTxt=SYNERGY[id]?`<div class="af" style="font-size:9px;color:#c9a6ff">同系协同 +${syn}% (${SYNERGY[id].map(e=>SKILLS[e.k]&&SKILLS[e.k].name).filter(Boolean).join('/')})</div>`:'';
     d.innerHTML=`<div class="nm">${s.ico}${s.name} <span style="color:#7dd3ff">Lv${lv}</span></div><div class="af" style="font-size:10px">技能伤害 +${Math.round((lv-1)*18)}%</div>${synTxt}`+
       `<div class="who"><b data-sk="${id}" style="${can?'':'opacity:.35'}">+ 升级</b></div>`;
     d.querySelector('[data-sk]').onclick=()=>{ if(player.skillPoints<=0||(player.skillLvl[id]||1)>=20)return; player.skillLvl[id]=(player.skillLvl[id]||1)+1; player.skillPoints--; sfx('loot-rare'); saveGame(); renderInv(); };
@@ -1228,6 +1232,7 @@ function showItemDetail(i,p0,detEl){
     ${procTxt?'<div style="color:#ff8a3c;margin-top:2px">'+procTxt+'</div>':''}
     ${uniqTxt?'<div style="color:#ffb84d;margin-top:2px;font-weight:700">'+uniqTxt+'</div>':''}
     ${setTxt?'<div style="color:#8af;margin-top:2px">'+setTxt+'</div>':''}
+    ${it.req?'<div style="margin-top:2px;color:'+(meetReq(it)?'#9a9':'#ff7b6b')+'">需求 '+Object.entries(it.req).map(([k,v])=>({str:'力量',dex:'敏捷',vit:'体力',eng:'精力'}[k]+' '+v)).join('/')+(meetReq(it)?'':' ✗不足')+'</div>':''}
     <div style="margin-top:3px">${cmp}</div>
     <div class="dbtns"><b data-eq="me">装我</b>${canMerc?'<b data-eq="mc">给佣兵</b>':''}<b data-rr>🎲洗练 ${rCost}💰</b>${curSock(it)<sockCap(it)?'<b data-punch>🔩打孔 '+punchCost(it)+'💰</b>':''}<b data-drop>分解 +${dGold}💰</b></div>`;
   detEl.querySelector('[data-eq="me"]').onclick=()=>{ selItem=null; equip('me',i); };
@@ -1268,8 +1273,10 @@ function slotHtml(label,it){
   const rw=it.runeword?'<br><span style="color:#ffd76b;font-weight:700">★'+it.runeword.name+'</span>':'';
   return `<div class="slot"><div class="nm" style="color:${it.color}">${label}</div><div style="font-size:10px"><span style="display:inline-block;width:16px;vertical-align:middle">${it.gem?(it.ico||'💎'):iconImg(it.type,it.ico)}</span>${it.name}<br>${af}${sock}${rw}</div></div>`;
 }
+function meetReq(it){ if(!it||!it.req)return true; const g=sumGear(player.eq); for(const k in it.req){ if((player.attrs[k]||0)+(g[k]||0) < it.req[k]) return false; } return true; }
 function equip(who,i){
   const it=bag[i]; if(!it)return;
+  if(who==='me' && !meetReq(it)){ const need=Object.entries(it.req).map(([k,v])=>({str:'力量',dex:'敏捷',vit:'体力',eng:'精力'}[k]+v)).join('/'); banner('属性不足，需 '+need+'（去角色页加点）','#ff9a9a'); return; }
   if(who==='me'){ const old=player.eq[it.type]; player.eq[it.type]=it; bag.splice(i,1); if(old)bag.push(old); recalcProcs(); const ps=pstat(); player.maxhp=ps.maxhp; player.hp=Math.min(player.hp,player.maxhp); }
   else { if(it.type!=='weapon')return; const old=merc.eq.weapon; merc.eq.weapon=it; bag.splice(i,1); if(old)bag.push(old); }
   sfx('pickup'); saveGame(); renderInv();
