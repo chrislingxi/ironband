@@ -652,6 +652,16 @@ const ARCH={
   antlion: {n:'蚁狮',c:'#b08840',r:16,hp:52,dmg:11,ms:122,range:30,atk:1.0,xp:13,ranged:false},
   fireant: {n:'火蚁',c:'#ff7a2e',r:13,hp:38,dmg:12,ms:110,range:28,atk:1.0,xp:13,ranged:false},
   iceant:  {n:'冰蚁',c:'#6bc6ff',r:13,hp:46,dmg:10,ms:96,range:28,atk:1.1,xp:13,ranged:false},
+  // D2怪物扩充(对标暗黑2各幕)
+  fallen:  {n:'堕落者',c:'#a85c8a',r:12,hp:26,dmg:8,ms:128,range:24,atk:0.9,xp:8,ranged:false},
+  quill:   {n:'刺鼠',c:'#caa05a',r:12,hp:30,dmg:10,ms:132,range:210,atk:1.3,xp:11,ranged:true},
+  leaper:  {n:'沙跳虫',c:'#cbb060',r:14,hp:40,dmg:13,ms:150,range:28,atk:1.1,xp:14,ranged:false,charger:true},
+  bird:    {n:'兀鹫',c:'#8a8a9a',r:12,hp:34,dmg:11,ms:170,range:26,atk:1.0,xp:12,ranged:false},
+  shaman:  {n:'堕落巫医',c:'#7a4ca0',r:13,hp:44,dmg:10,ms:70,range:220,atk:1.9,xp:17,ranged:true,summon:'fallen'},
+  succubus:{n:'魅魔',c:'#d06ba0',r:14,hp:48,dmg:14,ms:92,range:230,atk:1.7,xp:16,ranged:true,chillOnHit:true},
+  doll:    {n:'自爆娃娃',c:'#c0c060',r:10,hp:18,dmg:6,ms:150,range:20,atk:0.8,xp:9,ranged:false,suicide:true},
+  maggot:  {n:'沙虫',c:'#9bbf6b',r:16,hp:56,dmg:11,ms:64,range:28,atk:1.2,xp:14,ranged:false,split:'larva'},
+  larva:   {n:'幼虫',c:'#bcd98b',r:9,hp:14,dmg:6,ms:130,range:20,atk:1.0,xp:4,ranged:false},
 };
 const ELITE_AFFIX=[
   {k:'迅捷',c:'#6bf0ff',ms:1.6},
@@ -663,7 +673,8 @@ const ELITE_AFFIX=[
 function spawnEnemy(kind,x,y,scale,forceElite){
   const a=ARCH[kind]; const s=scale||1; const m=curMod||{};
   const e={kind,x,y,r:a.r,c:a.c,hp:a.hp*s*7.0*(m.ehp||1),maxhp:a.hp*s*7.0*(m.ehp||1),dmg:a.dmg*s*2.8*(m.edmg||1),ms:a.ms,range:a.range,
-    atkInt:a.atk,atkT:Math.random(),xp:a.xp,ranged:a.ranged,hitFlash:0,boss:false};
+    atkInt:a.atk,atkT:Math.random(),xp:a.xp,ranged:a.ranged,hitFlash:0,boss:false,
+    charger:a.charger,summon:a.summon,chillOnHit:a.chillOnHit,suicide:a.suicide,split:a.split};
   // 精英怪(D3式词缀): 更大更猛, 光环, 必爆好货
   if(forceElite===true || (forceElite!=='no' && Math.random()<Math.min(0.30,0.06+stage*0.022)+(m.eliteAdd||0))){ // 精英密度随层升(上限30%, 因带pack), 'no'阻止(小弟)
     const af=pick(ELITE_AFFIX); e.elite=af; e.eliteName='【'+af.k+'】'+a.n;
@@ -732,6 +743,12 @@ function populateRoom(r){
   if(stage>=2) kinds.push('antlion'); // 蚁狮(快速近战)从2层起
   if(stage>=3){ kinds.push('mage'); kinds.push('fireant'); }    // 骷髅法师+火蚁从3层起
   if(stage>=4) kinds.push('iceant');  // 冰蚁从4层起
+  const actN=actOf(stage).n; // D2按幕投放新怪
+  if(actN===1){ kinds.push('fallen'); kinds.push('quill'); if(stage>=2)kinds.push('shaman'); }
+  else if(actN===2){ kinds.push('leaper'); kinds.push('bird'); kinds.push('maggot'); }
+  else if(actN===3){ kinds.push('doll'); kinds.push('bird'); }
+  else if(actN===4){ kinds.push('doll'); kinds.push('doll'); }
+  else if(actN>=5){ kinds.push('succubus'); }
   if(r.boss){ spawnBoss((r.x+r.w/2)*TILE,(r.y+r.h/2)*TILE);
     for(let i=0;i<3;i++) spawnEnemy('skeleton',(r.x+r.w/2+rnd(-2,2))*TILE,(r.y+r.h/2+rnd(-2,2))*TILE,Math.pow(1.21,stage-1));
     return; }
@@ -798,6 +815,7 @@ function dealDamage(t,amount,fromPlayer,crit,noProc){
 function killEnemy(e,fromPlayer){
   const i=enemies.indexOf(e); if(i<0)return; enemies.splice(i,1);
   corpses.push({x:e.x,y:e.y,r:e.r,c:e.c,t:0,life:0.5,boss:e.boss}); // 死亡淡出残影
+  if(e.split && !e._nosplit){ for(let s=0;s<2;s++){ const c=spawnEnemy(e.split,e.x+rnd(-30,30),e.y+rnd(-30,30),Math.pow(1.21,stage-1)*0.7,'no'); c._nosplit=true; } } // 沙虫死亡分裂幼虫
   // 烈焰变体: 死亡爆炸(近身玩家受伤)
   if(e.elem && e.elem.k==='fire'){ ringFx(e.x,e.y,68,'#ff7a2e'); ringFx(e.x,e.y,42,'#ffd76b'); shake(7,0.15);
     for(let k=0;k<14;k++)particles.push({x:e.x,y:e.y,vx:rnd(-160,160),vy:rnd(-160,160),life:.45,t:0,c:pick(['#ff7a2e','#ffd76b']),r:rnd(2,4)});
@@ -1356,8 +1374,14 @@ function update(dt){
       const dec=1-Math.min(1,dt*11); e.kx*=dec; e.ky*=dec; if(Math.abs(e.kx)<3)e.kx=0; if(Math.abs(e.ky)<3)e.ky=0; }
     // 硬直: 打断 AI
     if(e.stun>0){ e.stun-=dt; continue; }
-    // 憎恶冲锋(charger AI): 蓄力站定→高速突进撞击
-    if(e.kind==='brute' && !e.boss){
+    // 自爆娃娃: 贴近玩家即引爆(D2 Undead Stygian Doll)
+    if(e.suicide && dist(e.x,e.y,player.x,player.y)<e.r+player.r+10){ ringFx(e.x,e.y,90,'#ffd76b'); ringFx(e.x,e.y,60,'#ff7a2e'); shake(10,0.2);
+      if(dist(e.x,e.y,player.x,player.y)<90) hurtPlayer(e.dmg*2.2); e.hp=0; killEnemy(e,false); continue; }
+    // 堕落巫医: 周期召唤堕落者(D2 Shaman)
+    if(e.summon){ e.sumT=(e.sumT==null?rnd(3,5):e.sumT)-dt;
+      if(e.sumT<=0 && enemies.length<60){ e.sumT=rnd(5,7); ringFx(e.x,e.y,40,e.c); spawnEnemy(e.summon,e.x+rnd(-40,40),e.y+rnd(-40,40),Math.pow(1.21,stage-1)); } }
+    // 冲锋(charger AI): 憎恶+沙跳虫 蓄力站定→高速突进撞击
+    if((e.kind==='brute'||e.charger) && !e.boss){
       const pd=dist(e.x,e.y,player.x,player.y);
       if(e.chgWind>0){ e.chgWind-=dt; e._fang=Math.atan2(player.y-e.y,player.x-e.x);
         if(e.chgWind<=0){ e.chgDash=0.34; e.chgAng=Math.atan2(player.y-e.y,player.x-e.x); sfx('dash'); }
@@ -1409,7 +1433,7 @@ function update(dt){
       const a=Math.atan2(e.y-ty,e.x-tx), step=e.ms*0.92*(e.slow?0.45:1)*dt;
       let nx=e.x+Math.cos(a)*step, ny=e.y+Math.sin(a)*step;
       if(walkable(nx,e.y))e.x=nx; if(walkable(e.x,ny))e.y=ny; e.moving=true;
-      e.atkT-=dt*(e.slow>0?0.45:1); if(e.atkT<=0){ e.atkT=e.atkInt; shoot(e.x,e.y,tx,ty,e.dmg,false); }
+      e.atkT-=dt*(e.slow>0?0.45:1); if(e.atkT<=0){ e.atkT=e.atkInt; shoot(e.x,e.y,tx,ty,e.dmg,false,false,e.chillOnHit); }
     } else if(d>e.range){ const a=Math.atan2(ty-e.y,tx-e.x); const step=e.ms*(e.slow?0.45:1)*dt;
       let nx=e.x+Math.cos(a)*step, ny=e.y+Math.sin(a)*step;
       // separation
@@ -1418,8 +1442,8 @@ function update(dt){
     } else { e.moving=false;
       e.atkT-=dt*(e.slow>0?0.45:1); // 冰缓同时减攻速→真输出窗口
       if(e.atkT<=0){ e.atkT=e.atkInt;
-        if(e.ranged){ shoot(e.x,e.y,tx,ty,e.dmg,false); }
-        else { if(tEnt===player){ hurtPlayer(e.dmg); if(e.elem&&e.elem.k==='frost')player.chillT=1.3; } else hurtMerc(e.dmg); attackFx(e,tx,ty); }
+        if(e.ranged){ shoot(e.x,e.y,tx,ty,e.dmg,false,false,e.chillOnHit); }
+        else { if(tEnt===player){ hurtPlayer(e.dmg); if((e.elem&&e.elem.k==='frost')||e.chillOnHit)player.chillT=1.3; } else hurtMerc(e.dmg); attackFx(e,tx,ty); }
       }
     }
   }
@@ -1463,7 +1487,7 @@ function update(dt){
 let spawnedRooms=new Set();
 function spawnTrigger(){ const r=roomAt(player.x,player.y); if(r&&r.idx!==0&&!spawnedRooms.has(stage+'-'+r.idx)){ spawnedRooms.add(stage+'-'+r.idx); populateRoom(r); banner(r.boss?'⚠ Boss 房间':'房间 '+(r.idx+1)+'/'+rooms.length,r.boss?'#ff5e3a':'#fff'); } }
 function nearestEnemy(x,y,maxd){ let best=null,bd=maxd||1e9; for(const e of enemies){const d=dist(x,y,e.x,e.y);if(d<bd){bd=d;best=e;}} return best; }
-function shoot(x,y,tx,ty,dmg,fromPlayer,crit){ const a=Math.atan2(ty-y,tx-x),sp=fromPlayer?420:260; projectiles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1.4,dmg,fromPlayer,crit:!!crit}); }
+function shoot(x,y,tx,ty,dmg,fromPlayer,crit,chill){ const a=Math.atan2(ty-y,tx-x),sp=fromPlayer?420:260; projectiles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1.4,dmg,fromPlayer,crit:!!crit,bossChill:chill,c:chill?'#bfe3ff':undefined}); }
 function attackFx(e,tx,ty){ for(let i=0;i<4;i++)particles.push({x:(e.x+tx)/2,y:(e.y+ty)/2,vx:rnd(-40,40),vy:rnd(-40,40),life:.2,t:0,c:'#f55',r:2}); }
 function hurtPlayer(dmg){ if(player.dead)return; dmg*=(1-(pstat().dr||0)); player.hp-=dmg; player.hitFlash=0.18;
   dmgFlash=Math.min(1,dmgFlash+0.5); shake(Math.min(14,6+dmg*0.3),0.18); sfx('hurt'); vibrate(30);
