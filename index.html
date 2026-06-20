@@ -913,7 +913,7 @@ function unlockSkillsForLevel(){
   const pool=CLASS_SKILLS[player.cls]||SKILL_ORDER; // 只解锁本职技能
   for(const id of SKILL_ORDER){ if(pool.includes(id) && (SKILL_UNLOCK_LV[id]||99)<=player.lvl && !player.unlocked.includes(id)){
     player.unlocked.push(id);
-    if(player.loadout.length<4 && !player.loadout.includes(id)){ player.loadout.push(id); banner('解锁技能：'+SKILLS[id].ico+SKILLS[id].name,'#7dd3ff'); }
+    if(!SKILLS[id].passive && player.loadout.length<4 && !player.loadout.includes(id)){ player.loadout.push(id); banner('解锁技能：'+SKILLS[id].ico+SKILLS[id].name,'#7dd3ff'); } // 被动不进上阵
     else banner('解锁 '+SKILLS[id].ico+SKILLS[id].name+'（技能栏满·背包🎒可替换）','#ffd76b'); // 满槽引导, 防新技能成死内容
     sfx('loot-rare'); renderSkillBar();
   } }
@@ -931,7 +931,12 @@ const SKILL_ELEM={ iceBolt:'cold',frostNova:'cold',glacialSpike:'cold',blizzard:
   fireBolt:'fire',fireBall:'fire',meteor:'fire',fireball:'fire', poisonjav:'poison' };
 const ELEM_CN={fire:'火',cold:'冰',light:'电',poison:'毒',phys:'物理'};
 let curElem='phys';
+// 元素精通被动(D2法师灵魂"为什么我是火法"): 投点→该系全技能增伤. passive=不可施放/不进上阵, melem=精通元素
+const MASTERY_OF={fire:'fireMastery',cold:'coldMastery',light:'lightMastery'};
 const SKILLS={
+  fireMastery:{name:'火焰精通',ico:'🔥',passive:true,melem:'fire',desc:'火系伤害/级+8%'},
+  coldMastery:{name:'寒冷精通',ico:'❄️',passive:true,melem:'cold',desc:'冰系伤害/级+8%'},
+  lightMastery:{name:'闪电精通',ico:'⚡',passive:true,melem:'light',desc:'电系伤害/级+8%'},
   dash:   {name:'冲刺',ico:'💨',cd:2.0,mp:0, run(ps){ const dx=Math.cos(player.face),dy=Math.sin(player.face); let nx=player.x,ny=player.y;
     for(let i=0;i<16;i++){ const tx=nx+dx*14,ty=ny+dy*14; if(walkable(tx,ty)){nx=tx;ny=ty;} else break; }
     for(let i=0;i<10;i++) particles.push({x:player.x+rnd(-8,8),y:player.y+rnd(-8,8),vx:-dx*70,vy:-dy*70,life:.3,t:0,c:'#9ad',r:2});
@@ -1032,14 +1037,16 @@ const SKILLS={
 const SKILL_ORDER=['dash','cleave','slam','frenzy','nova','fireball','chain',
   'iceBolt','fireBolt','chargedBolt','teleport','frostNova','staticField','glacialSpike','lightning','fireBall','chainLightning','blizzard','meteor',
   'multishot','jab','lightningjav','innersight','poisonjav','strafe','guidedarrow','charged','decoy','valkyrie',
-  'bw_bash','bw_whirlwind','bw_berserk','bw_leap','bw_warcry','bw_battleorders']; // 解锁/展示顺序
+  'bw_bash','bw_whirlwind','bw_berserk','bw_leap','bw_warcry','bw_battleorders',
+  'fireMastery','coldMastery','lightMastery']; // 解锁/展示顺序
 const SKILL_UNLOCK_LV={dash:1,cleave:1,slam:1,frenzy:6,nova:1,fireball:5,chain:8,
   iceBolt:1,fireBolt:1,chargedBolt:1,teleport:18,frostNova:6,staticField:6,glacialSpike:10,lightning:12,fireBall:12,chainLightning:14,blizzard:18,meteor:18,
   multishot:1,jab:1,lightningjav:3,innersight:3,poisonjav:5,strafe:5,guidedarrow:8,charged:8,decoy:7,valkyrie:12,
-  bw_bash:1,bw_whirlwind:24,bw_berserk:30,bw_leap:10,bw_warcry:5,bw_battleorders:12};
+  bw_bash:1,bw_whirlwind:24,bw_berserk:30,bw_leap:10,bw_warcry:5,bw_battleorders:12,
+  fireMastery:4,coldMastery:4,lightMastery:4};
 // 三职业专属技能池(D2式, 选职后只解锁本职技能)
 const CLASS_SKILLS={
-  sorceress:['iceBolt','fireBolt','chargedBolt','teleport','frostNova','staticField','glacialSpike','lightning','fireBall','chainLightning','blizzard','meteor'],
+  sorceress:['iceBolt','fireBolt','chargedBolt','teleport','frostNova','staticField','glacialSpike','lightning','fireBall','chainLightning','blizzard','meteor','fireMastery','coldMastery','lightMastery'],
   amazon:['multishot','jab','dash','lightningjav','innersight','poisonjav','strafe','guidedarrow','charged','decoy','valkyrie'],
   barbarian:['bw_bash','cleave','dash','bw_whirlwind','bw_berserk','slam','bw_leap','bw_warcry','frenzy','bw_battleorders'],
 };
@@ -1066,6 +1073,7 @@ const CLASSES={
 function useSkill(id){
   if(player.dead||paused||inCamp) return; // 营地禁技能(防位移穿墙+投射物堆积)
   const s=SKILLS[id]; if(!s) return;
+  if(s.passive) return; // 被动技能不可施放(只在面板投点)
   if((player.cd[id]||0)>0){ sfx('hit'); return; } // 冷却中: 短促反馈(非静默)
   if(s.mp && player.mp<s.mp){ banner('法力不足','#6b8aff'); sfx('hit'); return; } // 蓝不足: 提示音+红字(非静默)
   if(s.mp) player.mp-=s.mp;
@@ -1073,6 +1081,7 @@ function useSkill(id){
   const ps=pstat(); const slv=player.skillLvl[id]||1; ps.dmg*=(1+(slv-1)*(SKILL_GROW[id]||0.14)); // 技能等级成长(per-skill曲线: 走刀技平缓/招牌大招陡)
   ps.dmg*=(1+sumGear(player.eq).skilldmg/100); // 装备+技能伤害%词缀
   ps.dmg*=(1+synergyBonus(id)); // D2 synergy: 同系技能加成(per-skill系数)
+  const _mel=SKILL_ELEM[id], _mst=_mel&&MASTERY_OF[_mel]; if(_mst&&player.unlocked.includes(_mst)) ps.dmg*=(1+(player.skillLvl[_mst]||1)*0.08); // 元素精通: 解锁即Lv1(+8%)该系全技能增伤,投点递增(D2专精)
   if(player.cls==='sorceress') ps.dmg*=1.15; // 秘法职业: 技能伤害+15%
   curElem = SKILL_ELEM[id]||'phys'; const pn0=projectiles.length; // 元素: 本次施放期间生效
   s.run(ps);
@@ -1167,7 +1176,7 @@ function toggleInv(){ const open=invEl.style.display!=='flex'; invEl.style.displ
 function renderSkillPick(){
   const el=document.getElementById('skillpick'); el.innerHTML='';
   const cpool=CLASS_SKILLS[player.cls]||SKILL_ORDER;
-  for(const id of SKILL_ORDER){ if(!cpool.includes(id))continue; const s=SKILLS[id]; const unlocked=player.unlocked.includes(id);
+  for(const id of SKILL_ORDER){ if(!cpool.includes(id))continue; const s=SKILLS[id]; if(s.passive)continue; const unlocked=player.unlocked.includes(id); // 被动不在上阵选择
     const on=player.loadout.includes(id);
     const d=document.createElement('div'); d.className='item'; d.style.width='104px'; d.style.textAlign='center';
     d.style.borderColor= on?'#ffd76b':(unlocked?'#5a5a70':'#333'); d.style.opacity= unlocked?1:0.4;
@@ -1198,7 +1207,9 @@ function renderCharPanel(){
     const d=document.createElement('div'); d.className='item'; d.style.width='118px'; d.style.borderColor='#5a7fd0';
     const syn=Math.round(synergyBonus(id)*100); const synTxt=SYNERGY[id]?`<div class="af" style="font-size:9px;color:#c9a6ff">同系协同 +${syn}% (${SYNERGY[id].map(e=>SKILLS[e.k]&&SKILLS[e.k].name).filter(Boolean).join('/')})</div>`:'';
     const gp=Math.round((SKILL_GROW[id]||0.14)*100); // 真实per-skill成长曲线(原写死18%在撒谎)
-    d.innerHTML=`<div class="nm">${s.ico}${s.name} <span style="color:#7dd3ff">Lv${lv}</span></div><div class="af" style="font-size:10px">技能伤害 +${Math.round((lv-1)*gp)}% <span style="color:#8aa">(每级+${gp}%)</span></div>${synTxt}`+
+    const body=s.passive ? `<div class="af" style="font-size:10px;color:#c9a6ff">被动 · ${ELEM_CN[s.melem]||''}系伤害 +${Math.round(lv*8)}% <span style="color:#8aa">(每级+8%)</span></div>` : `<div class="af" style="font-size:10px">技能伤害 +${Math.round((lv-1)*gp)}% <span style="color:#8aa">(每级+${gp}%)</span></div>${synTxt}`;
+    d.style.borderColor=s.passive?'#7a5fb0':'#5a7fd0';
+    d.innerHTML=`<div class="nm">${s.ico}${s.name} <span style="color:#7dd3ff">Lv${lv}</span></div>${body}`+
       `<div class="who"><b data-sk="${id}" style="${can?'':'opacity:.35'}">+ 升级</b></div>`;
     d.querySelector('[data-sk]').onclick=()=>{ if(player.skillPoints<=0||(player.skillLvl[id]||1)>=20)return; player.skillLvl[id]=(player.skillLvl[id]||1)+1; player.skillPoints--; sfx('loot-rare'); saveGame(); renderInv(); };
     el.appendChild(d); }
