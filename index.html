@@ -136,6 +136,7 @@
   .icoimg { width:84%; height:84%; object-fit:contain; vertical-align:middle; pointer-events:none; filter:drop-shadow(0 1px 1px #000a); }
   .gcell .icoimg { width:40px; height:40px; }
   .qolbtn { font-size:11px; padding:4px 9px; border:1px solid #5a5a70; border-radius:6px; cursor:pointer; font-weight:600; background:#15151ccc; }
+  .hudimg { width:34px; height:34px; object-fit:contain; pointer-events:none; filter:drop-shadow(0 1px 1px #000a); }
   #invdetail { width:300px; max-width:88vw; min-height:30px; background:#1a1722f5; border:1px solid #c9883a;
     border-radius:10px; padding:9px 12px; font-size:12px; line-height:1.5; display:none; margin:4px 0 10px;
     box-shadow:0 4px 14px #000c; }
@@ -160,8 +161,8 @@
   <div id="joy"><div id="joyknob"></div></div>
   <div id="hint">左半屏按住拖动 = 摇杆移动 · 点怪攻击<br>右下技能键放技能 · 清空房间推进<br>击败 Boss 通关</div>
   <div id="invbtn">🎒</div>
-  <div id="potbtn">🧪<span id="potcnt">4</span></div>
-  <div id="mppotbtn">🔵<span id="mppotcnt">3</span></div>
+  <div id="potbtn"><img src="assets/icons/potion_hp.png" class="hudimg" draggable="false"><span id="potcnt">4</span></div>
+  <div id="mppotbtn"><img src="assets/icons/potion_mp.png" class="hudimg" draggable="false"><span id="mppotcnt">3</span></div>
   <div id="skills">
     <div class="skill" data-skill="dash"><span class="ico">💨</span><span>冲刺</span><span class="key">1</span><div class="cd"></div></div>
     <div class="skill" data-skill="cleave"><span class="ico">🌀</span><span>旋风</span><span class="key">2</span><div class="cd"></div></div>
