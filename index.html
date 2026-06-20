@@ -519,6 +519,9 @@ const SLOTS=['weapon','helm','body','gloves','boots','belt','ring','amulet']; //
 // M7 去emoji: 真实图标(FLARE CC-BY-SA, assets/icons/) 替代emoji, 缺失回退emoji
 const ICON_KEYS=new Set(['weapon','helm','body','gloves','boots','belt','ring','amulet','potion_hp','potion_mp','skill_dash','skill_cleave','skill_nova','skill_slam','skill_fireball','skill_chain','skill_frenzy','skill_warrior','skill_mage','skill_duelist']);
 function iconImg(key,fb){ return ICON_KEYS.has(key) ? '<img src="assets/icons/'+key+'.png" class="icoimg" draggable="false" alt="">' : (fb||'❓'); }
+// canvas用图标Image缓存(地面掉落drawImage真图标, 不再emoji穿帮)
+const _icoImg={};
+function canvasIco(key){ if(_icoImg[key]===undefined){ if(ICON_KEYS.has(key)){ const im=new Image(); im.src='assets/icons/'+key+'.png'; _icoImg[key]=im; } else _icoImg[key]=null; } return _icoImg[key]; }
 // 魔法寻宝MF: 堆MF→稀有/暗金概率上升(D2刷宝飞轮). 暗金受益最大×3, 魔法最小
 const MF_BOOST=[0,0.5,1.5,3];
 function rollRarity(mf){ mf=mf||0; const ws=RARITY.map((r,i)=> i===0?r.w : r.w*(1+mf/100*MF_BOOST[i])); let t=ws.reduce((s,w)=>s+w,0),x=Math.random()*t; for(let i=0;i<RARITY.length;i++){ if((x-=ws[i])<0) return RARITY[i]; } return RARITY[0]; }
@@ -1712,7 +1715,9 @@ function draw(){
     X.globalAlpha=clamp(0.55+beam,0,1); X.fillStyle=bg; X.fillRect(l.x-(6+beam*6),l.y-bh,12+beam*12,bh+6); X.globalAlpha=1;
     X.fillStyle='#0008'; X.beginPath(); X.ellipse(l.x,l.y+8,11,4,0,0,TAU); X.fill();
     X.shadowColor=l.color; X.shadowBlur=16+beam*24; X.fillStyle=l.color; X.beginPath(); X.arc(l.x,yy,6*sc,0,TAU); X.fill(); X.shadowBlur=0;
-    X.font=(14*sc).toFixed(0)+'px Georgia,serif'; X.textAlign='center'; X.fillText(l.ico,l.x,yy+5); }
+    const im=l.type&&canvasIco(l.type); // 真图标优先, 缺失(宝石等)回退emoji
+    if(im&&im.complete&&im.naturalWidth){ const s=20*sc; X.drawImage(im,l.x-s/2,yy-s/2,s,s); }
+    else { X.font=(14*sc).toFixed(0)+'px Georgia,serif'; X.textAlign='center'; X.fillText(l.ico,l.x,yy+5); } }
   // 死亡残影(淡出+压扁)
   for(const c of corpses){ const k=c.t/c.life; X.globalAlpha=(1-k)*0.6; X.fillStyle=shade(c.c,-30);
     X.beginPath(); X.ellipse(c.x,c.y+c.r*0.3,c.r*(1+k*0.6),c.r*(0.5-k*0.3),0,0,TAU); X.fill(); X.globalAlpha=1; }
