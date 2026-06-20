@@ -1723,8 +1723,10 @@ function draw(){
     else if(o._merc) drawActor(merc.x,merc.y,merc.r,'#3a8a52',merc.hitFlash,0,merc.face||0,'佣兵',merc.hp/merc.maxhp,'merc',merc.moving);
     else drawEnemy(o);
   }
-  // projectiles
-  for(const p of projectiles){ X.fillStyle=p.fromPlayer?'#9bdcff':'#ff9b6b'; X.shadowColor=X.fillStyle; X.shadowBlur=8; X.beginPath(); X.arc(p.x,p.y,4,0,TAU); X.fill(); X.shadowBlur=0; }
+  // projectiles (敌方弹道更醒目: 大+亮+脉冲光晕+拖尾, 让冷箭来向可读)
+  for(const p of projectiles){ const mine=p.fromPlayer; const col=p.c||(mine?'#9bdcff':'#ff5e3a'); const rr=mine?4:5+Math.abs(Math.sin(now()*12))*1.5;
+    if(!mine){ X.strokeStyle=col; X.globalAlpha=0.4; X.lineWidth=2; X.beginPath(); X.moveTo(p.x-p.vx*0.03,p.y-p.vy*0.03); X.lineTo(p.x,p.y); X.stroke(); X.globalAlpha=1; X.lineWidth=1; } // 敌弹拖尾
+    X.fillStyle=col; X.shadowColor=col; X.shadowBlur=mine?8:14; X.beginPath(); X.arc(p.x,p.y,rr,0,TAU); X.fill(); X.shadowBlur=0; }
   // particles
   for(const p of particles){ X.globalAlpha=clamp(1-p.t/p.life,0,1); X.fillStyle=p.c; X.beginPath(); X.arc(p.x,p.y,p.r,0,TAU); X.fill(); X.globalAlpha=1; }
   // floaters
