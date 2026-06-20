@@ -836,7 +836,7 @@ function pstat(){ const g=sumGear(player.eq); const fr=player.frenzyT>0; const s
   maxhp:Math.round((100+g.life+player.lvl*12+A.vit*7)*(1+sb.lifePct/100+(u.giant?0.35:0)+(u.titan?0.5:0))*(u.glasscannon?0.62:1)*(player.boT>0?1.35:1)*((curMod&&curMod.phpMul)||1)), // 体力+生命(野蛮人战斗命令boT+35%)
   maxmp:Math.round(50+player.lvl*4+A.eng*4+(g.mp||0)+(cls==='sorceress'?40:0)), // 精力+法力(+装备法力)
   armor, dr,
-  atkInt:player.baseAtkInt*(1-Math.min(0.6,g.as/100))*(1-Math.min(0.35,(sb.asPct+A.dex*0.08)/100))*(u.swift?0.87:1)*(u.zealot?0.88:1)*(cls==='amazon'?0.85:1)*(fr?0.6:1), // 敏捷+攻速
+  atkInt:player.baseAtkInt*(1-Math.min(0.6,(Math.floor((g.as||0)/15)*15)/100))*(1-Math.min(0.35,(sb.asPct+A.dex*0.08)/100))*(u.swift?0.87:1)*(u.zealot?0.88:1)*(cls==='amazon'?0.85:1)*(fr?0.6:1), // 攻速按15%档位取整(D2 breakpoint:到阈值才跨档)+敏捷
   ms:player.baseMs*(1+g.ms/100)*(u.swift?1.20:1)*(u.titan?0.88:1),
   crit:Math.min(60,5+g.crit+A.dex*0.15+sb.critAdd+(u.zealot?15:0)+(cls==='amazon'?8:0)), // 敏捷+暴击, 硬上限60%
   frenzy:fr, sets:sb.active,
@@ -1240,6 +1240,11 @@ function renderCharPanel(){
     d.querySelector('[data-a]').onclick=()=>{ if(player.statPoints<=0)return; player.attrs[a.k]=(player.attrs[a.k]||0)+1; player.statPoints--;
       const ps=pstat(); player.maxhp=ps.maxhp; player.maxmp=ps.maxmp; sfx('pickup'); saveGame(); renderInv(); };
     el.appendChild(d); });
+  // 攻速档位(breakpoint搓装目标, theorycrafter P3: 让'差X%到下一档'成明确目标)
+  { const g=sumGear(player.eq); const ias=Math.round(g.as||0); const BP=15; const tier=Math.floor(ias/BP), nextNeed=(tier+1)*BP-ias;
+    const d=document.createElement('div'); d.className='item'; d.style.width='118px'; d.style.borderColor='#7dd3ff';
+    d.innerHTML=`<div class="nm">攻速档位 <span style="color:#7dd3ff">${tier}</span></div><div class="af" style="font-size:10px">IAS ${ias}% · 差 ${nextNeed}% 到下一档</div>`;
+    el.appendChild(d); }
   // 技能升级
   for(const id of player.unlocked){ const s=SKILLS[id]; if(!s)continue; const lv=player.skillLvl[id]||1; const can=player.skillPoints>0;
     const d=document.createElement('div'); d.className='item'; d.style.width='118px'; d.style.borderColor='#5a7fd0';
