@@ -915,10 +915,10 @@ function unlockSkillsForLevel(){
 
 // ---------- skills (数据驱动注册表) ----------
 function critRoll(ps){ return Math.random()*100<ps.crit; }
-function aoeDamage(x,y,R,mult,ps,onHit){ let hit=0; for(const e of [...enemies]){ if(dist(x,y,e.x,e.y)<R+e.r){ const c=critRoll(ps); dealDamage(e,ps.dmg*mult*(c?2:1),true,c); if(onHit)onHit(e); hit++; } } return hit; }
-function explode(x,y,R,mult,ps){ ringFx(x,y,R,'#ff8a3c'); ringFx(x,y,R*0.6,'#ffd76b'); shake(8,0.16);
+function aoeDamage(x,y,R,mult,ps,onHit,flat){ let hit=0; const base=flat!=null?flat:ps.dmg*mult; for(const e of [...enemies]){ if(dist(x,y,e.x,e.y)<R+e.r){ const c=critRoll(ps); dealDamage(e,base*(c?2:1),true,c); if(onHit)onHit(e); hit++; } } return hit; }
+function explode(x,y,R,mult,ps,flat){ ringFx(x,y,R,'#ff8a3c'); ringFx(x,y,R*0.6,'#ffd76b'); shake(8,0.16);
   for(let i=0;i<24;i++){const a=Math.random()*TAU,sp=rnd(60,R*4);particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:.4,t:0,c:pick(['#ff8a3c','#ffd76b','#ff5e3a']),r:rnd(2,4)});}
-  aoeDamage(x,y,R,mult,ps); sfx('nova'); }
+  aoeDamage(x,y,R,mult,ps,null,flat); sfx('nova'); }
 // 元素系统(D2): 技能元素 + 怪物抗性. curElem在施放期间生效, 投射物自带elem, dealDamage按抗性减伤
 const SKILL_ELEM={ iceBolt:'cold',frostNova:'cold',glacialSpike:'cold',blizzard:'cold',nova:'cold',
   chargedBolt:'light',lightning:'light',chainLightning:'light',staticField:'light',lightningjav:'light',charged:'light',chain:'light',
@@ -1070,7 +1070,7 @@ function useSkill(id){
   if(player.cls==='sorceress') ps.dmg*=1.15; // 秘法职业: 技能伤害+15%
   curElem = SKILL_ELEM[id]||'phys'; const pn0=projectiles.length; // 元素: 本次施放期间生效
   s.run(ps);
-  for(let i=pn0;i<projectiles.length;i++){ if(projectiles[i].fromPlayer && !projectiles[i].elem) projectiles[i].elem=curElem; } // 自动给本次投射物打元素(免改各技能)
+  for(let i=pn0;i<projectiles.length;i++){ if(projectiles[i].fromPlayer){ if(!projectiles[i].elem)projectiles[i].elem=curElem; if(projectiles[i].castDmg==null)projectiles[i].castDmg=ps.dmg; } } // 自动给本次投射物打元素+成长基数(splash用,免改各技能)
   curElem='phys';
 }
 function skillBaseLvl(id){ return player.skillLvl[id]||1; }
@@ -1191,7 +1191,8 @@ function renderCharPanel(){
   for(const id of player.unlocked){ const s=SKILLS[id]; if(!s)continue; const lv=player.skillLvl[id]||1; const can=player.skillPoints>0;
     const d=document.createElement('div'); d.className='item'; d.style.width='118px'; d.style.borderColor='#5a7fd0';
     const syn=Math.round(synergyBonus(id)*100); const synTxt=SYNERGY[id]?`<div class="af" style="font-size:9px;color:#c9a6ff">同系协同 +${syn}% (${SYNERGY[id].map(e=>SKILLS[e.k]&&SKILLS[e.k].name).filter(Boolean).join('/')})</div>`:'';
-    d.innerHTML=`<div class="nm">${s.ico}${s.name} <span style="color:#7dd3ff">Lv${lv}</span></div><div class="af" style="font-size:10px">技能伤害 +${Math.round((lv-1)*18)}%</div>${synTxt}`+
+    const gp=Math.round((SKILL_GROW[id]||0.14)*100); // 真实per-skill成长曲线(原写死18%在撒谎)
+    d.innerHTML=`<div class="nm">${s.ico}${s.name} <span style="color:#7dd3ff">Lv${lv}</span></div><div class="af" style="font-size:10px">技能伤害 +${Math.round((lv-1)*gp)}% <span style="color:#8aa">(每级+${gp}%)</span></div>${synTxt}`+
       `<div class="who"><b data-sk="${id}" style="${can?'':'opacity:.35'}">+ 升级</b></div>`;
     d.querySelector('[data-sk]').onclick=()=>{ if(player.skillPoints<=0||(player.skillLvl[id]||1)>=20)return; player.skillLvl[id]=(player.skillLvl[id]||1)+1; player.skillPoints--; sfx('loot-rare'); saveGame(); renderInv(); };
     el.appendChild(d); }
@@ -1562,10 +1563,10 @@ function update(dt){
   for(const p of [...projectiles]){
     p.x+=p.vx*dt; p.y+=p.vy*dt; p.life-=dt;
     if(particles.length<320) particles.push({x:p.x,y:p.y,vx:rnd(-12,12),vy:rnd(-12,12),life:0.3,t:0,c:p.c||(p.fromPlayer?'#9bdcff':'#ff9b6b'),r:rnd(2,3.5)}); // 弹道辉光拖尾
-    if(p.life<=0||!walkable(p.x,p.y)){ if(p.splash) explode(p.x,p.y,p.splash,p.splashMult,pstat()); projectiles.splice(projectiles.indexOf(p),1); continue; }
+    if(p.life<=0||!walkable(p.x,p.y)){ if(p.splash){ curElem=p.elem||'phys'; explode(p.x,p.y,p.splash,p.splashMult,pstat(), (p.castDmg!=null?p.castDmg:pstat().dmg)*p.splashMult); curElem='phys'; } projectiles.splice(projectiles.indexOf(p),1); continue; }
     if(p.fromPlayer){ for(const e of [...enemies]){ if(dist(p.x,p.y,e.x,e.y)<e.r+5){
         curElem=p.elem||'phys'; // 投射物携带元素→抗性结算
-        if(p.splash){ explode(p.x,p.y,p.splash,p.splashMult,pstat()); } else dealDamage(e,p.dmg,true,p.crit);
+        if(p.splash){ explode(p.x,p.y,p.splash,p.splashMult,pstat(), (p.castDmg!=null?p.castDmg:pstat().dmg)*p.splashMult); } else dealDamage(e,p.dmg,true,p.crit);
         curElem='phys';
         if(p.chill) e.slow=Math.max(e.slow||0,p.chill); // 法师冰系减速
         if(p.poison){ const R=p.splash||60; ringFx(p.x,p.y,R,'#7ed957'); for(const e2 of enemies){ if(dist(p.x,p.y,e2.x,e2.y)<R) e2.dot={dps:Math.max(p.poison,(e2.dot&&e2.dot.dps)||0),t:4,c:'#7ed957'}; } } // 瘟疫: 范围中毒4s
@@ -1770,9 +1771,10 @@ function draw(){
   const lamp=(x,y,col,rad,a)=>{ const g=X.createRadialGradient(x,y,0,x,y,rad); g.addColorStop(0,'rgba('+col+','+a+')'); g.addColorStop(1,'rgba('+col+',0)'); X.fillStyle=g; X.fillRect(x-rad,y-rad,rad*2,rad*2); };
   for(const p of projectiles) lamp(SX(p.x),SY(p.y), p.fromPlayer?'150,205,255':'255,150,90', 64, 0.16);
   for(const e of enemies){ if(e.dead)continue; let col=null,rad=78,a=0.14;
-    if(e.elem==='fire'||e.kind==='fireant') col='255,120,40';
-    else if(e.elem==='ice'||e.kind==='iceant') col='120,200,255';
-    else if(e.elem==='lightning') col='180,170,255';
+    const ek=e.elem&&e.elem.k; // e.elem是对象{k:'fire'/'frost'/'storm'}, 之前比字符串恒false→元素光全失效
+    if(ek==='fire'||e.kind==='fireant') col='255,120,40';
+    else if(ek==='frost'||e.kind==='iceant') col='120,200,255';
+    else if(ek==='storm') col='180,170,255';
     else if(e.boss){ col='255,110,60'; rad=150; a=0.18; }
     if(col) lamp(SX(e.x),SY(e.y),col,rad,a); }
   X.globalCompositeOperation='source-over';
