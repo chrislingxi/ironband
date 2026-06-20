@@ -444,6 +444,11 @@ const AFFIX=[
   {k:'as',   n:'攻速',   roll:s=>rint(3+s,7+s*2), suf:'%'},
   {k:'ms',   n:'移速',   roll:s=>rint(2+s,5+s), suf:'%'},
   {k:'crit', n:'暴击',   roll:s=>rint(2+s,6+s), suf:'%'},
+  {k:'mp',   n:'法力',   roll:s=>rint(10+s*5,25+s*10), suf:''},
+  {k:'skilldmg',n:'技能伤害',roll:s=>rint(4+s,9+s*2), suf:'%'},
+  {k:'str',  n:'力量',   roll:s=>rint(2+s,5+s*2), suf:''},
+  {k:'vit',  n:'体力',   roll:s=>rint(2+s,5+s*2), suf:''},
+  {k:'dex',  n:'敏捷',   roll:s=>rint(2+s,5+s*2), suf:''},
 ];
 // 词缀tier: 同名词缀分档(T1粗劣..T8神品), 高层(stage=ilvl)解锁高档, 造就perfect roll追求
 const TIER_NAMES=['粗劣','普通','精良','优质','卓越','完美','传世','神品'];
@@ -550,7 +555,7 @@ function checkRuneword(it){ if(!it||!it.sockets||!it.sockets.length){ if(it)it.r
   it.runeword=rw||null; }
 
 // ---------- entities ----------
-function baseStats(){ return {dmg:0,life:0,armor:0,as:0,ms:0,crit:0}; }
+function baseStats(){ return {dmg:0,life:0,armor:0,as:0,ms:0,crit:0,mp:0,skilldmg:0,str:0,dex:0,vit:0,eng:0}; }
 function sumGear(eq){ const s=baseStats(); for(const it of Object.values(eq)){ if(!it)continue;
   for(const a of it.affs) if(s[a.k]!==undefined)s[a.k]+=a.v;
   if(it.sockets) for(const g of it.sockets) if(g&&s[g.stat]!==undefined) s[g.stat]+=g.v; // 镶嵌宝石/符文加成
@@ -771,14 +776,15 @@ function populateRoom(r){
 
 // ---------- derived player stats ----------
 function pstat(){ const g=sumGear(player.eq); const fr=player.frenzyT>0; const sb=setBonus();
-  const u=player.uniques||{}; const A=player.attrs||{str:0,dex:0,vit:0,eng:0}; // 暗黑2四属性
+  const u=player.uniques||{}; const a0=player.attrs||{str:0,dex:0,vit:0,eng:0}; // 暗黑2四属性
+  const A={str:a0.str+(g.str||0), dex:a0.dex+(g.dex||0), vit:a0.vit+(g.vit||0), eng:a0.eng+(g.eng||0)}; // 装备+属性词缀折算进有效属性(D2式)
   const bersk=u.berserk?(1+0.40*(1-clamp(player.hp/Math.max(1,player.maxhp),0,1))):1; // 狂战:血越低伤越高
   const cls=player.cls||'warrior'; // 职业被动
   const armor=g.armor+A.dex*0.5+sb.armor+(u.juggernaut?120:0)+(cls==='barbarian'?60:0); const dr=Math.min(0.75,armor/(armor+150+player.lvl*22)); // 护甲减伤(分母拉大降早期肉度, 硬上限75%)
   return {
   dmg:(player.baseDmg+g.dmg+player.lvl*2)*(1+A.str*0.012)*(1+sb.dmgPct/100)*(u.glasscannon?1.6:1)*(cls==='barbarian'?1.05:1)*(fr?1.25:1)*bersk, // 力量+伤害(去1.12^层双倍, 战力靠装备+属性+技能)
   maxhp:Math.round((100+g.life+player.lvl*12+A.vit*7)*(1+sb.lifePct/100+(u.giant?0.35:0)+(u.titan?0.5:0))*(u.glasscannon?0.7:1)*(player.boT>0?1.35:1)*((curMod&&curMod.phpMul)||1)), // 体力+生命(野蛮人战斗命令boT+35%)
-  maxmp:Math.round(50+player.lvl*4+A.eng*4+(cls==='sorceress'?40:0)), // 精力+法力
+  maxmp:Math.round(50+player.lvl*4+A.eng*4+(g.mp||0)+(cls==='sorceress'?40:0)), // 精力+法力(+装备法力)
   armor, dr,
   atkInt:player.baseAtkInt*(1-Math.min(0.6,g.as/100))*(1-Math.min(0.35,(sb.asPct+A.dex*0.08)/100))*(u.swift?0.87:1)*(u.zealot?0.88:1)*(cls==='amazon'?0.85:1)*(fr?0.6:1), // 敏捷+攻速
   ms:player.baseMs*(1+g.ms/100)*(u.swift?1.20:1)*(u.titan?0.88:1),
@@ -1005,14 +1011,19 @@ const CLASS_SKILLS={
   barbarian:['bw_bash','cleave','dash','bw_whirlwind','bw_berserk','slam','bw_leap','bw_warcry','frenzy','bw_battleorders'],
 };
 // D2式 synergy: 投资同系技能→整系加伤(每关联技能等级+4%)
-const SYNERGY={ fireball:['nova','chain'], nova:['fireball','chain'], chain:['fireball','nova'], cleave:['slam','frenzy'], slam:['cleave','frenzy'],
-  iceBolt:['glacialSpike','frostNova'], frostNova:['iceBolt','glacialSpike'], glacialSpike:['iceBolt','blizzard'], blizzard:['glacialSpike','frostNova'],
-  chargedBolt:['lightning','chainLightning'], lightning:['chargedBolt','chainLightning'], chainLightning:['lightning','chargedBolt'],
-  fireBolt:['fireBall','meteor'], fireBall:['fireBolt','meteor'], meteor:['fireBall','fireBolt'],
-  multishot:['strafe','guidedarrow'], strafe:['multishot','guidedarrow'], guidedarrow:['multishot','strafe'],
-  lightningjav:['charged','poisonjav'], charged:['lightningjav'], poisonjav:['lightningjav','jab'], jab:['poisonjav','lightningjav'],
-  bw_whirlwind:['bw_berserk','cleave'], bw_berserk:['bw_whirlwind','slam'], bw_leap:['bw_warcry'], bw_warcry:['bw_leap'] };
-function synergyBonus(id){ const syn=SYNERGY[id]; if(!syn)return 0; let sb=0; for(const k of syn){ if(player.unlocked&&player.unlocked.includes(k)) sb+=Math.min(20,player.skillLvl[k]||1)*0.03; } return sb; }
+// D2式 per-skill synergy系数(投资同系技能→招牌技伤害成倍, 不再统一+3%): 火0.08/冰0.07/电0.06/弓标0.06/战0.05
+const SYNERGY={
+  fireball:[{k:'nova',p:0.06},{k:'chain',p:0.06}], nova:[{k:'fireball',p:0.06}], chain:[{k:'fireball',p:0.06},{k:'nova',p:0.06}], cleave:[{k:'slam',p:0.05},{k:'frenzy',p:0.05}], slam:[{k:'cleave',p:0.05},{k:'frenzy',p:0.05}],
+  iceBolt:[{k:'glacialSpike',p:0.07},{k:'frostNova',p:0.07}], frostNova:[{k:'iceBolt',p:0.07},{k:'glacialSpike',p:0.07}], glacialSpike:[{k:'iceBolt',p:0.07},{k:'blizzard',p:0.07}], blizzard:[{k:'glacialSpike',p:0.08},{k:'frostNova',p:0.07},{k:'iceBolt',p:0.06}],
+  chargedBolt:[{k:'lightning',p:0.06}], lightning:[{k:'chargedBolt',p:0.07},{k:'chainLightning',p:0.06}], chainLightning:[{k:'lightning',p:0.07},{k:'chargedBolt',p:0.07}],
+  fireBolt:[{k:'fireBall',p:0.08}], fireBall:[{k:'fireBolt',p:0.08},{k:'meteor',p:0.07}], meteor:[{k:'fireBall',p:0.08},{k:'fireBolt',p:0.07}],
+  multishot:[{k:'strafe',p:0.06},{k:'guidedarrow',p:0.06}], strafe:[{k:'multishot',p:0.06},{k:'guidedarrow',p:0.06}], guidedarrow:[{k:'multishot',p:0.07},{k:'strafe',p:0.07}],
+  lightningjav:[{k:'charged',p:0.07},{k:'poisonjav',p:0.05}], charged:[{k:'lightningjav',p:0.07}], poisonjav:[{k:'lightningjav',p:0.06}], jab:[{k:'lightningjav',p:0.05}],
+  bw_whirlwind:[{k:'bw_berserk',p:0.05},{k:'cleave',p:0.05}], bw_berserk:[{k:'bw_whirlwind',p:0.05},{k:'bw_bash',p:0.05}], bw_bash:[{k:'bw_whirlwind',p:0.05}], bw_leap:[{k:'bw_warcry',p:0.06}], bw_warcry:[{k:'bw_leap',p:0.06}] };
+function synergyBonus(id){ const syn=SYNERGY[id]; if(!syn)return 0; let sb=0; for(const e of syn){ if(player.unlocked&&player.unlocked.includes(e.k)) sb+=Math.min(20,player.skillLvl[e.k]||1)*e.p; } return sb; }
+// per-skill技能等级成长曲线(走刀技平缓/招牌大招陡, 让"梭哪个技能"成真决策)
+const SKILL_GROW={ iceBolt:0.10,fireBolt:0.10,chargedBolt:0.10,bw_bash:0.10,jab:0.10,multishot:0.11,cleave:0.11,frostNova:0.13,glacialSpike:0.15,lightning:0.15,fireBall:0.15,strafe:0.14,lightningjav:0.15,chargedBolt2:0.15,
+  chainLightning:0.22,blizzard:0.22,meteor:0.22,guidedarrow:0.20,valkyrie:0.20,charged:0.18,poisonjav:0.16,bw_whirlwind:0.20,bw_warcry:0.18,bw_leap:0.18,bw_berserk:0.20,staticField:0.12 };
 // 三正统D2职业: 法师(元素)/亚马逊(弓+标枪)/野蛮人(战斗+战吼), 差异化属性+技能池+被动
 const CLASSES={
   sorceress:{name:'法师',ico:'🔮',desc:'三系元素(冰/电/火) · 精力主导 · 技能伤+15%·法力+40',attrs:{eng:9,vit:3,dex:2,str:0},skills:['iceBolt','fireBolt','chargedBolt'], basic:{ranged:true,range:170,c:'#9fd0ff',sp:480}},
@@ -1026,8 +1037,9 @@ function useSkill(id){
   if(s.mp && player.mp<s.mp) return;
   if(s.mp) player.mp-=s.mp;
   player.cd[id]=s.cd*(player.uniques&&player.uniques.cdr?0.75:1); // 疾影之冠: CD-25%
-  const ps=pstat(); const slv=player.skillLvl[id]||1; ps.dmg*=(1+(slv-1)*0.18); // 技能等级: 每级+18%技能伤害
-  ps.dmg*=(1+synergyBonus(id)); // D2 synergy: 同系技能加成
+  const ps=pstat(); const slv=player.skillLvl[id]||1; ps.dmg*=(1+(slv-1)*(SKILL_GROW[id]||0.14)); // 技能等级成长(per-skill曲线: 走刀技平缓/招牌大招陡)
+  ps.dmg*=(1+sumGear(player.eq).skilldmg/100); // 装备+技能伤害%词缀
+  ps.dmg*=(1+synergyBonus(id)); // D2 synergy: 同系技能加成(per-skill系数)
   if(player.cls==='sorceress') ps.dmg*=1.15; // 秘法职业: 技能伤害+15%
   s.run(ps);
 }
@@ -1520,9 +1532,11 @@ function update(dt){
     else { if(!merc.dead&&dist(p.x,p.y,merc.x,merc.y)<merc.r+4){hurtMerc(p.dmg);projectiles.splice(projectiles.indexOf(p),1);}
       else if(dist(p.x,p.y,player.x,player.y)<player.r+4){hurtPlayer(p.dmg); if(p.bossChill)player.chillT=1.3; projectiles.splice(projectiles.indexOf(p),1);} }
   }
-  // ----- loot pickup -----
+  // ----- loot pickup (磁吸: 走近自动吸取, 刷宝爽点) -----
   for(const l of [...loots]){ l.bob+=dt*3; if(l.pop>0)l.pop=Math.max(0,l.pop-dt*2.5); if(l.beam>0)l.beam=Math.max(0,l.beam-dt*0.5);
-    if(dist(player.x,player.y,l.x,l.y)<30){ bag.push(l); loots.splice(loots.indexOf(l),1); sfx('pickup');
+    const ld=dist(player.x,player.y,l.x,l.y);
+    if((ld<150||l.magnet) && ld>4 && l.pop<=0){ const k=Math.min(1,dt*(l.magnet?14:9)); l.x+=(player.x-l.x)*k; l.y+=(player.y-l.y)*k; } // 2格内/标记磁吸→飞向玩家
+    if(ld<40){ bag.push(l); loots.splice(loots.indexOf(l),1); sfx('pickup');
     for(let i=0;i<6;i++)particles.push({x:l.x,y:l.y,vx:rnd(-60,60),vy:rnd(-90,-20),life:.4,t:0,c:l.color,r:2});
     floaters.push({x:l.x,y:l.y-20,vy:-40,t:0,life:0.9,txt:l.name,crit:false,col:l.color}); } }
   // ----- room cleared check (清空达成反馈) -----
@@ -1758,8 +1772,9 @@ function drawActor(x,y,r,col,flash,swing,face,label,hpfrac,type,moving){
   // FLARE 真美术纸娃娃优先(失败回退几何体)
   if(window.Flare && Flare.avatarReady && Flare.avatarReady()){
     X.fillStyle='#00000055'; X.beginPath(); X.ellipse(x,y+r*0.72,r*0.92,r*0.38,0,0,TAU); X.fill();
-    const anim = swing>0 ? (hero?'swing':'shoot') : (moving?'run':'stance');
-    if(Flare.drawAvatar(X, x, y+r*0.5, face, anim, t*1000, r*0.10, !hero, flash)){
+    const withBow = hero ? (player.cls==='amazon') : !merc.melee; // 亚马逊/远程佣兵持弓(法师靠射弹显示施法)
+    const anim = swing>0 ? ((hero&&!player.basicRanged)?'swing':'shoot') : (moving?'run':'stance');
+    if(Flare.drawAvatar(X, x, y+r*0.5, face, anim, t*1000, r*0.10, withBow, flash)){
       if(hpfrac<1){ X.fillStyle='#000a'; X.fillRect(x-r,y-r-15,r*2,4); X.fillStyle='#5ed85e'; X.fillRect(x-r,y-r-15,r*2*clamp(hpfrac,0,1),4); }
       X.fillStyle='#fff'; X.font='9px sans-serif'; X.textAlign='center'; X.fillText(label,x,y+r+12);
       return;
@@ -1865,6 +1880,33 @@ function drawEnemy(e){
     X.fillStyle=shade(e.c,-40); X.beginPath(); X.moveTo(x-r*0.5,y-r*0.8); X.lineTo(x-r*0.85,y-r*1.4); X.lineTo(x-r*0.2,y-r*0.95); X.closePath();
     X.moveTo(x+r*0.5,y-r*0.8); X.lineTo(x+r*0.85,y-r*1.4); X.lineTo(x+r*0.2,y-r*0.95); X.closePath(); X.fill(); // 角
     X.fillStyle='#fff04b'; X.beginPath(); X.arc(x-r*0.2,y-r*0.55,r*0.12,0,TAU); X.arc(x+r*0.2,y-r*0.55,r*0.12,0,TAU); X.fill();
+  } else if(e.kind==='succubus'){ // 魅魔: 红躯+蝙蝠翼+发光眼
+    X.fillStyle=shade(e.c,-30); for(const s of [-1,1]){ X.beginPath(); X.moveTo(x,y-r*0.2); X.quadraticCurveTo(x+s*r*1.3,y-r*0.9,x+s*r*1.1,y+r*0.3); X.quadraticCurveTo(x+s*r*0.6,y-r*0.1,x,y+r*0.2); X.fill(); } // 翼
+    X.fillStyle=c; X.beginPath(); X.ellipse(x,y,r*0.5,r*0.8,0,0,TAU); X.fill(); X.beginPath(); X.arc(x,y-r*0.6,r*0.34,0,TAU); X.fill();
+    X.fillStyle='#ff3b6b'; X.beginPath(); X.arc(x-r*0.13,y-r*0.62,r*0.1,0,TAU); X.arc(x+r*0.13,y-r*0.62,r*0.1,0,TAU); X.fill();
+  } else if(e.kind==='shaman'){ // 堕落巫医: 兜帽+举法杖+骨面具
+    X.beginPath(); X.moveTo(x,y-r*0.9); X.lineTo(x-r*0.7,y+r*0.7); X.lineTo(x+r*0.7,y+r*0.7); X.closePath(); X.fill(); // 袍
+    X.fillStyle=shade(e.c,20); X.beginPath(); X.arc(x,y-r*0.55,r*0.36,0,TAU); X.fill();
+    X.strokeStyle='#caa'; X.lineWidth=r*0.12; X.beginPath(); X.moveTo(x+fx*r*0.6,y-r); X.lineTo(x+fx*r*0.6,y+r*0.5); X.stroke(); X.fillStyle='#6cf'; X.beginPath(); X.arc(x+fx*r*0.6,y-r,r*0.18,0,TAU); X.fill(); X.lineWidth=1;
+    X.fillStyle='#fff'; X.beginPath(); X.arc(x-r*0.12,y-r*0.58,r*0.07,0,TAU); X.arc(x+r*0.12,y-r*0.58,r*0.07,0,TAU); X.fill();
+  } else if(e.kind==='bird'){ // 兀鹫: V双翼+尖喙
+    X.fillStyle=c; for(const s of [-1,1]){ X.beginPath(); X.moveTo(x,y); X.lineTo(x+s*r*1.3,y-r*0.6); X.lineTo(x+s*r*0.5,y+r*0.1); X.closePath(); X.fill(); }
+    X.beginPath(); X.ellipse(x,y,r*0.4,r*0.5,0,0,TAU); X.fill();
+    X.fillStyle='#fc6'; X.beginPath(); X.moveTo(x+fx*r*0.3,y-r*0.1); X.lineTo(x+fx*r*0.9,y); X.lineTo(x+fx*r*0.3,y+r*0.15); X.closePath(); X.fill();
+  } else if(e.kind==='quill'){ // 刺鼠: 放射尖刺椭圆
+    X.strokeStyle=dk; X.lineWidth=2; for(let i=0;i<10;i++){ const a=i/10*TAU; X.beginPath(); X.moveTo(x+Math.cos(a)*r*0.7,y+Math.sin(a)*r*0.7); X.lineTo(x+Math.cos(a)*r*1.3,y+Math.sin(a)*r*1.3); X.stroke(); } X.lineWidth=1;
+    X.fillStyle=c; X.beginPath(); X.ellipse(x,y,r*0.7,r*0.55,0,0,TAU); X.fill();
+  } else if(e.kind==='doll'){ // 自爆娃娃: 小填充体+引信(临爆闪红)
+    const fuse=(e.suicide&&dist(e.x,e.y,player.x,player.y)<140); X.fillStyle=fuse&&Math.sin(now()*20)>0?'#ff3b2e':c;
+    X.beginPath(); X.arc(x,y,r*0.8,0,TAU); X.fill(); X.beginPath(); X.arc(x,y-r*0.7,r*0.42,0,TAU); X.fill();
+    X.strokeStyle='#fa0'; X.lineWidth=2; X.beginPath(); X.moveTo(x,y-r*1.1); X.lineTo(x+r*0.2,y-r*1.5); X.stroke(); X.lineWidth=1;
+    X.fillStyle='#400'; X.fillRect(x-r*0.2,y-r*0.78,r*0.4,r*0.1);
+  } else if(e.kind==='maggot'||e.kind==='larva'){ // 沙虫/幼虫: 分节蠕动体
+    for(let i=0;i<4;i++){ X.fillStyle=shade(e.c,i%2?0:-18); X.beginPath(); X.arc(x-fx*i*r*0.45,y+Math.sin(now()*6+i)*r*0.1,r*(0.7-i*0.12),0,TAU); X.fill(); }
+  } else if(e.kind==='fallen'||e.kind==='leaper'){ // 堕落者/沙跳虫: 蹲伏小妖+独角
+    X.beginPath(); X.ellipse(x,y+r*0.1,r*0.6,r*0.7,0,0,TAU); X.fill(); X.beginPath(); X.arc(x,y-r*0.5,r*0.34,0,TAU); X.fill();
+    X.fillStyle=dk; X.beginPath(); X.moveTo(x,y-r*0.8); X.lineTo(x+r*0.18,y-r*1.3); X.lineTo(x+r*0.3,y-r*0.7); X.closePath(); X.fill(); // 角
+    X.fillStyle='#ff5'; X.beginPath(); X.arc(x-r*0.12,y-r*0.5,r*0.08,0,TAU); X.arc(x+r*0.12,y-r*0.5,r*0.08,0,TAU); X.fill();
   } else { X.beginPath(); X.arc(x,y,r,0,TAU); X.fill(); }
   X.shadowBlur=0;
   }
