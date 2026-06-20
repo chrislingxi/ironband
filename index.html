@@ -711,9 +711,9 @@ const BOSS_VARIANTS=[
 const ACT_BOSSES={
   5: {name:'缚魂魔后·安妲莉丝', c:'#39c24a', novaC:'#5ee06a', abil:['nova','charge'],          lines:[0.5]},
   10:{name:'寒铁领主·杜里恩',   c:'#7fb8ff', novaC:'#6bc6ff', abil:['charge','nova','volley'],   lines:[0.66,0.33], chill:true},
-  15:{name:'憎焰之王·墨夫提',   c:'#b34ad0', novaC:'#c060d0', abil:['nova','summon','volley'],   lines:[0.5]},
+  15:{name:'憎焰之王·墨夫提',   c:'#b34ad0', novaC:'#c060d0', abil:['nova','summon','volley','manaBurn'], lines:[0.5]},
   20:{name:'恐惧之主·迪亚伯',   c:'#ff3b2e', novaC:'#ff7a2e', abil:['nova','volley','charge'],   lines:[0.66,0.33]},
-  25:{name:'寂灭之王·巴恩',     c:'#dcdcff', novaC:'#aee4ff', abil:['summon','nova','volley','charge'], lines:[0.66,0.33]},
+  25:{name:'寂灭之王·巴恩',     c:'#dcdcff', novaC:'#aee4ff', abil:['summon','nova','volley','charge','manaBurn'], lines:[0.66,0.33]},
 };
 function castBossAbil(e,ab){
   const base=Math.atan2(player.y-e.y,player.x-e.x), sc=Math.pow(1.21,stage-1);
@@ -722,6 +722,7 @@ function castBossAbil(e,ab){
   else if(ab==='charge'){ e.charging=1.0; e.chgA=base; sfx('dash'); ringFx(e.x,e.y,e.r+20,'#ff8a3c'); }
   else if(ab==='summon'){ ringFx(e.x,e.y,60,e.c); sfx('nova'); for(let i=0;i<3;i++) spawnEnemy(pick(['skeleton','imp']), e.x+rnd(-50,50),e.y+rnd(-50,50), sc); }
   else if(ab==='volley'){ sfx('cleave'); for(let i=-2;i<=2;i++){ const a=base+i*0.26; projectiles.push({x:e.x,y:e.y,vx:Math.cos(a)*270,vy:Math.sin(a)*270,life:2,dmg:e.dmg*0.55,fromPlayer:false,c:e.c}); } }
+  else if(ab==='manaBurn'){ if(dist(e.x,e.y,player.x,player.y)<320){ player.mp=Math.max(0,player.mp-player.maxmp*0.6); ringFx(player.x,player.y,44,'#6b8aff'); ringFx(player.x,player.y,28,'#aac0ff'); floaters.push({x:player.x,y:player.y-22,vy:-30,t:0,life:1,txt:'法力燃烧!',col:'#6b8aff'}); sfx('nova'); } } // 巴恩招牌(D2 Mana Burn)
 }
 function spawnBoss(x,y){
   const bhp=Math.round(1600*Math.pow(1.21,stage-1)), bdmg=Math.round(50*Math.pow(1.20,stage-1)); // V2难度大改v2: Boss血1600×1.33, 伤50×1.20(10h级)
