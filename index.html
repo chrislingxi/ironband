@@ -1667,7 +1667,7 @@ function draw(){
     X.globalAlpha=clamp(0.55+beam,0,1); X.fillStyle=bg; X.fillRect(l.x-(6+beam*6),l.y-bh,12+beam*12,bh+6); X.globalAlpha=1;
     X.fillStyle='#0008'; X.beginPath(); X.ellipse(l.x,l.y+8,11,4,0,0,TAU); X.fill();
     X.shadowColor=l.color; X.shadowBlur=16+beam*24; X.fillStyle=l.color; X.beginPath(); X.arc(l.x,yy,6*sc,0,TAU); X.fill(); X.shadowBlur=0;
-    X.font=(14*sc).toFixed(0)+'px sans-serif'; X.textAlign='center'; X.fillText(l.ico,l.x,yy+5); }
+    X.font=(14*sc).toFixed(0)+'px Georgia,serif'; X.textAlign='center'; X.fillText(l.ico,l.x,yy+5); }
   // 死亡残影(淡出+压扁)
   for(const c of corpses){ const k=c.t/c.life; X.globalAlpha=(1-k)*0.6; X.fillStyle=shade(c.c,-30);
     X.beginPath(); X.ellipse(c.x,c.y+c.r*0.3,c.r*(1+k*0.6),c.r*(0.5-k*0.3),0,0,TAU); X.fill(); X.globalAlpha=1; }
@@ -1688,16 +1688,28 @@ function draw(){
   for(const p of particles){ X.globalAlpha=clamp(1-p.t/p.life,0,1); X.fillStyle=p.c; X.beginPath(); X.arc(p.x,p.y,p.r,0,TAU); X.fill(); X.globalAlpha=1; }
   // floaters
   X.textAlign='center';
-  for(const f of floaters){ X.globalAlpha=clamp(1-f.t/f.life,0,1); X.fillStyle=f.col; X.font=(f.crit?'bold 22px':'bold 15px')+' sans-serif';
+  for(const f of floaters){ X.globalAlpha=clamp(1-f.t/f.life,0,1); X.fillStyle=f.col; X.font=(f.crit?'bold 22px':'bold 15px')+' Georgia,serif';
     X.fillText(f.txt,f.x,f.y); X.globalAlpha=1; }
-  if(inCamp){ // 营地NPC摊位绘制
+  if(inCamp){ // 营地NPC: 人形剪影+木摊+职业道具(替代emoji色块)
     for(const n of CAMP_NPCS){ const sx=(n.gx+0.5)*TILE, sy=(n.gy+0.5)*TILE;
-      X.fillStyle='#0007'; X.beginPath(); X.ellipse(sx,sy+8,16,6,0,0,TAU); X.fill();
-      X.fillStyle=n.col; X.fillRect(sx-13,sy-2,26,10);
-      X.font='26px serif'; X.textAlign='center'; X.fillText(n.ico,sx,sy-4);
-      if(nearNPC===n){ X.strokeStyle='#ffd76b'; X.lineWidth=2; X.strokeRect(sx-18,sy-30,36,46);
-        X.fillStyle='#ffd76b'; X.font='bold 11px sans-serif'; X.fillText(n.name+'·'+n.role,sx,sy-34); }
-      else { X.fillStyle='#cfcfcf'; X.font='10px sans-serif'; X.fillText(n.name,sx,sy+22); } }
+      X.fillStyle='#0006'; X.beginPath(); X.ellipse(sx,sy+12,18,7,0,0,TAU); X.fill(); // 影
+      X.fillStyle='#3a2a18'; X.fillRect(sx-20,sy+4,40,8); X.fillStyle='#553f24'; X.fillRect(sx-20,sy+4,40,2); // 木摊
+      // 人形: 袍身(职业色)+头
+      X.fillStyle=n.col; X.beginPath(); X.moveTo(sx,sy-22); X.lineTo(sx-9,sy+4); X.lineTo(sx+9,sy+4); X.closePath(); X.fill();
+      X.fillStyle=shade(n.col,22); X.beginPath(); X.arc(sx,sy-24,6,0,TAU); X.fill();
+      X.fillStyle='#e8b58a'; X.beginPath(); X.arc(sx,sy-23,3.5,0,TAU); X.fill(); // 脸
+      // 职业道具
+      X.strokeStyle='#caa'; X.lineWidth=2; X.lineCap='round';
+      if(n.id==='craft'){ X.strokeStyle='#999'; X.beginPath(); X.moveTo(sx+10,sy-18); X.lineTo(sx+10,sy-2); X.stroke(); X.fillStyle='#777'; X.fillRect(sx+6,sy-22,9,6); } // 锤
+      else if(n.id==='merc'){ X.strokeStyle='#ccd'; X.beginPath(); X.moveTo(sx+11,sy-24); X.lineTo(sx+11,sy+2); X.stroke(); } // 长矛
+      else if(n.id==='gamble'){ X.fillStyle='#caa050'; X.fillRect(sx+7,sy-6,8,8); X.fillStyle='#ffd76b'; X.beginPath(); X.arc(sx+11,sy-8,2,0,TAU); X.fill(); } // 货箱+金
+      else if(n.id==='stash'){ X.fillStyle='#6a4f2a'; X.fillRect(sx-10,sy-8,20,12); X.fillStyle='#8a6a3a'; X.fillRect(sx-10,sy-8,20,3); } // 箱
+      else { X.strokeStyle='#999'; X.beginPath(); X.moveTo(sx-11,sy-4); X.lineTo(sx-11,sy-16); X.stroke(); } // 工具
+      X.lineWidth=1; X.lineCap='butt';
+      X.textAlign='center';
+      if(nearNPC===n){ X.strokeStyle='#ffd76b'; X.lineWidth=2; X.strokeRect(sx-20,sy-34,40,50); X.lineWidth=1;
+        X.fillStyle='#ffd76b'; X.font='bold 11px Georgia,serif'; X.fillText(n.name+' · '+n.role,sx,sy-38); }
+      else { X.fillStyle='#cbb89a'; X.font='10px Georgia,serif'; X.fillText(n.name,sx,sy+24); } }
   }
   X.restore();
   // 火把照明: 玩家周围亮, 边缘渐暗(氛围) + 暖光晕
@@ -1744,9 +1756,9 @@ function drawBossBar(){
   X.fillStyle=boss.phase2?'#ff2e1e':'#c0271c'; X.fillRect(bx,by,bw*f,bh);
   X.fillStyle='#ffffff33'; X.fillRect(bx,by,bw*f,bh*0.4);
   X.strokeStyle='#5a2a20'; X.lineWidth=1; X.strokeRect(bx,by,bw,bh);
-  X.fillStyle='#ffd76b'; X.font='bold 13px sans-serif'; X.textAlign='center';
+  X.fillStyle='#ffd76b'; X.font='bold 13px Georgia,serif'; X.textAlign='center';
   X.fillText('☠ '+(boss.bossName||'BOSS')+(boss.phase2?' · 狂暴':''), W/2, by-6);
-  X.fillStyle='#fff'; X.font='10px sans-serif'; X.fillText(Math.ceil(boss.hp)+' / '+Math.round(boss.maxhp), W/2, by+12);
+  X.fillStyle='#fff'; X.font='10px Georgia,serif'; X.fillText(Math.ceil(boss.hp)+' / '+Math.round(boss.maxhp), W/2, by+12);
   X.restore();
 }
 // Minimap: 右上角小地图(已探索房/当前/Boss/玩家)
@@ -1761,7 +1773,7 @@ function drawMinimap(){
     const rx=ox+r.x*TILE*sc, ry=oy+r.y*TILE*sc, rw=r.w*TILE*sc, rh=r.h*TILE*sc;
     X.fillStyle = r.boss?'#7a1c14':(r===cur?'#3f6fc8':(r.cleared?'#33333f':'#4a4a5a'));
     X.fillRect(rx,ry,rw,rh);
-    if(r.boss){ X.fillStyle='#ff5e3a'; X.font='8px sans-serif'; X.textAlign='center'; X.fillText('☠',rx+rw/2,ry+rh/2+3); } }
+    if(r.boss){ X.fillStyle='#ff5e3a'; X.font='8px Georgia,serif'; X.textAlign='center'; X.fillText('☠',rx+rw/2,ry+rh/2+3); } }
   // 玩家点
   X.fillStyle='#ffe08a'; X.beginPath(); X.arc(ox+player.x*sc,oy+player.y*sc,2.5,0,TAU); X.fill();
   X.restore();
@@ -1776,7 +1788,7 @@ function drawActor(x,y,r,col,flash,swing,face,label,hpfrac,type,moving){
     const anim = swing>0 ? ((hero&&!player.basicRanged)?'swing':'shoot') : (moving?'run':'stance');
     if(Flare.drawAvatar(X, x, y+r*0.5, face, anim, t*1000, r*0.10, withBow, flash)){
       if(hpfrac<1){ X.fillStyle='#000a'; X.fillRect(x-r,y-r-15,r*2,4); X.fillStyle='#5ed85e'; X.fillRect(x-r,y-r-15,r*2*clamp(hpfrac,0,1),4); }
-      X.fillStyle='#fff'; X.font='9px sans-serif'; X.textAlign='center'; X.fillText(label,x,y+r+12);
+      X.fillStyle='#fff'; X.font='9px Georgia,serif'; X.textAlign='center'; X.fillText(label,x,y+r+12);
       return;
     }
   }
@@ -1835,7 +1847,7 @@ function drawActor(x,y,r,col,flash,swing,face,label,hpfrac,type,moving){
   if(swing>0){ X.strokeStyle='#ffffffcc'; X.lineWidth=4; X.beginPath(); X.arc(x,cy,r+15,face-0.85,face+0.85); X.stroke(); X.lineWidth=1; }
   // 血条 + 名牌
   if(hpfrac<1){ X.fillStyle='#000a'; X.fillRect(x-r,y-r-15,r*2,4); X.fillStyle='#5ed85e'; X.fillRect(x-r,y-r-15,r*2*clamp(hpfrac,0,1),4); }
-  X.fillStyle='#fff'; X.font='9px sans-serif'; X.textAlign='center'; X.fillText(label,x,y+r+12);
+  X.fillStyle='#fff'; X.font='9px Georgia,serif'; X.textAlign='center'; X.fillText(label,x,y+r+12);
 }
 function drawEnemy(e){
   // Boss 砸地蓄力预警红圈(涨大)
@@ -1914,9 +1926,9 @@ function drawEnemy(e){
     X.save(); X.globalAlpha=0.5+Math.abs(Math.sin(now()*4))*0.3; X.strokeStyle=e.elem.c; X.lineWidth=2.5; X.shadowColor=e.elem.c; X.shadowBlur=10;
     X.beginPath(); X.ellipse(e.x,e.y+r*0.55,r*1.0,r*0.42,0,0,TAU); X.stroke(); X.restore(); }
   if(e.elite){ X.strokeStyle=e.elite.c; X.globalAlpha=0.9; X.lineWidth=2.5; X.beginPath(); X.arc(e.x,e.y,r+5,0,TAU); X.stroke(); X.globalAlpha=1; X.lineWidth=1;
-    X.fillStyle=e.elite.c; X.font='bold 10px sans-serif'; X.textAlign='center'; X.fillText(e.eliteName,e.x,e.y-r-12); }
-  if(e.elem && !e.elite){ X.fillStyle=e.elem.c; X.font='bold 10px sans-serif'; X.textAlign='center'; X.fillText(e.elemName,e.x,e.y-r-12); }
-  if(e.boss){ X.fillStyle='#ffd000'; X.font='bold 12px sans-serif'; X.textAlign='center'; X.fillText('☠ '+(e.bossName||'BOSS'),e.x,e.y-r-16); }
+    X.fillStyle=e.elite.c; X.font='bold 10px Georgia,serif'; X.textAlign='center'; X.fillText(e.eliteName,e.x,e.y-r-12); }
+  if(e.elem && !e.elite){ X.fillStyle=e.elem.c; X.font='bold 10px Georgia,serif'; X.textAlign='center'; X.fillText(e.elemName,e.x,e.y-r-12); }
+  if(e.boss){ X.fillStyle='#ffd000'; X.font='bold 12px Georgia,serif'; X.textAlign='center'; X.fillText('☠ '+(e.bossName||'BOSS'),e.x,e.y-r-16); }
   // hp
   const f=e.hp/e.maxhp; if(f<1){ X.fillStyle='#000a'; X.fillRect(e.x-r,e.y-r-9,r*2,4); X.fillStyle=e.boss?'#ff5e3a':'#d85e5e'; X.fillRect(e.x-r,e.y-r-9,r*2*f,4); }
 }
