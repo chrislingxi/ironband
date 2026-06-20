@@ -565,7 +565,7 @@ function recalcProcs(){ const p={}; const u={}; for(const it of Object.values(pl
 const player={
   cls:'barbarian', // 职业
   x:0,y:0,r:16, hp:100,maxhp:100, mp:50,maxmp:50, lvl:1,xp:0,xpNext:30,
-  baseDmg:15, baseAtkInt:0.42, baseMs:185, atkRange:34, atkT:0, dead:false,
+  baseDmg:24, baseAtkInt:0.42, baseMs:185, atkRange:34, atkT:0, dead:false,
   eq:{weapon:null,helm:null,body:null,gloves:null,boots:null,belt:null,ring:null,amulet:null}, face:0, hitFlash:0, swing:0,
   cd:{}, regenT:0, pots:4, maxPots:4, potCd:0, mpPots:3, maxMpPots:3, mpPotCd:0, moving:false, frenzyT:0, chillT:0, procs:{}, uniques:{}, gold:0,
   perks:{dmg:0,life:0,crit:0,as:0,armor:0}, // 旧perk(已弃用,保留兼容=0)
@@ -678,7 +678,7 @@ const ELITE_AFFIX=[
 ];
 function spawnEnemy(kind,x,y,scale,forceElite){
   const a=ARCH[kind]; const s=scale||1; const m=curMod||{};
-  const e={kind,x,y,r:a.r,c:a.c,hp:a.hp*s*7.0*(m.ehp||1),maxhp:a.hp*s*7.0*(m.ehp||1),dmg:a.dmg*s*2.8*(m.edmg||1),ms:a.ms,range:a.range,
+  const e={kind,x,y,r:a.r,c:a.c,hp:a.hp*s*2.4*(m.ehp||1),maxhp:a.hp*s*2.4*(m.ehp||1),dmg:a.dmg*s*1.5*(m.edmg||1),ms:a.ms,range:a.range,
     atkInt:a.atk,atkT:Math.random(),xp:a.xp,ranged:a.ranged,hitFlash:0,boss:false,
     charger:a.charger,summon:a.summon,chillOnHit:a.chillOnHit,suicide:a.suicide,split:a.split};
   // 精英怪(D3式词缀): 更大更猛, 光环, 必爆好货
@@ -1011,9 +1011,9 @@ const SYNERGY={ fireball:['nova','chain'], nova:['fireball','chain'], chain:['fi
 function synergyBonus(id){ const syn=SYNERGY[id]; if(!syn)return 0; let sb=0; for(const k of syn){ if(player.unlocked&&player.unlocked.includes(k)) sb+=Math.min(20,player.skillLvl[k]||1)*0.03; } return sb; }
 // 三正统D2职业: 法师(元素)/亚马逊(弓+标枪)/野蛮人(战斗+战吼), 差异化属性+技能池+被动
 const CLASSES={
-  sorceress:{name:'法师',ico:'🔮',desc:'三系元素 · +精力 · 技能伤害+15%·法力+40',attrs:{eng:6,vit:5,str:0,dex:0},skills:['iceBolt','fireBolt','teleport']},
-  amazon:   {name:'亚马逊',ico:'🏹',desc:'弓与标枪 · +敏捷/精力 · 攻速+15%·暴击+8%',attrs:{dex:8,eng:3,str:1,vit:0},skills:['multishot','jab','dash']},
-  barbarian:{name:'野蛮人',ico:'⚔️',desc:'近战狂战 · +力/体 · 全伤害+8%·护甲+60',attrs:{str:6,vit:6,dex:0,eng:0},skills:['bw_whirlwind','bw_berserk','dash']},
+  sorceress:{name:'法师',ico:'🔮',desc:'三系元素 · +精力 · 技能伤害+15%·法力+40',attrs:{eng:6,vit:5,str:0,dex:0},skills:['iceBolt','fireBolt','teleport'], basic:{ranged:true,range:170,c:'#9fd0ff',sp:480}},
+  amazon:   {name:'亚马逊',ico:'🏹',desc:'弓与标枪 · +敏捷/精力 · 攻速+15%·暴击+8%',attrs:{dex:8,eng:3,str:1,vit:0},skills:['multishot','jab','dash'], basic:{ranged:true,range:210,c:'#cfe8a0',sp:560}},
+  barbarian:{name:'野蛮人',ico:'⚔️',desc:'近战狂战 · +力/体 · 全伤害+8%·护甲+60',attrs:{str:6,vit:6,dex:0,eng:0},skills:['bw_whirlwind','bw_berserk','dash'], basic:{ranged:false,range:38}},
 };
 function useSkill(id){
   if(player.dead||paused||inCamp) return; // 营地禁技能(防位移穿墙+投射物堆积)
@@ -1400,13 +1400,19 @@ function update(dt){
   player.atkT-=dt; player.swing=Math.max(0,player.swing-dt);
   let atkTarget=move&&move.enemy?move.enemy:nearestEnemy(player.x,player.y,player.atkRange+10);
   if(atkTarget && dist(player.x,player.y,atkTarget.x,atkTarget.y)<player.atkRange+atkTarget.r && player.atkT<=0){
-    player.atkT=ps.atkInt; player.face=Math.atan2(atkTarget.y-player.y,atkTarget.x-player.x); player.swing=0.2; sfx('swing');
-    // 扇形横扫: 主目标必中 + 窄锥(±0.35弧)内最多额外2个(保留挥砍手感, 不抢AOE技能经济)
-    const R=player.atkRange+14; let extra=0;
-    const crit0=Math.random()*100<ps.crit; dealDamage(atkTarget,ps.dmg*(crit0?2:1),true,crit0);
-    for(const e of [...enemies]){ if(e===atkTarget||extra>=2)continue; const dd=dist(player.x,player.y,e.x,e.y); if(dd>R+e.r)continue;
-      const ang=Math.atan2(e.y-player.y,e.x-player.x); const da=Math.abs(((ang-player.face+Math.PI*3)%(TAU))-Math.PI);
-      if(da<0.35){ const crit=Math.random()*100<ps.crit; dealDamage(e,ps.dmg*0.7*(crit?2:1),true,crit); extra++; } }
+    player.atkT=ps.atkInt; player.face=Math.atan2(atkTarget.y-player.y,atkTarget.x-player.x); player.swing=0.2;
+    const crit0=Math.random()*100<ps.crit;
+    if(player.basicRanged){ // 远程职业普攻: 射弹(亚马逊箭/法师法弹)+动效
+      const a=player.face; sfx('dash');
+      projectiles.push({x:player.x+Math.cos(a)*18,y:player.y+Math.sin(a)*18,vx:Math.cos(a)*player.basicSp,vy:Math.sin(a)*player.basicSp,life:1.4,dmg:ps.dmg*(crit0?2:1),fromPlayer:true,crit:crit0,c:player.basicProjC});
+      for(let i=0;i<3;i++)particles.push({x:player.x+Math.cos(a)*16,y:player.y+Math.sin(a)*16,vx:Math.cos(a)*60,vy:Math.sin(a)*60,life:.2,t:0,c:player.basicProjC,r:2});
+    } else { // 近战职业普攻: 扇形横扫(主目标必中+窄锥额外2个)
+      sfx('swing'); const R=player.atkRange+14; let extra=0;
+      dealDamage(atkTarget,ps.dmg*(crit0?2:1),true,crit0);
+      for(const e of [...enemies]){ if(e===atkTarget||extra>=2)continue; const dd=dist(player.x,player.y,e.x,e.y); if(dd>R+e.r)continue;
+        const ang=Math.atan2(e.y-player.y,e.x-player.x); const da=Math.abs(((ang-player.face+Math.PI*3)%(TAU))-Math.PI);
+        if(da<0.35){ const crit=Math.random()*100<ps.crit; dealDamage(e,ps.dmg*0.7*(crit?2:1),true,crit); extra++; } }
+    }
   }
   // ----- merc -----
   updateMerc(dt);
@@ -1877,7 +1883,7 @@ function saveGame(){ try{ localStorage.setItem(SAVE_KEY, JSON.stringify({
   attrs:player.attrs, statPoints:player.statPoints, skillPoints:player.skillPoints, skillLvl:player.skillLvl, gold2:player.gold, maxStage:player.maxStage, cls:player.cls
 })); }catch(e){} }
 function loadSave(){ try{ const s=localStorage.getItem(SAVE_KEY); return s?JSON.parse(s):null; }catch(e){ return null; } }
-function applySave(s){ const CLSMAP={warrior:'barbarian',mage:'sorceress',duelist:'amazon'}; player.cls=CLSMAP[s.cls]||s.cls||'barbarian'; player.lvl=s.lvl||1; player.xp=s.xp||0; player.xpNext=s.xpNext||30; player.gold=s.gold||0;
+function applySave(s){ const CLSMAP={warrior:'barbarian',mage:'sorceress',duelist:'amazon'}; player.cls=CLSMAP[s.cls]||s.cls||'barbarian'; applyBasic(CLASSES[player.cls]); player.lvl=s.lvl||1; player.xp=s.xp||0; player.xpNext=s.xpNext||30; player.gold=s.gold||0;
   player.eq=s.eq||{weapon:null,helm:null,body:null,gloves:null,boots:null,belt:null,ring:null,amulet:null}; merc.eq=s.meq||{weapon:null}; bag=s.bag||[]; stage=s.stage||1;
   player.perks=s.perks||{dmg:0,life:0,crit:0,as:0,armor:0};
   player.attrs=s.attrs||{str:0,dex:0,vit:0,eng:0}; player.statPoints=s.statPoints||0; player.skillPoints=s.skillPoints||0; player.skillLvl=s.skillLvl||{}; player.maxStage=s.maxStage||s.stage||1;
@@ -1900,7 +1906,9 @@ document.getElementById('tips-go').onclick=()=>{ document.getElementById('tips')
 function resetRun(){ player.lvl=1; player.xp=0; player.xpNext=30; player.eq={weapon:null,helm:null,body:null,gloves:null,boots:null,belt:null,ring:null,amulet:null};
   const C=CLASSES[player.cls]||CLASSES.barbarian; // 职业起始
   merc.eq={weapon:null}; bag=[]; stage=1; curMod=null; player.gold=0; player.unlocked=[...C.skills]; player.loadout=[...C.skills]; player.frenzyT=0; player.cd={}; player.procs={}; player.uniques={}; player.perks={dmg:0,life:0,crit:0,as:0,armor:0}; pendingPerks=0;
-  player.attrs={str:C.attrs.str,dex:C.attrs.dex,vit:C.attrs.vit,eng:C.attrs.eng}; player.statPoints=0; player.skillPoints=0; player.skillLvl={}; player.maxStage=1; }
+  player.attrs={str:C.attrs.str,dex:C.attrs.dex,vit:C.attrs.vit,eng:C.attrs.eng}; player.statPoints=0; player.skillPoints=0; player.skillLvl={}; player.maxStage=1;
+  applyBasic(C); }
+function applyBasic(C){ const b=(C&&C.basic)||{ranged:false,range:38}; player.atkRange=b.range; player.basicRanged=!!b.ranged; player.basicProjC=b.c; player.basicSp=b.sp||520; }
 document.getElementById('newbtn').onclick=()=>{ if(loadSave()&&!confirm('开始新游戏会覆盖存档，确定？'))return;
   const cb=document.getElementById('classbtns'); cb.innerHTML='';
   for(const key of Object.keys(CLASSES)){ const C=CLASSES[key]; const d=document.createElement('div'); d.className='btn2';
