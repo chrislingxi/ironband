@@ -459,6 +459,7 @@ const AFFIX=[
   {k:'vit',  n:'体力',   roll:s=>rint(2+s,5+s*2), suf:''},
   {k:'dex',  n:'敏捷',   roll:s=>rint(2+s,5+s*2), suf:''},
   {k:'epierce',n:'元素穿透',roll:s=>rint(5+s,12+s*2), suf:'%'},
+  {k:'mf',n:'魔法寻宝',roll:s=>rint(8+s*2,18+s*4), suf:'%'},
 ];
 // 词缀tier: 同名词缀分档(T1粗劣..T8神品), 高层(stage=ilvl)解锁高档, 造就perfect roll追求
 const TIER_NAMES=['粗劣','普通','精良','优质','卓越','完美','传世','神品'];
@@ -518,10 +519,12 @@ const SLOTS=['weapon','helm','body','gloves','boots','belt','ring','amulet']; //
 // M7 去emoji: 真实图标(FLARE CC-BY-SA, assets/icons/) 替代emoji, 缺失回退emoji
 const ICON_KEYS=new Set(['weapon','helm','body','gloves','boots','belt','ring','amulet','potion_hp','potion_mp','skill_dash','skill_cleave','skill_nova','skill_slam','skill_fireball','skill_chain','skill_frenzy','skill_warrior','skill_mage','skill_duelist']);
 function iconImg(key,fb){ return ICON_KEYS.has(key) ? '<img src="assets/icons/'+key+'.png" class="icoimg" draggable="false" alt="">' : (fb||'❓'); }
-function rollRarity(){ let t=RARITY.reduce((s,r)=>s+r.w,0),x=Math.random()*t; for(const r of RARITY){ if((x-=r.w)<0) return r; } return RARITY[0]; }
+// 魔法寻宝MF: 堆MF→稀有/暗金概率上升(D2刷宝飞轮). 暗金受益最大×3, 魔法最小
+const MF_BOOST=[0,0.5,1.5,3];
+function rollRarity(mf){ mf=mf||0; const ws=RARITY.map((r,i)=> i===0?r.w : r.w*(1+mf/100*MF_BOOST[i])); let t=ws.reduce((s,w)=>s+w,0),x=Math.random()*t; for(let i=0;i<RARITY.length;i++){ if((x-=ws[i])<0) return RARITY[i]; } return RARITY[0]; }
 function genItem(stage,forcedType,forcedRarity){
   const type=forcedType?ITYPE.find(t=>t.k===forcedType):pick(ITYPE);
-  const rar=forcedRarity?RARITY.find(r=>r.n===forcedRarity):rollRarity();
+  const rar=forcedRarity?RARITY.find(r=>r.n===forcedRarity):rollRarity(player&&player.eq?(sumGear(player.eq).mf||0):0); // MF提升稀有度
   const pool=AFFIX.slice(); const affs=[];
   if(type.bias){ const ba=AFFIX.find(a=>a.k===type.bias); if(ba) affs.push(rollAffix(ba,stage)); } // 部位偏向主词缀
   while(affs.length<rar.af){ const a=pick(pool); if(affs.find(x=>x.k===a.k))continue; affs.push(rollAffix(a,stage)); }
@@ -569,7 +572,7 @@ function checkRuneword(it){ if(!it||!it.sockets||!it.sockets.length){ if(it)it.r
   it.runeword=rw||null; }
 
 // ---------- entities ----------
-function baseStats(){ return {dmg:0,life:0,armor:0,as:0,ms:0,crit:0,mp:0,skilldmg:0,str:0,dex:0,vit:0,eng:0,epierce:0}; }
+function baseStats(){ return {dmg:0,life:0,armor:0,as:0,ms:0,crit:0,mp:0,skilldmg:0,str:0,dex:0,vit:0,eng:0,epierce:0,mf:0}; }
 function sumGear(eq){ const s=baseStats(); for(const it of Object.values(eq)){ if(!it)continue;
   for(const a of it.affs) if(s[a.k]!==undefined)s[a.k]+=a.v;
   if(it.sockets) for(const g of it.sockets) if(g&&s[g.stat]!==undefined) s[g.stat]+=g.v; // 镶嵌宝石/符文加成
@@ -1475,7 +1478,7 @@ function update(dt){
     e._ant=(e._ant||0)+dt*1000; // FLARE 动画时钟
     if(e.slow>0) e.slow=Math.max(0,e.slow-dt); // 冰缓: 减速持续时间
     if(e.vuln>0) e.vuln=Math.max(0,e.vuln-dt); // 易伤持续
-    if(e.dot){ e.hp-=e.dot.dps*dt; e.dot.t-=dt; if(e.dot.t<=0)e.dot=null; // DOT持续伤害(D2毒/燃烧)
+    if(e.dot){ const pe=e.dot.elem||'poison'; const dr=(e.res&&e.res[pe]>0)?Math.max(0.1,1-e.res[pe]*(1-(player.epierce||0))):1; e.hp-=e.dot.dps*dt*dr; e.dot.t-=dt; if(e.dot.t<=0)e.dot=null; // DOT经抗性结算(D2毒抗+穿透)
       if((e._dotFx=(e._dotFx||0)+dt)>0.22){ e._dotFx=0; particles.push({x:e.x+rnd(-8,8),y:e.y+rnd(-8,8),vx:0,vy:-30,life:.4,t:0,c:(e.dot&&e.dot.c)||'#7ed957',r:2}); }
       if(e.hp<=0){ killEnemy(e,true); continue; } }
     // 击退脉冲(带衰减+墙校验)
@@ -1901,6 +1904,9 @@ function drawEnemy(e){
   // 自爆娃娃引信危险圈(爆炸半径预警, 闪烁加速)
   if(e.fuse>0){ const a=0.2+Math.abs(Math.sin(now()*16))*0.3; X.fillStyle='rgba(255,60,30,'+a.toFixed(2)+')'; X.beginPath(); X.arc(e.x,e.y,90,0,TAU); X.fill();
     X.strokeStyle='#ff3b2e'; X.lineWidth=3; X.beginPath(); X.arc(e.x,e.y,90,0,TAU); X.stroke(); X.lineWidth=1; }
+  // 冲锋怪蓄力持续预警: 朝玩家方向的警示线, 随蓄力变长变亮(给读招躲招窗口)
+  if(e.chgWind>0){ const k=1-e.chgWind/0.55, a=e._fang||0, len=55+k*135; X.save(); X.globalAlpha=0.35+k*0.45; X.strokeStyle='#ff8a3c'; X.lineWidth=3+k*2; X.beginPath(); X.moveTo(e.x,e.y); X.lineTo(e.x+Math.cos(a)*len,e.y+Math.sin(a)*len); X.stroke();
+    X.fillStyle='#ff8a3c'; const tx=e.x+Math.cos(a)*len,ty=e.y+Math.sin(a)*len; X.beginPath(); X.arc(tx,ty,4+k*3,0,TAU); X.fill(); X.restore(); }
   const r=e.r, bob=Math.sin(now()*3+e.x*0.05)*r*0.06, x=e.x, y=e.y-bob, c=e.hitFlash>0?'#ffffff':e.c, dk=e.hitFlash>0?'#fff':shade(e.c,-50);
   const face=Math.atan2(player.y-e.y,player.x-e.x), fx=Math.cos(face);
   // 阴影
