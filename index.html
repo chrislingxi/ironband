@@ -775,7 +775,7 @@ function pstat(){ const g=sumGear(player.eq); const fr=player.frenzyT>0; const s
   const cls=player.cls||'warrior'; // 职业被动
   const armor=g.armor+A.dex*0.5+sb.armor+(u.juggernaut?120:0)+(cls==='barbarian'?60:0); const dr=Math.min(0.75,armor/(armor+150+player.lvl*22)); // 护甲减伤(分母拉大降早期肉度, 硬上限75%)
   return {
-  dmg:(player.baseDmg+g.dmg+player.lvl*2)*(1+A.str*0.012)*(1+sb.dmgPct/100)*(u.glasscannon?1.6:1)*(cls==='barbarian'?1.08:1)*(fr?1.25:1)*bersk, // 力量+伤害(去1.12^层双倍, 战力靠装备+属性+技能)
+  dmg:(player.baseDmg+g.dmg+player.lvl*2)*(1+A.str*0.012)*(1+sb.dmgPct/100)*(u.glasscannon?1.6:1)*(cls==='barbarian'?1.05:1)*(fr?1.25:1)*bersk, // 力量+伤害(去1.12^层双倍, 战力靠装备+属性+技能)
   maxhp:Math.round((100+g.life+player.lvl*12+A.vit*7)*(1+sb.lifePct/100+(u.giant?0.35:0)+(u.titan?0.5:0))*(u.glasscannon?0.7:1)*(player.boT>0?1.35:1)*((curMod&&curMod.phpMul)||1)), // 体力+生命(野蛮人战斗命令boT+35%)
   maxmp:Math.round(50+player.lvl*4+A.eng*4+(cls==='sorceress'?40:0)), // 精力+法力
   armor, dr,
@@ -935,7 +935,7 @@ const SKILLS={
   chargedBolt:{name:'充能弹',ico:'⚡',cd:1.0,mp:8, run(ps){ const a=player.face;
     for(let i=-2;i<=2;i++){ const aa=a+i*0.18, sp=rnd(340,420); projectiles.push({x:player.x+Math.cos(aa)*16,y:player.y+Math.sin(aa)*16,vx:Math.cos(aa)*sp,vy:Math.sin(aa)*sp,life:1.2,dmg:ps.dmg*0.5,fromPlayer:true,c:'#ffe96b'}); } player.swing=0.1; sfx('dash'); }},
   staticField:{name:'静态力场',ico:'🌐',cd:3.5,mp:18, run(ps){ const R=170;
-    for(const e of [...enemies]){ if(dist(player.x,player.y,e.x,e.y)<R){ dealDamage(e,e.hp*0.28,false,false); ringFx(e.x,e.y,e.r+8,'#fff36b'); } }
+    for(const e of [...enemies]){ if(dist(player.x,player.y,e.x,e.y)<R){ const dmg=e.boss?ps.dmg*1.2:e.hp*0.10; dealDamage(e,dmg,false,false); ringFx(e.x,e.y,e.r+8,'#fff36b'); } } // 评审P1:0.28→0.10+Boss豁免(改按面板伤,防无视防御秒Boss)
     ringFx(player.x,player.y,R,'#ffe96b'); shake(9,0.2); sfx('nova'); }},
   teleport:{name:'传送',ico:'✨',cd:3.0,mp:14, run(ps){ const dx=Math.cos(player.face),dy=Math.sin(player.face); const RANGE=190; let tx=player.x+dx*RANGE, ty=player.y+dy*RANGE;
     for(let i=18;i>=0;i--){ const cx=player.x+dx*RANGE*(i/18), cy=player.y+dy*RANGE*(i/18); if(walkable(cx,cy)){tx=cx;ty=cy;break;} }
@@ -970,7 +970,7 @@ const SKILLS={
   charged:{name:'蓄能标枪',ico:'🌩️',cd:5,mp:20, run(ps){ const a=player.face,N=5;
     for(let i=0;i<N;i++){ const aa=a-0.4+0.2*i; projectiles.push({x:player.x,y:player.y,vx:Math.cos(aa)*480,vy:Math.sin(aa)*480,life:1,dmg:ps.dmg*0.7,fromPlayer:true,c:'#9cf'}); } ringFx(player.x,player.y,40,'#bfe3ff'); player.swing=0.14; shake(6,0.14); sfx('nova'); }},
   poisonjav:{name:'瘟疫标枪',ico:'☠️',cd:3.5,mp:16, run(ps){ const a=player.face,sp=440;
-    projectiles.push({x:player.x,y:player.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1.3,dmg:ps.dmg*0.4,fromPlayer:true,splash:90,splashMult:2.6,c:'#7ed957'}); player.swing=0.12; sfx('cleave'); }},
+    projectiles.push({x:player.x,y:player.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1.3,dmg:ps.dmg*1.0,fromPlayer:true,splash:90,splashMult:2.6,c:'#7ed957'}); player.swing=0.12; sfx('cleave'); }},
   valkyrie:{name:'女武神',ico:'🛡️',cd:18,mp:30, run(ps){ for(let i=0;i<14;i++){ const a=i/14*TAU; projectiles.push({x:player.x,y:player.y,vx:Math.cos(a)*420,vy:Math.sin(a)*420,life:1.1,dmg:ps.dmg*0.9,fromPlayer:true,c:'#ffe08a'}); }
     ringFx(player.x,player.y,60,'#ffe08a'); floaters.push({x:player.x,y:player.y-28,vy:-40,t:0,life:1,txt:'女武神之箭!',crit:true,col:'#ffe08a'}); shake(8,0.2); sfx('level'); }},
   decoy:{name:'诱饵',ico:'👻',cd:14,mp:18, run(ps){ aoeDamage(player.x,player.y,150,0.5,ps,e=>{e.stun=Math.max(e.stun||0,1.4);}); ringFx(player.x,player.y,150,'#9ad'); shake(6,0.18); sfx('dash'); }},
@@ -983,7 +983,7 @@ const SKILLS={
   bw_warcry:{name:'战争呐喊',ico:'💥',cd:7,mp:16, run(ps){ const R=170; aoeDamage(player.x,player.y,R,1.9,ps,e=>{e.stun=Math.max(e.stun||0,1.2);}); ringFx(player.x,player.y,R,'#ffe08a'); ringFx(player.x,player.y,R*0.6,'#fff'); shake(12,0.3); sfx('boss'); }},
   bw_battleorders:{name:'战斗命令',ico:'📯',cd:18,mp:18, run(ps){ player.boT=20; const m=pstat(); player.maxhp=Math.round(m.maxhp); player.hp=Math.min(player.maxhp,player.hp+Math.round(player.maxhp*0.3));
     ringFx(player.x,player.y,50,'#ffd76b'); floaters.push({x:player.x,y:player.y-28,vy:-40,t:0,life:1,txt:'战斗命令 +生命',col:'#ffd76b'}); sfx('level'); }},
-  bw_berserk:{name:'狂战',ico:'☠️',cd:1.2,mp:6, run(ps){ player.swing=0.18; const fx=Math.cos(player.face),fy=Math.sin(player.face),cx=player.x+fx*36,cy=player.y+fy*36; const c=critRoll(ps); aoeDamage(cx,cy,42,3.2*(c?1.6:1),ps); ringFx(cx,cy,42,'#ff3b2e'); shake(8,0.18); sfx('cleave'); }},
+  bw_berserk:{name:'狂战',ico:'☠️',cd:1.6,mp:10, run(ps){ player.swing=0.18; const fx=Math.cos(player.face),fy=Math.sin(player.face),cx=player.x+fx*36,cy=player.y+fy*36; const c=critRoll(ps); aoeDamage(cx,cy,42,2.0*(c?1.3:1),ps); ringFx(cx,cy,42,'#ff3b2e'); shake(8,0.18); sfx('cleave'); }},
 };
 const SKILL_ORDER=['dash','cleave','slam','frenzy','nova','fireball','chain',
   'iceBolt','fireBolt','chargedBolt','teleport','frostNova','staticField','glacialSpike','lightning','fireBall','chainLightning','blizzard','meteor',
@@ -1007,15 +1007,15 @@ const SYNERGY={ fireball:['nova','chain'], nova:['fireball','chain'], chain:['fi
   multishot:['strafe','guidedarrow'], strafe:['multishot','guidedarrow'], guidedarrow:['multishot','strafe'],
   lightningjav:['charged','poisonjav'], charged:['lightningjav'], poisonjav:['lightningjav','jab'], jab:['poisonjav','lightningjav'],
   bw_whirlwind:['bw_berserk','cleave'], bw_berserk:['bw_whirlwind','slam'], bw_leap:['bw_warcry'], bw_warcry:['bw_leap'] };
-function synergyBonus(id){ const syn=SYNERGY[id]; if(!syn)return 0; let sb=0; for(const k of syn){ if(player.unlocked&&player.unlocked.includes(k)) sb+=(player.skillLvl[k]||1)*0.04; } return sb; }
+function synergyBonus(id){ const syn=SYNERGY[id]; if(!syn)return 0; let sb=0; for(const k of syn){ if(player.unlocked&&player.unlocked.includes(k)) sb+=Math.min(20,player.skillLvl[k]||1)*0.03; } return sb; }
 // 三正统D2职业: 法师(元素)/亚马逊(弓+标枪)/野蛮人(战斗+战吼), 差异化属性+技能池+被动
 const CLASSES={
-  sorceress:{name:'法师',ico:'🔮',desc:'三系元素 · +精力 · 技能伤害+15%·法力+40',attrs:{eng:11,vit:2,str:0,dex:0},skills:['iceBolt','fireBolt','teleport']},
+  sorceress:{name:'法师',ico:'🔮',desc:'三系元素 · +精力 · 技能伤害+15%·法力+40',attrs:{eng:6,vit:5,str:0,dex:0},skills:['iceBolt','fireBolt','teleport']},
   amazon:   {name:'亚马逊',ico:'🏹',desc:'弓与标枪 · +敏捷/精力 · 攻速+15%·暴击+8%',attrs:{dex:8,eng:3,str:1,vit:0},skills:['multishot','jab','dash']},
   barbarian:{name:'野蛮人',ico:'⚔️',desc:'近战狂战 · +力/体 · 全伤害+8%·护甲+60',attrs:{str:6,vit:6,dex:0,eng:0},skills:['bw_whirlwind','bw_berserk','dash']},
 };
 function useSkill(id){
-  if(player.dead||paused) return;
+  if(player.dead||paused||inCamp) return; // 营地禁技能(防位移穿墙+投射物堆积)
   const s=SKILLS[id]; if(!s) return;
   if((player.cd[id]||0)>0) return;
   if(s.mp && player.mp<s.mp) return;
@@ -1144,7 +1144,7 @@ function renderCharPanel(){
     const syn=Math.round(synergyBonus(id)*100); const synTxt=SYNERGY[id]?`<div class="af" style="font-size:9px;color:#c9a6ff">同系协同 +${syn}% (${SYNERGY[id].map(k=>SKILLS[k].name).join('/')})</div>`:'';
     d.innerHTML=`<div class="nm">${s.ico}${s.name} <span style="color:#7dd3ff">Lv${lv}</span></div><div class="af" style="font-size:10px">技能伤害 +${Math.round((lv-1)*18)}%</div>${synTxt}`+
       `<div class="who"><b data-sk="${id}" style="${can?'':'opacity:.35'}">+ 升级</b></div>`;
-    d.querySelector('[data-sk]').onclick=()=>{ if(player.skillPoints<=0)return; player.skillLvl[id]=(player.skillLvl[id]||1)+1; player.skillPoints--; sfx('loot-rare'); saveGame(); renderInv(); };
+    d.querySelector('[data-sk]').onclick=()=>{ if(player.skillPoints<=0||(player.skillLvl[id]||1)>=20)return; player.skillLvl[id]=(player.skillLvl[id]||1)+1; player.skillPoints--; sfx('loot-rare'); saveGame(); renderInv(); };
     el.appendChild(d); }
 }
 function renderInv(){
@@ -1310,7 +1310,7 @@ const CAMP_NPCS=[
 function genCamp(){ MW=CAMP_W; MH=CAMP_H; MAP=[];
   for(let y=0;y<MH;y++){ MAP[y]=[]; for(let x=0;x<MW;x++) MAP[y][x]=(x===0||y===0||x===MW-1||y===MH-1)?1:0; }
   rooms=[{x:0,y:0,w:MW,h:MH,idx:0,cleared:true,boss:false,shape:'open'}]; buildWalls(); }
-function enterCamp(){ if(win)return; inCamp=true; paused=false; enemies=[]; projectiles=[]; loots=[]; floaters=[]; particles=[]; rings=[]; corpses=[];
+function enterCamp(){ if(win||paused)return; inCamp=true; paused=false; enemies=[]; projectiles=[]; loots=[]; floaters=[]; particles=[]; rings=[]; corpses=[];
   genCamp(); player.x=11*TILE; player.y=7*TILE; player.dead=false; move=null; merc.x=player.x-30; merc.y=player.y+20; merc.dead=false;
   cam.x=player.x; cam.y=player.y; banner('⛺ 营地 · 避难所（走近摊位交互）','#ffd76b');
   document.getElementById('campbtn').style.display='none'; document.getElementById('campexit').style.display='flex'; }
@@ -1420,7 +1420,7 @@ function update(dt){
     if(e.stun>0){ e.stun-=dt; continue; }
     // 自爆娃娃: 贴近玩家即引爆(D2 Undead Stygian Doll)
     if(e.suicide && dist(e.x,e.y,player.x,player.y)<e.r+player.r+10){ ringFx(e.x,e.y,90,'#ffd76b'); ringFx(e.x,e.y,60,'#ff7a2e'); shake(10,0.2);
-      if(dist(e.x,e.y,player.x,player.y)<90) hurtPlayer(e.dmg*2.2); e.hp=0; killEnemy(e,false); continue; }
+      if(dist(e.x,e.y,player.x,player.y)<90) hurtPlayer(Math.min(e.dmg*1.5,player.maxhp*0.22)); e.hp=0; killEnemy(e,false); continue; } // 评审P2:2.2→1.5+上限22%血
     // 堕落巫医: 周期召唤堕落者(D2 Shaman)
     if(e.summon){ e.sumT=(e.sumT==null?rnd(3,5):e.sumT)-dt;
       if(e.sumT<=0 && enemies.length<60){ e.sumT=rnd(5,7); ringFx(e.x,e.y,40,e.c); spawnEnemy(e.summon,e.x+rnd(-40,40),e.y+rnd(-40,40),Math.pow(1.21,stage-1)); } }
