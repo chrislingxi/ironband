@@ -450,6 +450,7 @@ const AFFIX=[
   {k:'str',  n:'力量',   roll:s=>rint(2+s,5+s*2), suf:''},
   {k:'vit',  n:'体力',   roll:s=>rint(2+s,5+s*2), suf:''},
   {k:'dex',  n:'敏捷',   roll:s=>rint(2+s,5+s*2), suf:''},
+  {k:'epierce',n:'元素穿透',roll:s=>rint(5+s,12+s*2), suf:'%'},
 ];
 // 词缀tier: 同名词缀分档(T1粗劣..T8神品), 高层(stage=ilvl)解锁高档, 造就perfect roll追求
 const TIER_NAMES=['粗劣','普通','精良','优质','卓越','完美','传世','神品'];
@@ -560,7 +561,7 @@ function checkRuneword(it){ if(!it||!it.sockets||!it.sockets.length){ if(it)it.r
   it.runeword=rw||null; }
 
 // ---------- entities ----------
-function baseStats(){ return {dmg:0,life:0,armor:0,as:0,ms:0,crit:0,mp:0,skilldmg:0,str:0,dex:0,vit:0,eng:0}; }
+function baseStats(){ return {dmg:0,life:0,armor:0,as:0,ms:0,crit:0,mp:0,skilldmg:0,str:0,dex:0,vit:0,eng:0,epierce:0}; }
 function sumGear(eq){ const s=baseStats(); for(const it of Object.values(eq)){ if(!it)continue;
   for(const a of it.affs) if(s[a.k]!==undefined)s[a.k]+=a.v;
   if(it.sockets) for(const g of it.sockets) if(g&&s[g.stat]!==undefined) s[g.stat]+=g.v; // 镶嵌宝石/符文加成
@@ -570,7 +571,7 @@ function sumGear(eq){ const s=baseStats(); for(const it of Object.values(eq)){ i
 function recalcProcs(){ const p={}; const u={}; for(const it of Object.values(player.eq)){ if(!it)continue;
     if(it.procs) for(const pr of it.procs){ p[pr.k]=Math.max(p[pr.k]||0,pr.v); }
     if(it.unique) u[it.unique]=true; }
-  player.procs=p; player.uniques=u; }
+  player.procs=p; player.uniques=u; player.epierce=Math.min(0.9,(sumGear(player.eq).epierce||0)/100); } // 元素穿透(抵消怪抗)
 
 const player={
   cls:'barbarian', // 职业
@@ -1976,6 +1977,8 @@ function drawEnemy(e){
     X.fillStyle=e.elite.c; X.font='bold 10px Georgia,serif'; X.textAlign='center'; X.fillText(e.eliteName,e.x,e.y-r-12); }
   if(e.elem && !e.elite){ X.fillStyle=e.elem.c; X.font='bold 10px Georgia,serif'; X.textAlign='center'; X.fillText(e.elemName,e.x,e.y-r-12); }
   if(e.boss){ X.fillStyle='#ffd000'; X.font='bold 12px Georgia,serif'; X.textAlign='center'; X.fillText('☠ '+(e.bossName||'BOSS'),e.x,e.y-r-16); }
+  // 抗性可视化(玩家看得到才会换元素/堆穿透)
+  if(e.res){ const rs=Object.entries(e.res).filter(([k,v])=>v>=0.4).map(([k])=>'抗'+(ELEM_CN[k]||k)); if(rs.length){ X.fillStyle='#9ab'; X.font='9px Georgia,serif'; X.textAlign='center'; X.fillText(rs.join(' '),e.x,e.y+r+12); } }
   // hp
   const f=e.hp/e.maxhp; if(f<1){ X.fillStyle='#000a'; X.fillRect(e.x-r,e.y-r-9,r*2,4); X.fillStyle=e.boss?'#ff5e3a':'#d85e5e'; X.fillRect(e.x-r,e.y-r-9,r*2*f,4); }
 }
