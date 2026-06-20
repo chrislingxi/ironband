@@ -115,6 +115,10 @@
   #campbtn { position:absolute; right:14px; top:152px; width:40px; height:40px; border-radius:9px;
     background:#2a1d14cc; border:1px solid #c9883a; pointer-events:auto; font-size:18px;
     display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px #000a; }
+  #campexit { position:absolute; right:14px; top:60px; padding:9px 14px; border-radius:9px; background:#2a1414e0; border:1px solid #c9555a;
+    pointer-events:auto; font-size:13px; font-weight:700; color:#ffb3b3; align-items:center; justify-content:center; box-shadow:0 2px 6px #000a; }
+  #npcbtn { position:absolute; right:50%; transform:translateX(50%); bottom:120px; padding:12px 26px; border-radius:12px; background:#2a2418ee; border:2px solid #ffd76b;
+    pointer-events:auto; font-size:16px; font-weight:800; color:#ffd76b; align-items:center; justify-content:center; box-shadow:0 3px 10px #000c; }
   .campsvc { display:flex; align-items:center; gap:10px; width:300px; max-width:86vw; padding:11px 14px; border-radius:10px;
     background:#181820dd; border:1px solid #4a4a5e; cursor:pointer; text-align:left; }
   .campsvc:hover { border-color:#c9883a; }
@@ -203,6 +207,8 @@
   <div id="pausebtn">⏸</div>
   <div id="holdbtn" title="站桩攻击">🦶</div>
   <div id="campbtn" title="营地">⛺</div>
+  <div id="campexit" style="display:none">⚔ 离营</div>
+  <div id="npcbtn" style="display:none">▶ 交互</div>
   <div id="perkscreen" class="overlay" style="display:none">
     <div style="font-size:24px;font-weight:800;color:#ffe08a">升级！选择强化</div>
     <div id="perklvl" style="font-size:13px;opacity:.8"></div>
@@ -1291,6 +1297,34 @@ function showClear(){
   document.getElementById('clearscreen').style.display='flex';
 }
 function descendTo(target,mod){ curMod=mod||null; document.getElementById('clearscreen').style.display='none'; paused=false; stage=target; saveGame(); startStage(); banner(mod?('词缀：'+mod.name):('进入地牢 '+target),'#ff8a3c'); if(pendingPerks>0)showPerk(); }
+// ===== 可走动营地(D2避难所式: 营地=特殊场景, 玩家走动+NPC摊位邻近触发) =====
+let inCamp=false, nearNPC=null;
+const CAMP_W=22, CAMP_H=14;
+const CAMP_NPCS=[
+  {id:'gear',  name:'夏茜',  role:'整备工匠', ico:'🧍', col:'#c9a25a', gx:6,  gy:5,  svc:'gear'},
+  {id:'craft', name:'拉佐克',role:'锻造大师', ico:'🔨', col:'#b06a3a', gx:10, gy:4,  svc:'craft'},
+  {id:'gamble',name:'基德',  role:'流浪商人', ico:'🎲', col:'#5aa0c9', gx:15, gy:5,  svc:'gamble'},
+  {id:'merc',  name:'卡西雅',role:'佣兵统领', ico:'🛡️', col:'#7a9a5a', gx:8,  gy:9,  svc:'merc'},
+  {id:'stash', name:'储物箱',role:'整理',     ico:'📦', col:'#8a7a5a', gx:14, gy:9,  svc:'stash'},
+];
+function genCamp(){ MW=CAMP_W; MH=CAMP_H; MAP=[];
+  for(let y=0;y<MH;y++){ MAP[y]=[]; for(let x=0;x<MW;x++) MAP[y][x]=(x===0||y===0||x===MW-1||y===MH-1)?1:0; }
+  rooms=[{x:0,y:0,w:MW,h:MH,idx:0,cleared:true,boss:false,shape:'open'}]; buildWalls(); }
+function enterCamp(){ if(win)return; inCamp=true; paused=false; enemies=[]; projectiles=[]; loots=[]; floaters=[]; particles=[]; rings=[]; corpses=[];
+  genCamp(); player.x=11*TILE; player.y=7*TILE; player.dead=false; move=null; merc.x=player.x-30; merc.y=player.y+20; merc.dead=false;
+  cam.x=player.x; cam.y=player.y; banner('⛺ 营地 · 避难所（走近摊位交互）','#ffd76b');
+  document.getElementById('campbtn').style.display='none'; document.getElementById('campexit').style.display='flex'; }
+function leaveCamp(){ inCamp=false; nearNPC=null; document.getElementById('campbtn').style.display='flex'; document.getElementById('campexit').style.display='none';
+  document.getElementById('npcbtn').style.display='none'; startStage(); }
+function tryInteract(){ if(!inCamp||!nearNPC)return; const s=nearNPC.svc;
+  if(s==='gear'){ invEl.style.display='flex'; renderInv(); switchInvTab('char'); }
+  else if(s==='craft'){ invEl.style.display='flex'; renderInv(); switchInvTab('gear'); }
+  else if(s==='gamble') openGamble();
+  else if(s==='merc'){ document.getElementById('camphub').style.display='flex'; const mp=document.getElementById('mercpick'); mp.style.display='flex'; renderMercPick(); }
+  else if(s==='stash'){ invEl.style.display='flex'; renderInv(); switchInvTab('gear'); banner('整理：背包已按品质排序','#9ed89e'); bag.sort((a,b)=>(b.gem?0:RARITY.findIndex(r=>r.n===b.rarity))-(a.gem?0:RARITY.findIndex(r=>r.n===a.rarity))); renderInv(); } }
+function openGamble(){ const cost=Math.round(120*Math.pow(1.14,stage)); if(player.gold<cost){ banner('金币不足（需'+cost+'💰）','#ff9a9a'); return; }
+  player.gold-=cost; const x=Math.random(); const rar= x<0.01?'套装':x<0.10?'暗金':x<0.40?'稀有':'魔法';
+  const it=genItem(Math.max(stage,3),null,rar); bag.push(it); sfx('loot-rare'); banner('🎲 赌出：'+it.name+' ['+it.rarity+']',it.color); saveGame(); }
 function startStage(){
   win=false; enemies=[]; projectiles=[]; loots=[]; floaters=[]; particles=[]; rings=[]; corpses=[];
   spawnedRooms.clear(); // 修复: 跨局/跨层残留key导致房间不刷怪→死锁
@@ -1313,6 +1347,16 @@ function startStage(){
 let last=now();
 function update(dt){
   if(player.dead){ return; }
+  if(inCamp){ // 营地: 仅走位+NPC邻近, 不跑战斗
+    if(joy.active&&(joy.dx||joy.dy)){ player.face=Math.atan2(joy.dy,joy.dx); const sp=pstat().ms*dt;
+      const nx=player.x+joy.dx*sp, ny=player.y+joy.dy*sp; if(walkable(nx,player.y))player.x=nx; if(walkable(player.x,ny))player.y=ny; player.moving=true; }
+    else player.moving=false;
+    cam.x+=(player.x-cam.x)*Math.min(1,dt*6); cam.y+=(player.y-cam.y)*Math.min(1,dt*6);
+    nearNPC=null; let best=1.7*TILE;
+    for(const n of CAMP_NPCS){ const d=dist(player.x,player.y,(n.gx+0.5)*TILE,(n.gy+0.5)*TILE); if(d<best){best=d;nearNPC=n;} }
+    const nb=document.getElementById('npcbtn'); if(nearNPC){ nb.style.display='flex'; nb.textContent='▶ '+nearNPC.name; } else nb.style.display='none';
+    player._ant=(player._ant||0)+dt*1000; return;
+  }
   const ps=pstat();
   // regen mp
   player.mp=Math.min(player.maxmp,player.mp+8*dt);
@@ -1615,6 +1659,15 @@ function draw(){
   X.textAlign='center';
   for(const f of floaters){ X.globalAlpha=clamp(1-f.t/f.life,0,1); X.fillStyle=f.col; X.font=(f.crit?'bold 22px':'bold 15px')+' sans-serif';
     X.fillText(f.txt,f.x,f.y); X.globalAlpha=1; }
+  if(inCamp){ // 营地NPC摊位绘制
+    for(const n of CAMP_NPCS){ const sx=(n.gx+0.5)*TILE, sy=(n.gy+0.5)*TILE;
+      X.fillStyle='#0007'; X.beginPath(); X.ellipse(sx,sy+8,16,6,0,0,TAU); X.fill();
+      X.fillStyle=n.col; X.fillRect(sx-13,sy-2,26,10);
+      X.font='26px serif'; X.textAlign='center'; X.fillText(n.ico,sx,sy-4);
+      if(nearNPC===n){ X.strokeStyle='#ffd76b'; X.lineWidth=2; X.strokeRect(sx-18,sy-30,36,46);
+        X.fillStyle='#ffd76b'; X.font='bold 11px sans-serif'; X.fillText(n.name+'·'+n.role,sx,sy-34); }
+      else { X.fillStyle='#cfcfcf'; X.font='10px sans-serif'; X.fillText(n.name,sx,sy+22); } }
+  }
   X.restore();
   // 火把照明: 玩家周围亮, 边缘渐暗(氛围) + 暖光晕
   const lx=W/2+(player.x-cam.x), ly=H/2+(player.y-cam.y);
@@ -1856,7 +1909,9 @@ const camphubEl=document.getElementById('camphub'); let invFocus=null; let selIt
 document.getElementById('storyok').onclick=()=>{ document.getElementById('storycard').style.display='none'; if(storyPaused){ storyPaused=false; paused=false; last=now(); } };
 function openCamp(){ if(win)return; camphubEl.style.display='flex'; if(!paused){ paused=true; invPaused=true; } }
 function closeCamp(){ camphubEl.style.display='none'; }
-document.getElementById('campbtn').onclick=openCamp;
+document.getElementById('campbtn').onclick=enterCamp; // 走动营地
+document.getElementById('campexit').onclick=leaveCamp;
+document.getElementById('npcbtn').onclick=tryInteract;
 document.getElementById('camp-resume').onclick=()=>{ closeCamp(); if(invPaused){ invPaused=false; paused=false; last=now(); } };
 function campToInv(focus){ closeCamp(); invEl.style.display='flex'; renderInv(); switchInvTab(focus==='gem'?'gem':focus==='char'?'char':focus==='skill'?'skill':'gear'); }
 document.getElementById('svc-gear').onclick=()=>campToInv('gear');
