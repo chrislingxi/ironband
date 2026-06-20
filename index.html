@@ -702,7 +702,10 @@ function spawnEnemy(kind,x,y,scale,forceElite){
   if(kind==='fireant') el=ELEM_VARIANTS[0]; else if(kind==='iceant') el=ELEM_VARIANTS[1];
   else if(!e.boss && Math.random()<Math.min(0.30,(stage-1)*0.04)) el=pick(ELEM_VARIANTS);
   if(el){ e.elem=el; e.elemName='〔'+el.n+'〕'+(e.eliteName||a.n);
-    if(kind!=='fireant'&&kind!=='iceant'){ e.dmg*=el.dmg||1; e.hp*=el.hp||1; e.maxhp=e.hp; e.ms*=el.ms||1; } }
+    if(kind!=='fireant'&&kind!=='iceant'){ e.dmg*=el.dmg||1; e.hp*=el.hp||1; e.maxhp=e.hp; e.ms*=el.ms||1; }
+    e.res=e.res||{}; const rk={fire:'fire',frost:'cold',storm:'light'}[el.k]; if(rk) e.res[rk]=0.55; } // 元素变体抗对应元素
+  if(kind==='fireant'){ e.res={fire:0.8}; } else if(kind==='iceant'){ e.res={cold:0.8}; } // 天生元素抗
+  else if(kind==='doll'||kind==='succubus'){ e.res=e.res||{}; e.res.fire=(e.res.fire||0)+0.3; } // D2: 部分恶魔火抗
   enemies.push(e);
   return e;
 }
@@ -803,6 +806,7 @@ function powerOf(ps){ ps=ps||pstat(); const mg=sumGear(merc.eq); const nProc=Obj
 
 // ---------- combat ----------
 function dealDamage(t,amount,fromPlayer,crit,noProc){
+  if(fromPlayer && curElem!=='phys' && t.res && t.res[curElem]>0){ amount*=Math.max(0.1,1-t.res[curElem]*(1-(player.epierce||0))); } // 元素抗性减伤(玩家穿透epierce抵消部分)
   if(t.vuln>0) amount*=1.25; // 亚马逊洞察: 易伤+25%
   if(fromPlayer && player.uniques && player.uniques.execute && !t.boss && t.hp<t.maxhp*0.30) amount*=2; // 斩首之刃
   if(t.elite && t.elite.dr) amount*=(1-t.elite.dr); // 坚甲精英: 减伤(逼集火)
@@ -903,6 +907,12 @@ function aoeDamage(x,y,R,mult,ps,onHit){ let hit=0; for(const e of [...enemies])
 function explode(x,y,R,mult,ps){ ringFx(x,y,R,'#ff8a3c'); ringFx(x,y,R*0.6,'#ffd76b'); shake(8,0.16);
   for(let i=0;i<24;i++){const a=Math.random()*TAU,sp=rnd(60,R*4);particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:.4,t:0,c:pick(['#ff8a3c','#ffd76b','#ff5e3a']),r:rnd(2,4)});}
   aoeDamage(x,y,R,mult,ps); sfx('nova'); }
+// 元素系统(D2): 技能元素 + 怪物抗性. curElem在施放期间生效, 投射物自带elem, dealDamage按抗性减伤
+const SKILL_ELEM={ iceBolt:'cold',frostNova:'cold',glacialSpike:'cold',blizzard:'cold',nova:'cold',
+  chargedBolt:'light',lightning:'light',chainLightning:'light',staticField:'light',lightningjav:'light',charged:'light',chain:'light',
+  fireBolt:'fire',fireBall:'fire',meteor:'fire',fireball:'fire', poisonjav:'poison' };
+const ELEM_CN={fire:'火',cold:'冰',light:'电',poison:'毒',phys:'物理'};
+let curElem='phys';
 const SKILLS={
   dash:   {name:'冲刺',ico:'💨',cd:2.0,mp:0, run(ps){ const dx=Math.cos(player.face),dy=Math.sin(player.face); let nx=player.x,ny=player.y;
     for(let i=0;i<16;i++){ const tx=nx+dx*14,ty=ny+dy*14; if(walkable(tx,ty)){nx=tx;ny=ty;} else break; }
@@ -1046,7 +1056,10 @@ function useSkill(id){
   ps.dmg*=(1+sumGear(player.eq).skilldmg/100); // 装备+技能伤害%词缀
   ps.dmg*=(1+synergyBonus(id)); // D2 synergy: 同系技能加成(per-skill系数)
   if(player.cls==='sorceress') ps.dmg*=1.15; // 秘法职业: 技能伤害+15%
+  curElem = SKILL_ELEM[id]||'phys'; const pn0=projectiles.length; // 元素: 本次施放期间生效
   s.run(ps);
+  for(let i=pn0;i<projectiles.length;i++){ if(projectiles[i].fromPlayer && !projectiles[i].elem) projectiles[i].elem=curElem; } // 自动给本次投射物打元素(免改各技能)
+  curElem='phys';
 }
 function skillBaseLvl(id){ return player.skillLvl[id]||1; }
 let rings=[];
@@ -1533,7 +1546,9 @@ function update(dt){
     if(particles.length<320) particles.push({x:p.x,y:p.y,vx:rnd(-12,12),vy:rnd(-12,12),life:0.3,t:0,c:p.c||(p.fromPlayer?'#9bdcff':'#ff9b6b'),r:rnd(2,3.5)}); // 弹道辉光拖尾
     if(p.life<=0||!walkable(p.x,p.y)){ if(p.splash) explode(p.x,p.y,p.splash,p.splashMult,pstat()); projectiles.splice(projectiles.indexOf(p),1); continue; }
     if(p.fromPlayer){ for(const e of [...enemies]){ if(dist(p.x,p.y,e.x,e.y)<e.r+5){
+        curElem=p.elem||'phys'; // 投射物携带元素→抗性结算
         if(p.splash){ explode(p.x,p.y,p.splash,p.splashMult,pstat()); } else dealDamage(e,p.dmg,true,p.crit);
+        curElem='phys';
         if(p.chill) e.slow=Math.max(e.slow||0,p.chill); // 法师冰系减速
         if(p.poison){ const R=p.splash||60; ringFx(p.x,p.y,R,'#7ed957'); for(const e2 of enemies){ if(dist(p.x,p.y,e2.x,e2.y)<R) e2.dot={dps:Math.max(p.poison,(e2.dot&&e2.dot.dps)||0),t:4,c:'#7ed957'}; } } // 瘟疫: 范围中毒4s
         projectiles.splice(projectiles.indexOf(p),1); break; } } }
