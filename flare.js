@@ -41,7 +41,8 @@ function draw(ctx,spr,animName,dir,ms,bx,by,scale,flash){
 }
 
 const enemySprites={}; // kind -> sprite
-const ENEMY_MAP={ skeleton:'skeleton', archer:'skeleton_archer', zombie:'zombie', imp:'goblin', brute:'minotaur', boss:'minotaur', mage:'skeleton_mage', antlion:'antlion', fireant:'fire_ant', iceant:'ice_ant' };
+const ENEMY_MAP={ skeleton:'skeleton', archer:'skeleton_archer', zombie:'zombie', imp:'goblin', brute:'minotaur', boss:'minotaur', mage:'skeleton_mage', antlion:'antlion', fireant:'fire_ant', iceant:'ice_ant',
+  fallen:'goblin', shaman:'skeleton_mage', doll:'goblin', maggot:'antlion', leaper:'antlion_small', quill:'hobgoblin' }; // 几何怪→FLARE精灵(消除像素vs几何割裂); succubus/bird无兼容飞行精灵保持几何
 // 分层纸娃娃绘制顺序(先底后顶); longbow 仅佣兵
 const AVATAR_ORDER=['default_feet','default_legs','leather_pants','default_chest','leather_chest','leather_boots','default_hands','head_long','longbow'];
 const avatar={}; // name -> sprite
@@ -75,7 +76,8 @@ function drawEnemy(ctx,e,bx,by){
   const dir=angleToDir(e._fang!=null?e._fang:Math.atan2(player_y()-e.y,player_x()-e.x));
   const anim = e.stun>0?'hit' : (e.moving?'run':'stance');
   // 每型显式缩放(FLARE帧大小差异大: minotaur帧很大)
-  const SCALE={skeleton:1.15,archer:1.15,zombie:1.2,imp:1.0,brute:0.62,boss:0.95,mage:0.62,antlion:0.55,fireant:0.5,iceant:0.5};
+  const SCALE={skeleton:1.15,archer:1.15,zombie:1.2,imp:1.0,brute:0.62,boss:0.95,mage:0.62,antlion:0.55,fireant:0.5,iceant:0.5,
+    fallen:1.0,shaman:0.62,doll:0.85,maggot:0.55,leaper:0.55,quill:0.5};
   const scale=(SCALE[e.kind]||1)*(e.elite?1.18:1);
   const ms=(e._ant||0);
   return draw(ctx,spr,anim,dir,ms,bx,by+e.r*0.55,scale,e.hitFlash||0); // by下移到脚底, 传受击白闪
