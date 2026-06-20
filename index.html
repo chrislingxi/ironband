@@ -790,8 +790,11 @@ function spawnBoss(x,y){
 function populateRoom(r){
   if(r.idx===0) return; // safe spawn room
   // 特殊房(对标D2宝藏/神龛/精英/陷阱)
-  if(r.special==='treasure'){ for(let i=0;i<2;i++) dropLoot(genItem(stage+2,null,'稀有'),(r.x+r.w/2+rnd(-2,2))*TILE,(r.y+r.h/2+rnd(-2,2))*TILE);
-    player.gold+=Math.round(60*(1+stage*0.3)); banner('💰 宝藏房！','#ffd76b'); ringFx((r.x+r.w/2)*TILE,(r.y+r.h/2)*TILE,80,'#ffd76b'); return; }
+  if(r.special==='treasure'){ const tx=(r.x+r.w/2)*TILE, ty=(r.y+r.h/2)*TILE;
+    // 精英守卫的宝藏房(UX P2: 风险回报节奏变化, 守卫死后爆保底好装)
+    const guard=spawnEnemy(pick(['brute','antlion','quill']),tx,ty,Math.pow(1.21,stage-1)*1.35,true);
+    if(guard){ guard.treasureGuard=true; for(let m=0;m<3;m++){ const mm=spawnEnemy('skeleton',tx+rnd(-50,50),ty+rnd(-50,50),Math.pow(1.21,stage-1)*0.6,'no'); mm.minion=true; } }
+    player.gold+=Math.round(60*(1+stage*0.3)); banner('💰 宝藏房 · 击败守卫夺宝！','#ffd76b'); ringFx(tx,ty,90,'#ffd76b'); return; }
   if(r.special==='shrine'){ player.frenzyT=8; banner('✦ 神龛之力：临时狂暴','#9fe0ff'); ringFx((r.x+r.w/2)*TILE,(r.y+r.h/2)*TILE,80,'#9fe0ff'); }
   if(r.special==='elite'){ const ex=(r.x+r.w/2)*TILE, ey=(r.y+r.h/2)*TILE;
     spawnEnemy(pick(['brute','antlion']),ex,ey,Math.pow(1.21,stage-1)*1.2,true);
@@ -913,6 +916,7 @@ function killEnemy(e,fromPlayer){
   const chance=e.boss?1:(e.elite?1:Math.min(1,(0.30+(e.kind==='brute'?0.25:0))*dropMul));
   if(Math.random()<chance){ dropLoot(genItem(stage+(e.boss?2:0)+(e.elite?2:0)),e.x,e.y); }
   if(e.elite){ if(Math.random()<0.5) dropLoot(genItem(stage+2),e.x,e.y); shake(8,0.18); }
+  if(e.treasureGuard){ dropLoot(genItem(stage+3,null,Math.random()<0.35?'暗金':'稀有'),e.x,e.y); dropLoot(genItem(stage+2,null,'魔法'),e.x+rnd(-20,20),e.y+rnd(-20,20)); ringFx(e.x,e.y,100,'#ffd76b'); banner('💰 夺宝成功！','#ffd76b'); } // 守卫死爆保底好装
   if(fromPlayer && Math.random()<(e.boss?0.8:e.elite?0.3:0.06)) bag.push(Math.random()<(e.boss?0.5:0.22)?genRune(stage):genGem(stage)); // 宝石/符文掉落(符文更稀)
   if(fromPlayer && Math.random()<0.05 && player.mpPots<player.maxMpPots+3){ player.mpPots++; } // 蓝药掉落
   if(fromPlayer && Math.random()<0.05 && player.pots<player.maxPots+3){ player.pots++; } // 红药掉落
