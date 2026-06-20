@@ -51,6 +51,10 @@
   #invbtn { position:absolute; left:14px; bottom:40px; width:54px; height:54px; border-radius:12px;
     background:#1a1a24cc; border:2px solid #5a5a70; pointer-events:auto; font-size:24px;
     display:flex; align-items:center; justify-content:center; box-shadow:0 3px 8px #000a; }
+  #ptbadge { position:absolute; top:-7px; right:-7px; min-width:20px; height:20px; padding:0 4px; border-radius:11px;
+    background:#e23a3a; color:#fff; font-size:12px; font-weight:800; line-height:20px; text-align:center; box-shadow:0 1px 4px #000c;
+    display:none; animation:ptpulse 1.1s ease-in-out infinite; }
+  @keyframes ptpulse { 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.18); } }
   #potbtn { position:absolute; left:14px; bottom:106px; width:54px; height:54px; border-radius:12px;
     background:#1a2418cc; border:2px solid #4a8a4a; pointer-events:auto; font-size:24px;
     display:flex; align-items:center; justify-content:center; box-shadow:0 3px 8px #000a; }
@@ -160,7 +164,7 @@
   <div id="banner"></div>
   <div id="joy"><div id="joyknob"></div></div>
   <div id="hint">左半屏按住拖动 = 摇杆移动 · 点怪攻击<br>右下技能键放技能 · 清空房间推进<br>击败 Boss 通关</div>
-  <div id="invbtn">🎒</div>
+  <div id="invbtn">🎒<span id="ptbadge"></span></div>
   <div id="potbtn"><img src="assets/icons/potion_hp.png" class="hudimg" draggable="false"><span id="potcnt">4</span></div>
   <div id="mppotbtn"><img src="assets/icons/potion_mp.png" class="hudimg" draggable="false"><span id="mppotcnt">3</span></div>
   <div id="skills">
@@ -460,6 +464,7 @@ const AFFIX=[
   {k:'dex',  n:'敏捷',   roll:s=>rint(2+s,5+s*2), suf:''},
   {k:'epierce',n:'元素穿透',roll:s=>rint(5+s,12+s*2), suf:'%'},
   {k:'mf',n:'魔法寻宝',roll:s=>rint(8+s*2,18+s*4), suf:'%'},
+  {k:'plusSkills',n:'+技能等级',roll:s=>rint(1,1+Math.floor(s/10)), suf:'级'}, // D2装备脊柱: 穿透synergy+精通+成长三系
 ];
 // 词缀tier: 同名词缀分档(T1粗劣..T8神品), 高层(stage=ilvl)解锁高档, 造就perfect roll追求
 const TIER_NAMES=['粗劣','普通','精良','优质','卓越','完美','传世','神品'];
@@ -575,7 +580,7 @@ function checkRuneword(it){ if(!it||!it.sockets||!it.sockets.length){ if(it)it.r
   it.runeword=rw||null; }
 
 // ---------- entities ----------
-function baseStats(){ return {dmg:0,life:0,armor:0,as:0,ms:0,crit:0,mp:0,skilldmg:0,str:0,dex:0,vit:0,eng:0,epierce:0,mf:0}; }
+function baseStats(){ return {dmg:0,life:0,armor:0,as:0,ms:0,crit:0,mp:0,skilldmg:0,str:0,dex:0,vit:0,eng:0,epierce:0,mf:0,plusSkills:0}; }
 function sumGear(eq){ const s=baseStats(); for(const it of Object.values(eq)){ if(!it)continue;
   for(const a of it.affs) if(s[a.k]!==undefined)s[a.k]+=a.v;
   if(it.sockets) for(const g of it.sockets) if(g&&s[g.stat]!==undefined) s[g.stat]+=g.v; // 镶嵌宝石/符文加成
@@ -824,7 +829,10 @@ function powerOf(ps){ ps=ps||pstat(); const mg=sumGear(merc.eq); const nProc=Obj
 
 // ---------- combat ----------
 function dealDamage(t,amount,fromPlayer,crit,noProc){
-  if(fromPlayer && curElem!=='phys' && t.res && t.res[curElem]>0){ amount*=Math.max(0.1,1-t.res[curElem]*(1-(player.epierce||0))); } // 元素抗性减伤(玩家穿透epierce抵消部分)
+  if(fromPlayer && curElem!=='phys' && t.res && t.res[curElem]>0){
+    let pen=player.epierce||0; // 穿透抵消抗性
+    if(curElem==='cold' && player.unlocked&&player.unlocked.includes('coldMastery')) pen+=((player.skillLvl.coldMastery||1)+plusSkills())*0.05; // 寒冷精通=降冰抗(D2非对称: 冰系破抗身份,不加伤)
+    amount*=Math.max(0.1,1-t.res[curElem]*Math.max(0,1-pen)); } // 元素抗性减伤(穿透/冰精通抵消)
   if(t.vuln>0) amount*=1.25; // 亚马逊洞察: 易伤+25%
   if(fromPlayer && player.uniques && player.uniques.execute && !t.boss && t.hp<t.maxhp*0.30) amount*=2; // 斩首之刃
   if(t.elite && t.elite.dr) amount*=(1-t.elite.dr); // 坚甲精英: 减伤(逼集火)
@@ -892,8 +900,9 @@ function gainXp(v){ player.xp+=v; while(player.xp>=player.xpNext){ player.xp-=pl
   ringFx(player.x,player.y,90,'#ffe08a'); ringFx(player.x,player.y,60,'#fff6c0'); shake(8,0.2); freeze(0.05);
   for(let i=0;i<26;i++){const a=Math.random()*TAU,sp=rnd(60,260);particles.push({x:player.x,y:player.y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp-60,life:rnd(.4,.8),t:0,c:'#ffe08a',r:rnd(2,4)});}
   floaters.push({x:player.x,y:player.y-30,vy:-50,t:0,life:1.1,txt:'LEVEL UP!',crit:true,col:'#ffe08a'});
-  sfx('level'); banner('升级！Lv '+player.lvl+'　+5属性点 +1技能点','#ffd76b');
-  player.statPoints+=5; player.skillPoints+=1; // 暗黑2式: 每级5属性点+1技能点(不弹窗, 进角色面板分配)
+  sfx('level'); banner('升级！Lv '+player.lvl+'　+5属性 +1技能点 → 点 🎒 分配','#ffd76b');
+  player.statPoints+=5; player.skillPoints+=1; // 暗黑2式: 每级5属性点+1技能点(进角色面板分配)
+  if(!localStorage.getItem('ib_taughtPts')){ localStorage.setItem('ib_taughtPts','1'); try{toggleInv();}catch(e){} } // 首次升级自动开面板教学
   unlockSkillsForLevel(); } }
 function showPerk(){
   if(player.dead){ pendingPerks=0; return; }
@@ -935,7 +944,7 @@ let curElem='phys';
 const MASTERY_OF={fire:'fireMastery',cold:'coldMastery',light:'lightMastery'};
 const SKILLS={
   fireMastery:{name:'火焰精通',ico:'🔥',passive:true,melem:'fire',desc:'火系伤害/级+8%'},
-  coldMastery:{name:'寒冷精通',ico:'❄️',passive:true,melem:'cold',desc:'冰系伤害/级+8%'},
+  coldMastery:{name:'寒冷精通',ico:'❄️',passive:true,melem:'cold',desc:'降敌冰抗/级-5%(破高抗)'},
   lightMastery:{name:'闪电精通',ico:'⚡',passive:true,melem:'light',desc:'电系伤害/级+8%'},
   dash:   {name:'冲刺',ico:'💨',cd:2.0,mp:0, run(ps){ const dx=Math.cos(player.face),dy=Math.sin(player.face); let nx=player.x,ny=player.y;
     for(let i=0;i<16;i++){ const tx=nx+dx*14,ty=ny+dy*14; if(walkable(tx,ty)){nx=tx;ny=ty;} else break; }
@@ -1060,7 +1069,8 @@ const SYNERGY={
   multishot:[{k:'strafe',p:0.06},{k:'guidedarrow',p:0.06}], strafe:[{k:'multishot',p:0.06},{k:'guidedarrow',p:0.06}], guidedarrow:[{k:'multishot',p:0.07},{k:'strafe',p:0.07}],
   lightningjav:[{k:'charged',p:0.07},{k:'poisonjav',p:0.05}], charged:[{k:'lightningjav',p:0.07}], poisonjav:[{k:'lightningjav',p:0.06}], jab:[{k:'lightningjav',p:0.05}],
   bw_whirlwind:[{k:'bw_berserk',p:0.05},{k:'cleave',p:0.05}], bw_berserk:[{k:'bw_whirlwind',p:0.05},{k:'bw_bash',p:0.05}], bw_bash:[{k:'bw_whirlwind',p:0.05}], bw_leap:[{k:'bw_warcry',p:0.06}], bw_warcry:[{k:'bw_leap',p:0.06}] };
-function synergyBonus(id){ const syn=SYNERGY[id]; if(!syn)return 0; let sb=0; for(const e of syn){ if(player.unlocked&&player.unlocked.includes(e.k)) sb+=Math.min(20,player.skillLvl[e.k]||1)*e.p; } return sb; }
+function plusSkills(){ return (player&&player.eq)?(sumGear(player.eq).plusSkills||0):0; } // 装备+技能等级(穿透到成长/synergy/精通)
+function synergyBonus(id){ const syn=SYNERGY[id]; if(!syn)return 0; const pk=plusSkills(); let sb=0; for(const e of syn){ if(player.unlocked&&player.unlocked.includes(e.k)) sb+=Math.min(20,(player.skillLvl[e.k]||1)+pk)*e.p; } return sb; }
 // per-skill技能等级成长曲线(走刀技平缓/招牌大招陡, 让"梭哪个技能"成真决策)
 const SKILL_GROW={ iceBolt:0.10,fireBolt:0.10,chargedBolt:0.10,bw_bash:0.10,jab:0.10,multishot:0.11,cleave:0.11,frostNova:0.13,glacialSpike:0.15,lightning:0.15,fireBall:0.15,strafe:0.14,lightningjav:0.15,chargedBolt2:0.15,
   chainLightning:0.22,blizzard:0.22,meteor:0.22,guidedarrow:0.20,valkyrie:0.20,charged:0.18,poisonjav:0.16,bw_whirlwind:0.20,bw_warcry:0.18,bw_leap:0.18,bw_berserk:0.20,staticField:0.12 };
@@ -1078,10 +1088,11 @@ function useSkill(id){
   if(s.mp && player.mp<s.mp){ banner('法力不足','#6b8aff'); sfx('hit'); return; } // 蓝不足: 提示音+红字(非静默)
   if(s.mp) player.mp-=s.mp;
   player.cd[id]=s.cd*(player.uniques&&player.uniques.cdr?0.75:1); // 疾影之冠: CD-25%
-  const ps=pstat(); const slv=player.skillLvl[id]||1; ps.dmg*=(1+(slv-1)*(SKILL_GROW[id]||0.14)); // 技能等级成长(per-skill曲线: 走刀技平缓/招牌大招陡)
+  const ps=pstat(); const slv=(player.skillLvl[id]||1)+plusSkills(); ps.dmg*=(1+(slv-1)*(SKILL_GROW[id]||0.14)); // 技能等级成长(per-skill曲线)+装备+技能等级
   ps.dmg*=(1+sumGear(player.eq).skilldmg/100); // 装备+技能伤害%词缀
   ps.dmg*=(1+synergyBonus(id)); // D2 synergy: 同系技能加成(per-skill系数)
-  const _mel=SKILL_ELEM[id], _mst=_mel&&MASTERY_OF[_mel]; if(_mst&&player.unlocked.includes(_mst)) ps.dmg*=(1+(player.skillLvl[_mst]||1)*0.08); // 元素精通: 解锁即Lv1(+8%)该系全技能增伤,投点递增(D2专精)
+  const _mel=SKILL_ELEM[id], _mst=_mel&&MASTERY_OF[_mel]; const _mlv=(player.skillLvl[_mst]||1)+plusSkills();
+  if(_mst&&player.unlocked.includes(_mst)&&_mel!=='cold') ps.dmg*=(1+_mlv*0.08); // 火/电精通: +8%/级增伤(冰精通走降抗,见dealDamage)
   if(player.cls==='sorceress') ps.dmg*=1.15; // 秘法职业: 技能伤害+15%
   curElem = SKILL_ELEM[id]||'phys'; const pn0=projectiles.length; // 元素: 本次施放期间生效
   s.run(ps);
@@ -1207,7 +1218,10 @@ function renderCharPanel(){
     const d=document.createElement('div'); d.className='item'; d.style.width='118px'; d.style.borderColor='#5a7fd0';
     const syn=Math.round(synergyBonus(id)*100); const synTxt=SYNERGY[id]?`<div class="af" style="font-size:9px;color:#c9a6ff">同系协同 +${syn}% (${SYNERGY[id].map(e=>SKILLS[e.k]&&SKILLS[e.k].name).filter(Boolean).join('/')})</div>`:'';
     const gp=Math.round((SKILL_GROW[id]||0.14)*100); // 真实per-skill成长曲线(原写死18%在撒谎)
-    const body=s.passive ? `<div class="af" style="font-size:10px;color:#c9a6ff">被动 · ${ELEM_CN[s.melem]||''}系伤害 +${Math.round(lv*8)}% <span style="color:#8aa">(每级+8%)</span></div>` : `<div class="af" style="font-size:10px">技能伤害 +${Math.round((lv-1)*gp)}% <span style="color:#8aa">(每级+${gp}%)</span></div>${synTxt}`;
+    const body=s.passive ? (s.melem==='cold'
+        ? `<div class="af" style="font-size:10px;color:#9ad6ff">被动 · 降敌冰抗 ${Math.round(lv*5)}% <span style="color:#8aa">(每级-5%抗·破高抗目标)</span></div>`
+        : `<div class="af" style="font-size:10px;color:#c9a6ff">被动 · ${ELEM_CN[s.melem]||''}系伤害 +${Math.round(lv*8)}% <span style="color:#8aa">(每级+8%)</span></div>`)
+      : `<div class="af" style="font-size:10px">技能伤害 +${Math.round((lv-1)*gp)}% <span style="color:#8aa">(每级+${gp}%)</span></div>${synTxt}`;
     d.style.borderColor=s.passive?'#7a5fb0':'#5a7fd0';
     d.innerHTML=`<div class="nm">${s.ico}${s.name} <span style="color:#7dd3ff">Lv${lv}</span></div>${body}`+
       `<div class="who"><b data-sk="${id}" style="${can?'':'opacity:.35'}">+ 升级</b></div>`;
@@ -1672,6 +1686,9 @@ function updateHUD(ps){
   document.getElementById('stagetxt').innerHTML='⚔ 战力 '+powerOf(ps)+'　💰 '+player.gold+'<br>地牢 '+stage+(curMod?'·'+curMod.name:'')+'　清空 '+clrR+'/'+totR+'<br>怪物 '+enemies.length+'　背包 '+bag.length;
   document.getElementById('potcnt').textContent=player.pots;
   document.getElementById('mppotcnt').textContent=player.mpPots;
+  // 未分配点角标(P0: 原静默→玩家不知道能加点→战力停滞)
+  const pts=(player.statPoints||0)+(player.skillPoints||0); const pb=document.getElementById('ptbadge');
+  if(pb){ if(pts>0){ pb.textContent=pts; pb.style.display='block'; } else pb.style.display='none'; }
   // cooldown overlays + 蓝不足置灰
   for(const b of document.querySelectorAll('.skill')){ const k=b.dataset.skill; const cd=player.cd[k]; const ov=b.querySelector('.cd');
     if(cd>0.05){ov.style.opacity=1;ov.textContent=cd.toFixed(1);} else ov.style.opacity=0;
