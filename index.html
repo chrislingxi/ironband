@@ -740,6 +740,8 @@ function spawnEnemy(kind,x,y,scale,forceElite){
     e.res=e.res||{}; const rk={fire:'fire',frost:'cold',storm:'light'}[el.k]; if(rk) e.res[rk]=0.55; } // 元素变体抗对应元素
   if(kind==='fireant'){ e.res={fire:0.8}; } else if(kind==='iceant'){ e.res={cold:0.8}; } // 天生元素抗
   else if(kind==='doll'||kind==='succubus'){ e.res=e.res||{}; e.res.fire=(e.res.fire||0)+0.3; } // D2: 部分恶魔火抗
+  // D2 endgame: 高层(act≥3)部分精英近免疫一系→逼换元素/堆穿透/冰精通破抗(配合抗性飘字提示)
+  if(e.elite && actOf(stage).n>=3 && Math.random()<0.4){ e.res=e.res||{}; const ie=pick(['fire','cold','light']); e.res[ie]=Math.max(e.res[ie]||0,0.85); e.immElem=ie; }
   enemies.push(e);
   return e;
 }
@@ -846,7 +848,9 @@ function dealDamage(t,amount,fromPlayer,crit,noProc){
   if(fromPlayer && curElem!=='phys' && t.res && t.res[curElem]>0){
     let pen=player.epierce||0; // 穿透抵消抗性
     if(curElem==='cold' && player.unlocked&&player.unlocked.includes('coldMastery')) pen+=((player.skillLvl.coldMastery||1)+plusSkills())*0.05; // 寒冷精通=降冰抗(D2非对称: 冰系破抗身份,不加伤)
-    const effRes=t.res[curElem]*Math.max(0,1-pen); amount*=Math.max(0.1,1-effRes); // 元素抗性减伤(穿透/冰精通抵消)
+    let effRes=t.res[curElem]*Math.max(0,1-pen);
+    if(t.res[curElem]>=0.85) effRes=Math.max(effRes,t.res[curElem]-0.4); // 免疫级: 穿透最多削0.4绝对(破不到0→该系仍吃力,逼换元素)
+    amount*=Math.max(0.1,1-effRes); // 元素抗性减伤(穿透/冰精通抵消)
     if(effRes>=0.45 && Math.random()<0.5){ floaters.push({x:t.x+rnd(-6,6),y:t.y-t.r-4,vy:-34,t:0,life:0.7,txt:effRes>=0.85?(ELEM_CN[curElem]+'免疫'):(ELEM_CN[curElem]+'抗性'),col:effRes>=0.85?'#ff6b6b':'#9ab'}); } } // 抗性可视化(战斗中提示换元素)
   if(t.vuln>0) amount*=1.25; // 亚马逊洞察: 易伤+25%
   if(fromPlayer && player.uniques && player.uniques.execute && !t.boss && t.hp<t.maxhp*0.30) amount*=2; // 斩首之刃
