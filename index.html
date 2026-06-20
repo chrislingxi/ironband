@@ -444,7 +444,18 @@ function genDungeon(stage){
   for(const r of layout) carveRoom(r);
   for(let i=0;i<nMain-1;i++) carveCorridor(layout[i], layout[i+1]);
   for(const bt of branchTargets) carveCorridor(bt.a, bt.b);
-  rooms=layout; buildWalls();
+  rooms=layout; buildWalls(); genProps();
+}
+// 地牢环境物件(veteran P1: 地牢是空盒子→火把照明+残骸叙事). 确定性摆位防抖
+let props=[];
+function genProps(){ props=[]; const th=theme(); const dz=th.deco;
+  for(const r of rooms){ if(r.idx===0)continue; const seed=(stage*131+r.idx*977)>>>0; let s=seed; const rnd2=()=>{ s=(s*1103515245+12345)>>>0; return (s>>>8)/16777216; };
+    // 墙边火把(房间4边各按概率, 提供跳动暖光)
+    const cands=[[r.x+1,r.y],[r.x+r.w-2,r.y],[r.x+1,r.y+r.h-1],[r.x+r.w-2,r.y+r.h-1],[Math.floor(r.x+r.w/2),r.y]];
+    for(const [tx,ty] of cands){ if(rnd2()<0.5) props.push({t:'torch',x:(tx+0.5)*TILE,y:(ty+0.9)*TILE,ph:rnd2()*6}); }
+    // 地面残骸(按章节主题): 数量2~5
+    const n=2+Math.floor(rnd2()*4);
+    for(let i=0;i<n;i++){ const px=(r.x+1+rnd2()*(r.w-2))*TILE, py=(r.y+1+rnd2()*(r.h-2))*TILE; props.push({t:'debris',x:px,y:py,k:dz,rot:rnd2()*6,sz:0.8+rnd2()*0.6}); } }
 }
 function walkable(px,py){ const tx=Math.floor(px/TILE),ty=Math.floor(py/TILE); return MAP[ty]&&MAP[ty][tx]===0; }
 function roomAt(px,py){ const tx=px/TILE,ty=py/TILE; return rooms.find(r=>tx>=r.x&&tx<r.x+r.w&&ty>=r.y&&ty<r.y+r.h); }
@@ -1740,6 +1751,20 @@ function draw(){
     X.save(); X.translate(d.x,d.y); X.rotate(d.rot); X.globalAlpha=d.a; X.fillStyle='#4a0a0a'; X.beginPath(); X.ellipse(0,0,d.rx,d.ry,0,0,TAU); X.fill();
     X.globalAlpha=d.a*0.6; X.fillStyle='#2a0606'; X.beginPath(); X.ellipse(d.rx*0.2,d.ry*0.1,d.rx*0.5,d.ry*0.45,0,0,TAU); X.fill(); X.restore(); }
   X.globalAlpha=1;
+  // 环境残骸(地面叙事): 按章节主题
+  for(const p of props){ if(p.t!=='debris')continue; if(p.x<cam.x-W/2-40||p.x>cam.x+W/2+40||p.y<cam.y-H/2-40||p.y>cam.y+H/2+40)continue;
+    X.save(); X.translate(p.x,p.y); X.rotate(p.rot); const z=p.sz*9;
+    if(p.k==='bone'){ X.fillStyle='#b8b2a0'; X.beginPath(); X.arc(0,0,z*0.5,0,TAU); X.fill(); X.fillStyle='#1a1a22'; X.fillRect(-z*0.22,-z*0.12,z*0.14,z*0.14); X.fillRect(z*0.08,-z*0.12,z*0.14,z*0.14); X.fillStyle='#b8b2a0'; for(let i=-1;i<2;i++){X.fillRect(i*z*0.4,z*0.4,z*0.12,z*0.7);} } // 骷髅头+肋骨
+    else if(p.k==='lava'){ X.fillStyle='#ff6a1e'; X.shadowColor='#ff7a2e'; X.shadowBlur=10; X.beginPath(); X.ellipse(0,0,z*0.7,z*0.4,0,0,TAU); X.fill(); X.shadowBlur=0; X.fillStyle='#ffd76b'; X.beginPath(); X.ellipse(0,0,z*0.3,z*0.16,0,0,TAU); X.fill(); } // 熔岩裂隙发光
+    else if(p.k==='ice'){ X.fillStyle='#bfe9ff'; X.globalAlpha=0.85; X.beginPath(); X.moveTo(0,-z); X.lineTo(z*0.4,z*0.3); X.lineTo(-z*0.4,z*0.3); X.closePath(); X.fill(); X.globalAlpha=1; } // 冰柱
+    else if(p.k==='soul'){ X.fillStyle='#b48ad0'; X.shadowColor='#b48ad0'; X.shadowBlur=12; X.globalAlpha=0.5+Math.sin(now()*2+p.x)*0.2; X.beginPath(); X.arc(0,-Math.abs(Math.sin(now()*1.5+p.x))*8,z*0.35,0,TAU); X.fill(); X.shadowBlur=0; X.globalAlpha=1; } // 游魂
+    else { X.fillStyle='#3a2c1c'; X.beginPath(); X.ellipse(0,0,z*0.6,z*0.4,0,0,TAU); X.fill(); X.strokeStyle='#241a10'; X.lineWidth=2; for(let i=0;i<3;i++){X.beginPath();X.moveTo(-z*0.3+i*z*0.3,-z*0.3);X.lineTo(-z*0.3+i*z*0.3,z*0.3);X.stroke();} X.lineWidth=1; } // 焦木/枯枝
+    X.restore(); }
+  // 火把柱(墙边, 跳动火焰; 光在照明层)
+  for(const p of props){ if(p.t!=='torch')continue; if(p.x<cam.x-W/2-40||p.x>cam.x+W/2+40||p.y<cam.y-H/2-40||p.y>cam.y+H/2+40)continue;
+    X.fillStyle='#2a2018'; X.fillRect(p.x-2,p.y-22,4,22); // 柱
+    const fl=0.7+Math.sin(now()*9+p.ph)*0.3; X.fillStyle='#ff8a2e'; X.shadowColor='#ff7a2e'; X.shadowBlur=14*fl; X.beginPath(); X.ellipse(p.x,p.y-25,4,7*fl,0,0,TAU); X.fill();
+    X.fillStyle='#ffe08a'; X.beginPath(); X.ellipse(p.x,p.y-25,2,4*fl,0,0,TAU); X.fill(); X.shadowBlur=0; }
   // walls (立体凸起块: 暗投影+前面渐变+顶面提亮+顶棱高光, 强化地牢纵深)
   const WH=14; // 假高度
   for(const w of walls){ if(w.x<cam.x-W/2-TILE||w.x>cam.x+W/2-0||w.y<cam.y-H/2-TILE-WH||w.y>cam.y+H/2)continue;
@@ -1826,6 +1851,7 @@ function draw(){
   const SX=wx=>W/2+(wx-cam.x), SY=wy=>H/2+(wy-cam.y);
   const lamp=(x,y,col,rad,a)=>{ const g=X.createRadialGradient(x,y,0,x,y,rad); g.addColorStop(0,'rgba('+col+','+a+')'); g.addColorStop(1,'rgba('+col+',0)'); X.fillStyle=g; X.fillRect(x-rad,y-rad,rad*2,rad*2); };
   for(const p of projectiles) lamp(SX(p.x),SY(p.y), p.fromPlayer?'150,205,255':'255,150,90', 64, 0.16);
+  for(const p of props){ if(p.t==='torch'){ const fl=0.85+Math.sin(now()*9+p.ph)*0.15; lamp(SX(p.x),SY(p.y-25), '255,150,60', 100*fl, 0.18*fl); } } // 火把暖光(墙根跳动)
   for(const e of enemies){ if(e.dead)continue; let col=null,rad=78,a=0.14;
     const ek=e.elem&&e.elem.k; // e.elem是对象{k:'fire'/'frost'/'storm'}, 之前比字符串恒false→元素光全失效
     if(ek==='fire'||e.kind==='fireant') col='255,120,40';
@@ -1843,6 +1869,9 @@ function draw(){
   if(dmgFlash>0.01){ const g=X.createRadialGradient(W/2,H/2,Math.min(W,H)*0.3,W/2,H/2,Math.max(W,H)*0.7);
     g.addColorStop(0,'rgba(180,0,0,0)'); g.addColorStop(1,'rgba(180,0,0,'+(dmgFlash*0.55).toFixed(3)+')');
     X.fillStyle=g; X.fillRect(0,0,W,H); }
+  // 章节色调grading(电影感, 强化每章identity): 极淡overlay
+  const GRADE={bone:'30,42,58',ash:'48,32,18',lava:'52,14,12',ice:'14,40,58',soul:'34,16,52'};
+  const gc=GRADE[theme().deco]; if(gc){ X.globalCompositeOperation='overlay'; X.fillStyle='rgba('+gc+',0.16)'; X.fillRect(0,0,W,H); X.globalCompositeOperation='source-over'; }
   if(whiteFlash>0.01){ X.fillStyle='rgba(255,255,255,'+(whiteFlash*0.6).toFixed(3)+')'; X.fillRect(0,0,W,H); } // Boss击杀全屏白闪
   if(!paused && rooms&&rooms.length) drawMinimap();
   drawBossBar();
