@@ -504,7 +504,7 @@ const UNIQUES=[
   {k:'thorns',    name:'荆棘之甲',   desc:'受击反弹伤害给攻击者'},
   {k:'midas',     name:'点金之手',   desc:'击杀掉落金币 +120%'},
   {k:'berserk',   name:'狂战之心',   desc:'生命越低伤害越高(最多+40%)'},
-  {k:'glasscannon',name:'玻璃大炮',  desc:'伤害+60%，但最大生命-30%'},
+  {k:'glasscannon',name:'玻璃大炮',  desc:'伤害+60%，但最大生命-38%、受到伤害+22%'},
   {k:'titan',     name:'泰坦之躯',   desc:'最大生命+50%，移速-12%'},
   {k:'zealot',    name:'狂热徽记',   desc:'暴击+15%，攻速+12%'},
   {k:'vampking',  name:'血君王冠',   desc:'所有伤害吸血(回2%)'},
@@ -817,7 +817,7 @@ function pstat(){ const g=sumGear(player.eq); const fr=player.frenzyT>0; const s
   const armor=g.armor+A.dex*0.5+sb.armor+(u.juggernaut?120:0)+(cls==='barbarian'?60:0); const dr=Math.min(0.75,armor/(armor+150+player.lvl*22)); // 护甲减伤(分母拉大降早期肉度, 硬上限75%)
   return {
   dmg:(player.baseDmg+g.dmg+player.lvl*2+A.str*0.5)*(1+A.str*0.012)*(1+sb.dmgPct/100)*(u.glasscannon?1.6:1)*(cls==='barbarian'?1.05:1)*(fr?1.25:1)*bersk, // 力量+伤害(str给+0.5绝对/点+1.2%,让力量流可行)
-  maxhp:Math.round((100+g.life+player.lvl*12+A.vit*7)*(1+sb.lifePct/100+(u.giant?0.35:0)+(u.titan?0.5:0))*(u.glasscannon?0.7:1)*(player.boT>0?1.35:1)*((curMod&&curMod.phpMul)||1)), // 体力+生命(野蛮人战斗命令boT+35%)
+  maxhp:Math.round((100+g.life+player.lvl*12+A.vit*7)*(1+sb.lifePct/100+(u.giant?0.35:0)+(u.titan?0.5:0))*(u.glasscannon?0.62:1)*(player.boT>0?1.35:1)*((curMod&&curMod.phpMul)||1)), // 体力+生命(野蛮人战斗命令boT+35%)
   maxmp:Math.round(50+player.lvl*4+A.eng*4+(g.mp||0)+(cls==='sorceress'?40:0)), // 精力+法力(+装备法力)
   armor, dr,
   atkInt:player.baseAtkInt*(1-Math.min(0.6,g.as/100))*(1-Math.min(0.35,(sb.asPct+A.dex*0.08)/100))*(u.swift?0.87:1)*(u.zealot?0.88:1)*(cls==='amazon'?0.85:1)*(fr?0.6:1), // 敏捷+攻速
@@ -1648,7 +1648,7 @@ function spawnTrigger(){ const r=roomAt(player.x,player.y); if(r&&r.idx!==0&&!sp
 function nearestEnemy(x,y,maxd){ let best=null,bd=maxd||1e9; for(const e of enemies){const d=dist(x,y,e.x,e.y);if(d<bd){bd=d;best=e;}} return best; }
 function shoot(x,y,tx,ty,dmg,fromPlayer,crit,chill){ const a=Math.atan2(ty-y,tx-x),sp=fromPlayer?420:260; projectiles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1.4,dmg,fromPlayer,crit:!!crit,bossChill:chill,c:chill?'#bfe3ff':undefined}); }
 function attackFx(e,tx,ty){ for(let i=0;i<4;i++)particles.push({x:(e.x+tx)/2,y:(e.y+ty)/2,vx:rnd(-40,40),vy:rnd(-40,40),life:.2,t:0,c:'#f55',r:2}); }
-function hurtPlayer(dmg,sx,sy){ if(player.dead)return; dmg*=(1-(pstat().dr||0)); player.hp-=dmg; player.hitFlash=0.18;
+function hurtPlayer(dmg,sx,sy){ if(player.dead)return; dmg*=(1-(pstat().dr||0)); if(player.uniques&&player.uniques.glasscannon)dmg*=1.22; player.hp-=dmg; player.hitFlash=0.18; // 玻璃大炮真实代价: 受伤+22%
   if(sx!=null){ const d=dist(sx,sy,player.x,player.y); if(d>Math.min(W,H)*0.32){ hurtDir=Math.atan2(sy-player.y,sx-player.x); hurtDirT=0.5; } } // 屏外来向预警
   dmgFlash=Math.min(1,dmgFlash+0.5); shake(Math.min(14,6+dmg*0.3),0.18); sfx('hurt'); vibrate(30);
   // 荆棘之甲: 反弹伤害给周围怪
