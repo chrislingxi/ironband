@@ -312,7 +312,13 @@
    ========================================================================= */
 const C = document.getElementById('game'), X = C.getContext('2d');
 let W=0,H=0,DPR=Math.min(devicePixelRatio||1,2);
-function resize(){ W=innerWidth; H=innerHeight; C.width=W*DPR; C.height=H*DPR; C.style.width=W+'px'; C.style.height=H+'px'; X.setTransform(DPR,0,0,DPR,0,0);}
+let SAFE={top:0,right:0,bottom:0,left:0}, VX=0,VY=0,VW=0,VH=0,VCX=0,VCY=0, _safeProbe=null; // 安全区inset + 安全视窗矩形(letterbox)
+function readSafe(){ const dbg=location.search.match(/[?&]safe=([\d.,]+)/); if(dbg){ const a=dbg[1].split(',').map(Number); SAFE={top:a[0]||0,right:a[1]||0,bottom:a[2]||0,left:a[3]||0}; return; }
+  if(!_safeProbe){ _safeProbe=document.createElement('div'); _safeProbe.style.cssText='position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)'; document.body.appendChild(_safeProbe); }
+  const cs=getComputedStyle(_safeProbe); SAFE={top:parseFloat(cs.paddingTop)||0,right:parseFloat(cs.paddingRight)||0,bottom:parseFloat(cs.paddingBottom)||0,left:parseFloat(cs.paddingLeft)||0}; }
+function resize(){ W=innerWidth; H=innerHeight; C.width=W*DPR; C.height=H*DPR; C.style.width=W+'px'; C.style.height=H+'px'; X.setTransform(DPR,0,0,DPR,0,0);
+  readSafe(); VX=SAFE.left; VY=SAFE.top; VW=W-SAFE.left-SAFE.right; VH=H-SAFE.top-SAFE.bottom; VCX=VX+VW/2; VCY=VY+VH/2; } // letterbox: 安全视窗矩形+其中心(玩家居中于此)
+addEventListener('orientationchange',()=>setTimeout(resize,120));
 addEventListener('resize',resize); resize();
 
 // ---------- helpers ----------
@@ -669,7 +675,7 @@ const player={
   cd:{}, regenT:0, pots:4, maxPots:4, potCd:0, mpPots:3, maxMpPots:3, mpPotCd:0, moving:false, frenzyT:0, chillT:0, procs:{}, uniques:{}, gold:0,
   perks:{dmg:0,life:0,crit:0,as:0,armor:0}, // 旧perk(已弃用,保留兼容=0)
   attrs:{str:0,dex:0,vit:0,eng:0}, statPoints:0, skillPoints:0, skillLvl:{}, maxStage:1, holdPos:false, // 暗黑2式: 属性点+技能点+技能等级+已通层(waypoint)+站桩
-  loadout:['dash','cleave','nova'], unlocked:['dash','cleave','nova'],
+  loadout:[], unlocked:[],
 };
 function usePotion(){
   if(player.dead||player.pots<=0) return;
@@ -1023,15 +1029,16 @@ function showPerk(){
     box.appendChild(b); });
   document.getElementById('perkscreen').style.display='flex';
 }
-function unlockSkillsForLevel(){
-  const pool=CLASS_SKILLS[player.cls]||SKILL_ORDER; // 只解锁本职技能
-  for(const id of SKILL_ORDER){ if(pool.includes(id) && (SKILL_UNLOCK_LV[id]||99)<=player.lvl && !player.unlocked.includes(id)){
-    player.unlocked.push(id);
-    if(!SKILLS[id].passive && player.loadout.length<4 && !player.loadout.includes(id)){ player.loadout.push(id); banner('解锁技能：'+SKILLS[id].ico+SKILLS[id].name,'#7dd3ff'); } // 被动不进上阵
-    else banner('解锁 '+SKILLS[id].ico+SKILLS[id].name+'（技能栏满·背包🎒可替换）','#ffd76b'); // 满槽引导, 防新技能成死内容
-    sfx('loot-rare'); renderSkillBar();
-  } }
+function unlockSkillsForLevel(){ // D2式空起步: 技能靠技能点投资学习(skillInvest), 升级不再自动解锁; 升级只提示去投点
+  if(player.skillPoints>0 && player.lvl>1) banner('升级！+1技能点 → 🎒技能页投点学新技能','#7dd3ff');
+  renderSkillBar();
 }
+// 投资/学习技能(空起步核心): 等级达标+前置已学→花1点, 0级→1级即"学会"(进unlocked); 已学则升级
+function skillInvestable(id){ const ulv=SKILL_UNLOCK_LV[id]||1; if(player.lvl<ulv)return {ok:false,need:'角色Lv'+ulv}; const rq=SKILL_REQ[id]; if(rq){ for(const k in rq){ if((player.skillLvl[k]||0)<rq[k]) return {ok:false,need:(SKILLS[k]?SKILLS[k].name:k)+'≥'+rq[k]}; } } return {ok:true}; }
+function skillInvest(id){ if(player.skillPoints<=0)return false; if((player.skillLvl[id]||0)>=20)return false; const inv=skillInvestable(id); if(!inv.ok){ banner('需先满足：'+inv.need,'#ff9a9a'); return false; }
+  const wasLearned=(player.skillLvl[id]||0)>=1; player.skillLvl[id]=(player.skillLvl[id]||0)+1; player.skillPoints--;
+  if(!wasLearned){ if(!player.unlocked.includes(id))player.unlocked.push(id); if(!SKILLS[id].passive && player.loadout.length<4 && !player.loadout.includes(id))player.loadout.push(id); banner('学会技能：'+SKILLS[id].ico+SKILLS[id].name,'#7dd3ff'); } // 首次投点=学会+自动上阵(空位)
+  sfx('loot-rare'); saveGame(); renderSkillBar(); return true; }
 
 // ---------- skills (数据驱动注册表) ----------
 function critRoll(ps){ return Math.random()*100<ps.crit; }
@@ -1229,17 +1236,17 @@ function synergyBonus(id){ const syn=SYNERGY[id]; if(!syn)return 0; const pk=plu
 const SKILL_GROW={ iceBolt:0.10,fireBolt:0.10,chargedBolt:0.10,bw_bash:0.10,jab:0.10,multishot:0.11,cleave:0.11,frostNova:0.13,glacialSpike:0.15,lightning:0.15,fireBall:0.15,strafe:0.14,lightningjav:0.15,chargedBolt2:0.15,
   chainLightning:0.22,blizzard:0.22,meteor:0.22,guidedarrow:0.20,valkyrie:0.20,charged:0.18,poisonjav:0.16,bw_whirlwind:0.20,bw_warcry:0.18,bw_leap:0.18,bw_berserk:0.20,staticField:0.12,nova:0.16,frozenOrb:0.20,hydra:0.18,freezingArrow:0.16,lightningFury:0.16,bw_doubleswing:0.11,bw_concentrate:0.16,fireWall:0.16,inferno:0.12,fireArrow:0.10,coldArrow:0.10,bw_doublethrow:0.11,bw_stun:0.14 };
 // 技能树前置(D2: 高阶招牌技需先投低阶, 逼"梭哪条树"的取舍). reqMet才能升级
-const SKILL_REQ={ glacialSpike:{iceBolt:1}, frozenOrb:{glacialSpike:1}, blizzard:{glacialSpike:1,frostNova:1},
-  fireBall:{fireBolt:1}, meteor:{fireBall:1}, hydra:{fireBall:1},
-  lightning:{chargedBolt:1}, chainLightning:{lightning:1}, nova:{chargedBolt:1},
-  glacialSpike2:{}, guidedarrow:{multishot:1}, freezingArrow:{lightningjav:1}, lightningFury:{lightningjav:1}, valkyrie:{decoy:1}, evade:{dodge:1},
-  bw_whirlwind:{bw_bash:1}, bw_concentrate:{bw_bash:1}, bw_berserk:{bw_whirlwind:1}, battleCommand:{bw_battleorders:1} };
+const SKILL_REQ={ glacialSpike:{iceBolt:1}, frozenOrb:{glacialSpike:1}, blizzard:{glacialSpike:1,frostNova:1}, coldMastery:{iceBolt:1},
+  fireBall:{fireBolt:1}, meteor:{fireBall:1}, hydra:{fireBall:1}, fireWall:{hydra:1}, inferno:{fireWall:1}, fireMastery:{fireBolt:1},
+  lightning:{chargedBolt:1}, chainLightning:{lightning:1}, staticField:{chargedBolt:1}, nova:{lightning:1}, lightMastery:{chargedBolt:1},
+  guidedarrow:{multishot:1}, strafe:{multishot:1}, freezingArrow:{lightningjav:1}, lightningFury:{lightningjav:1}, charged:{lightningjav:1}, poisonjav:{jab:1}, valkyrie:{decoy:1}, evade:{dodge:1},
+  bw_whirlwind:{bw_bash:1}, bw_concentrate:{bw_bash:1}, bw_berserk:{bw_whirlwind:1}, bw_battleorders:{bw_warcry:1}, battleCommand:{bw_battleorders:1} };
 function skillReqMet(id){ const rq=SKILL_REQ[id]; if(!rq)return {ok:true}; for(const k in rq){ if((player.skillLvl[k]||0)<rq[k]) return {ok:false,need:SKILLS[k]&&SKILLS[k].name}; } return {ok:true}; }
 // 三正统D2职业: 法师(元素)/亚马逊(弓+标枪)/野蛮人(战斗+战吼), 差异化属性+技能池+被动
 const CLASSES={
-  sorceress:{name:'法师',ico:'🔮',desc:'三系元素(冰/电/火) · 精力主导 · 技能伤+15%·法力+40',attrs:{eng:9,vit:3,dex:2,str:0},skills:['iceBolt','fireBolt','chargedBolt'], basic:{ranged:true,range:170,c:'#9fd0ff',sp:480}},
-  amazon:   {name:'亚马逊',ico:'🏹',desc:'弓与标枪 · 敏捷主导 · 攻速+15%·暴击+8%',attrs:{dex:9,vit:3,str:2,eng:0},skills:['multishot','fireArrow','jab'], basic:{ranged:true,range:210,c:'#cfe8a0',sp:560}}, // 起手对标D2(多重射击/火焰箭/刺戳, 去dash)
-  barbarian:{name:'野蛮人',ico:'⚔️',desc:'近战狂战 · 力/体主导 · 全伤+8%·护甲+60',attrs:{str:7,vit:6,dex:1,eng:0},skills:['bw_bash','slam','bw_warcry'], basic:{ranged:false,range:38}}, // 起手对标D2(猛击/震地/战吼, 去cleave/dash)
+  sorceress:{name:'法师',ico:'🔮',desc:'三系元素(冰/电/火) · 精力主导 · 技能伤+15%·法力+40',attrs:{eng:9,vit:3,dex:2,str:0},skills:[], basic:{ranged:true,range:170,c:'#9fd0ff',sp:480}}, // 空起步(D2式): 升级投技能点
+  amazon:   {name:'亚马逊',ico:'🏹',desc:'弓与标枪 · 敏捷主导 · 攻速+15%·暴击+8%',attrs:{dex:9,vit:3,str:2,eng:0},skills:[], basic:{ranged:true,range:210,c:'#cfe8a0',sp:560}},
+  barbarian:{name:'野蛮人',ico:'⚔️',desc:'近战狂战 · 力/体主导 · 全伤+8%·护甲+60',attrs:{str:7,vit:6,dex:1,eng:0},skills:[], basic:{ranged:false,range:38}},
 };
 function useSkill(id){
   if(player.dead||paused||inCamp) return; // 营地禁技能(防位移穿墙+投射物堆积)
@@ -1350,46 +1357,40 @@ let invPaused=false;
 function toggleInv(){ const open=invEl.style.display!=='flex'; invEl.style.display=open?'flex':'none';
   if(open){ renderInv(); if(!paused){ paused=true; invPaused=true; } } // 背包打开暂停, 防看装备时被打死
   else if(invPaused){ invPaused=false; paused=false; last=now(); } }
-function renderSkillPick(){ // WS4: 技能页 = D2三系树(投资+上阵合一, 每卡带升级/上阵双钮)
+function renderSkillPick(){ // WS-B: D2横向技能树(每标签一棵横树, tier=列从左到右, svg连线显示解锁链)
   const el=document.getElementById('skillpick'); el.innerHTML='';
-  const hdr=document.createElement('div'); hdr.style.cssText='width:100%;font-size:12px;color:#ffd76b;font-weight:700;margin-bottom:2px;font-family:D2Display,Georgia,serif;letter-spacing:1px';
-  hdr.innerHTML='技能点 <span style="color:#7dd3ff">'+player.skillPoints+'</span> · 点「升级」投点，点「上阵」装到技能栏(≤4)'; el.appendChild(hdr);
-  const tabs=SKILL_TABS[player.cls]||[]; if(tabs.length){ if(!curSkillTab||!tabs.some(t=>t.k===curSkillTab))curSkillTab=tabs[0].k;
+  const hdr=document.createElement('div'); hdr.style.cssText='width:100%;font-size:11px;color:#ffd76b;font-weight:700;margin-bottom:2px;font-family:D2Display,Georgia,serif;letter-spacing:.5px';
+  hdr.innerHTML='技能点 <span style="color:#7dd3ff">'+player.skillPoints+'</span> · 点技能学习/升级 · 主动技能点「上阵」装栏(≤4) · 左→右为解锁层级'; el.appendChild(hdr);
+  const tabs=SKILL_TABS[player.cls]||[]; const pool0=CLASS_SKILLS[player.cls]||[];
+  if(tabs.length){ if(!curSkillTab||!tabs.some(t=>t.k===curSkillTab))curSkillTab=tabs[0].k;
     const tw=document.createElement('div'); tw.style.cssText='display:flex;gap:6px;width:100%;margin:4px 0 8px';
-    const pool0=CLASS_SKILLS[player.cls]||[];
-    for(const tb of tabs){ const inTab=pool0.filter(id=>SKILLS[id]&&skillTabOf(id)===tb.k); const unl=inTab.filter(id=>player.unlocked.includes(id)).length; const b=document.createElement('div'); b.style.cssText='flex:1;text-align:center;padding:8px 2px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid '+(curSkillTab===tb.k?'#c9883a':'#3a3a4a')+';background:'+(curSkillTab===tb.k?'#2a2418':'#15151ccc')+';color:'+(curSkillTab===tb.k?'#ffd76b':'#9a9aab'); b.innerHTML=tb.n+' <span style="opacity:.6;font-size:9px">'+unl+'/'+inTab.length+'</span>'; b.onclick=()=>{ curSkillTab=tb.k; renderSkillPick(); }; tw.appendChild(b); }
+    for(const tb of tabs){ const inTab=pool0.filter(id=>SKILLS[id]&&skillTabOf(id)===tb.k); const unl=inTab.filter(id=>(player.skillLvl[id]||0)>=1).length; const b=document.createElement('div'); b.style.cssText='flex:1;text-align:center;padding:8px 2px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid '+(curSkillTab===tb.k?'#c9883a':'#3a3a4a')+';background:'+(curSkillTab===tb.k?'#2a2418':'#15151ccc')+';color:'+(curSkillTab===tb.k?'#ffd76b':'#9a9aab'); b.innerHTML=tb.n+' <span style="opacity:.6;font-size:9px">'+unl+'/'+inTab.length+'</span>'; b.onclick=()=>{ curSkillTab=tb.k; renderSkillPick(); }; tw.appendChild(b); }
     el.appendChild(tw); }
   const tierOf=(id,seen)=>{ const rq=SKILL_REQ[id]; if(!rq)return 0; seen=seen||{}; if(seen[id])return 0; seen[id]=1; let m=0; for(const k in rq) m=Math.max(m,1+tierOf(k,seen)); return m; };
-  const pool=(CLASS_SKILLS[player.cls]||[]).concat((player.oskills||[]).filter(x=>!(CLASS_SKILLS[player.cls]||[]).includes(x)));
-  const sortedSkills=[...new Set(pool)].filter(id=>SKILLS[id]).sort((a,b)=>tierOf(a)-tierOf(b)||((SKILL_UNLOCK_LV[a]||1)-(SKILL_UNLOCK_LV[b]||1))); // 全树: 显示整个职业技能池(含未解锁), D2式
-  let _shownTier=-1;
-  for(const id of sortedSkills){ const s=SKILLS[id]; if(!s)continue; if(tabs.length && skillTabOf(id)!==curSkillTab)continue;
-    const isLocked=!player.unlocked.includes(id);
-    const _t=tierOf(id); if(_t!==_shownTier){ _shownTier=_t; const tl=document.createElement('div'); tl.style.cssText='width:100%;font-size:10px;color:#7a7a8a;margin:3px 0 1px;border-top:1px solid #3a3020;padding-top:3px'; tl.textContent=_t===0?'— 基础(无前置) —':'— 第'+_t+'层(需前置) —'; el.appendChild(tl); }
-    const lv=player.skillLvl[id]||1; const can=player.skillPoints>0;
-    const d=document.createElement('div'); d.className='item'; d.style.width='118px';
-    const syn=Math.round(synergyBonus(id)*100); const synTxt=SYNERGY[id]?`<div class="af" style="font-size:9px;color:#c9a6ff">同系协同 +${syn}%</div>`:'';
-    const rq0=SKILL_REQ[id]; let reqTxt=''; if(rq0){ reqTxt='<div class="af" style="font-size:9px">'+Object.keys(rq0).map(k=>{ const met=(player.skillLvl[k]||0)>=rq0[k]; return `<span style="color:${met?'#6ed86e':'#888'}">↑${SKILLS[k]?SKILLS[k].name:k}${met?' ✓':' 需Lv'+rq0[k]}</span>`; }).join(' ')+'</div>'; }
-    const gp=Math.round((SKILL_GROW[id]||0.14)*100);
-    const body=s.passive ? `<div class="af" style="font-size:10px;color:#a0d68a">被动 · ${s.desc||''} <span style="color:#8aa">(Lv${lv})</span></div>`
-      : `<div class="af" style="font-size:10px">技能伤害 +${Math.round((lv-1)*gp)}% <span style="color:#8aa">(每级+${gp}%)</span></div>${synTxt}`;
-    const onLoad=player.loadout.includes(id);
-    if(isLocked){ // 未解锁: 灰显+解锁条件, 禁升级/上阵(D2全树可见)
-      d.style.opacity='0.5'; d.style.borderColor='#333';
-      const ulv=SKILL_UNLOCK_LV[id]||1; const reqMet=!rq0||Object.keys(rq0).every(k=>(player.skillLvl[k]||0)>=rq0[k]);
-      const cond = (player.lvl<ulv?('角色Lv'+ulv):'') + (!reqMet&&rq0?(' · 需'+Object.keys(rq0).map(k=>(SKILLS[k]?SKILLS[k].name:k)+'≥'+rq0[k]).join('/')):'');
-      d.innerHTML=`<div class="nm" style="color:#888">${iconImg('skill_'+id,s.ico)} ${s.name}</div>${reqTxt}<div class="af" style="font-size:9px;color:#7a7a8a">${s.passive?'被动':''}${(s.desc||'').slice(0,18)}</div><div class="who"><b style="color:#a98;opacity:.8">🔒 ${cond||'未解锁'}</b></div>`;
-      el.appendChild(d); continue; }
-    d.style.borderColor=onLoad?'#ffd76b':(s.passive?'#7a5fb0':'#5a7fd0');
-    const rqm=s.passive?{ok:true}:skillReqMet(id);
-    const upLbl = rqm.ok ? '+升级' : ('🔒需'+(rqm.need||'前置'));
-    if(!rqm.ok && !onLoad) d.style.borderColor='#444';
-    const loadBtn = (!s.passive) ? `<b data-load="${id}" style="color:${onLoad?'#ffd76b':'#9ad6ff'}">${onLoad?'✓上阵':'上阵'}</b>` : '';
-    d.innerHTML=`<div class="nm">${iconImg('skill_'+id,s.ico)} ${s.name} <span style="color:#7dd3ff">Lv${lv}</span></div>${reqTxt}${body}`+
-      `<div class="who"><b data-sk="${id}" style="${(can&&rqm.ok)?'':'opacity:.35'};${rqm.ok?'':'color:#c88'}">${upLbl}</b>${loadBtn}</div>`;
-    d.querySelector('[data-sk]').onclick=()=>{ if(player.skillPoints<=0||(player.skillLvl[id]||1)>=20)return; const rq=s.passive?{ok:true}:skillReqMet(id); if(!rq.ok){ banner('需先投点：'+(rq.need||'前置技能'),'#ff9a9a'); return; } player.skillLvl[id]=(player.skillLvl[id]||1)+1; player.skillPoints--; sfx('loot-rare'); saveGame(); renderInv(); };
-    const lb=d.querySelector('[data-load]'); if(lb)lb.onclick=()=>{ if(onLoad){ if(player.loadout.length<=1)return; player.loadout=player.loadout.filter(x=>x!==id); } else { if(player.loadout.length>=4){ banner('技能槽已满(4)，先卸一个','#ff9a9a'); return; } player.loadout.push(id); } renderSkillBar(); saveGame(); renderSkillPick(); };
-    el.appendChild(d); }
+  const skills=pool0.filter(id=>SKILLS[id]&&skillTabOf(id)===curSkillTab);
+  const byTier={}; let maxTier=0; for(const id of skills){ const t=tierOf(id); (byTier[t]=byTier[t]||[]).push(id); if(t>maxTier)maxTier=t; }
+  const CW=116, CH=84, GX=28, GY=12, PADX=6, PADY=4; let maxRows=1; for(const t in byTier)maxRows=Math.max(maxRows,byTier[t].length);
+  const treeW=(maxTier+1)*(CW+GX)+PADX, treeH=maxRows*(CH+GY)+PADY+2;
+  const wrap=document.createElement('div'); wrap.style.cssText='position:relative;width:100%;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch';
+  const tree=document.createElement('div'); tree.style.cssText='position:relative;width:'+treeW+'px;height:'+treeH+'px';
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg'); svg.setAttribute('width',treeW); svg.setAttribute('height',treeH); svg.style.cssText='position:absolute;top:0;left:0;pointer-events:none'; tree.appendChild(svg);
+  const pos={}; for(let t=0;t<=maxTier;t++){ const col=byTier[t]||[]; for(let r=0;r<col.length;r++){ const x=PADX+t*(CW+GX), y=PADY+r*(CH+GY); pos[col[r]]={x,y,cy:y+CH/2}; } }
+  for(const id of skills){ const rq=SKILL_REQ[id]; if(!rq)continue; for(const k in rq){ if(!pos[k]||!pos[id])continue; const met=(player.skillLvl[k]||0)>=rq[k]; const ln=document.createElementNS('http://www.w3.org/2000/svg','line'); ln.setAttribute('x1',pos[k].x+CW); ln.setAttribute('y1',pos[k].cy); ln.setAttribute('x2',pos[id].x); ln.setAttribute('y2',pos[id].cy); ln.setAttribute('stroke',met?'#6ed86e':'#566'); ln.setAttribute('stroke-width',met?2.5:1.5); svg.appendChild(ln); } }
+  for(const id of skills){ const s=SKILLS[id]; if(!s||!pos[id])continue; const p=pos[id];
+    const lv=player.skillLvl[id]||0; const learned=lv>=1; const inv=skillInvestable(id); const onLoad=player.loadout.includes(id);
+    const d=document.createElement('div'); d.style.cssText='position:absolute;left:'+p.x+'px;top:'+p.y+'px;width:'+CW+'px;height:'+CH+'px;box-sizing:border-box;border-radius:8px;padding:5px 6px;border:2px solid;background:#15151ccc;overflow:hidden';
+    let bc, body, btns;
+    if(learned){ bc=onLoad?'#ffd76b':(s.passive?'#7a5fb0':'#5a7fd0'); const gp=Math.round((SKILL_GROW[id]||0.14)*100);
+      body=s.passive?`<div style="font-size:9px;color:#a0d68a">被动 Lv${lv}</div>`:`<div style="font-size:9px;color:#9ad6ff">Lv${lv} · +${Math.round((lv-1)*gp)}%伤</div>`;
+      btns=`<b data-inv="${id}" style="color:${player.skillPoints>0?'#ffd76b':'#666'};font-size:10px">+升级</b>`+((!s.passive)?` · <b data-load="${id}" style="color:${onLoad?'#ffd76b':'#9ad6ff'};font-size:10px">${onLoad?'✓上阵':'上阵'}</b>`:'');
+    } else if(inv.ok){ bc='#3a8a52'; body=`<div style="font-size:9px;color:#7ed957">✦ 可学习</div>`; btns=`<b data-inv="${id}" style="color:#7ed957;font-size:10px">▸ 学习(1点)</b>`; }
+    else { bc='#383844'; d.style.opacity='0.5'; body=`<div style="font-size:8px;color:#a98">🔒 ${(inv.need||'未达条件')}</div>`; btns=''; }
+    d.style.borderColor=bc;
+    d.innerHTML=`<div style="font-weight:700;color:${learned||inv.ok?'#fff':'#999'};font-size:10px;line-height:1.1;height:26px;overflow:hidden">${iconImg('skill_'+id,s.ico)} ${s.name}</div>${body}<div style="position:absolute;bottom:5px;left:6px;white-space:nowrap">${btns}</div>`;
+    const ib=d.querySelector('[data-inv]'); if(ib)ib.onclick=()=>{ if(skillInvest(id))renderInv(); };
+    const lb=d.querySelector('[data-load]'); if(lb)lb.onclick=()=>{ if(onLoad){ player.loadout=player.loadout.filter(x=>x!==id); } else { if(player.loadout.length>=4){ banner('技能槽已满(4)，先卸一个','#ff9a9a'); return; } player.loadout.push(id); } renderSkillBar(); saveGame(); renderSkillPick(); };
+    tree.appendChild(d); }
+  wrap.appendChild(tree); el.appendChild(wrap);
 }
 const ATTR_DEF=[{k:'str',n:'力量',d:'+伤害'},{k:'dex',n:'敏捷',d:'+暴击/攻速/护甲'},{k:'vit',n:'体力',d:'+生命'},{k:'eng',n:'精力',d:'+法力'}];
 function renderCharPanel(){
@@ -1986,7 +1987,7 @@ const cam={x:0,y:0};
 function draw(){
   X.clearRect(0,0,W,H);
   let sx=0,sy=0; if(shakeT>0&&shakeMag>0&&!paused){ sx=rnd(-shakeMag,shakeMag); sy=rnd(-shakeMag,shakeMag); }
-  X.save(); X.translate(W/2-cam.x+sx,H/2-cam.y+sy);
+  X.save(); if(SAFE.top||SAFE.right||SAFE.bottom||SAFE.left){ X.beginPath(); X.rect(VX,VY,VW,VH); X.clip(); } X.translate(VCX-cam.x+sx,VCY-cam.y+sy); // letterbox: 世界只画进安全矩形, 相机居中其中心
   // floor tiles (only visible)
   const x0=Math.floor((cam.x-W/2)/TILE)-1, x1=Math.ceil((cam.x+W/2)/TILE)+1;
   const y0=Math.floor((cam.y-H/2)/TILE)-1, y1=Math.ceil((cam.y+H/2)/TILE)+1;
@@ -2117,7 +2118,7 @@ function draw(){
   wg.addColorStop(0,'rgba(255,176,86,0.10)'); wg.addColorStop(1,'rgba(255,176,86,0)');
   X.fillStyle=wg; X.fillRect(lx-160,ly-160,320,320);
   // 多彩动态点光源(D2战斗照明): 火球/火怪/冰怪/Boss 各自在黑暗里发光
-  const SX=wx=>W/2+(wx-cam.x), SY=wy=>H/2+(wy-cam.y);
+  const SX=wx=>VCX+(wx-cam.x), SY=wy=>VCY+(wy-cam.y); // letterbox: 屏幕投影对齐安全区中心
   const lamp=(x,y,col,rad,a)=>{ const g=X.createRadialGradient(x,y,0,x,y,rad); g.addColorStop(0,'rgba('+col+','+a+')'); g.addColorStop(1,'rgba('+col+',0)'); X.fillStyle=g; X.fillRect(x-rad,y-rad,rad*2,rad*2); };
   for(const p of projectiles) lamp(SX(p.x),SY(p.y), p.fromPlayer?'150,205,255':'255,150,90', 64, 0.16);
   for(const p of props){ if(p.t==='torch'){ const fl=0.85+Math.sin(now()*9+p.ph)*0.15; lamp(SX(p.x),SY(p.y-25), '255,150,60', 100*fl, 0.18*fl); } } // 火把暖光(墙根跳动)
@@ -2151,11 +2152,13 @@ function draw(){
     X.fillText('☠ '+(bossIntroE.bossName||'BOSS'), W/2, H/2-8);
     if(bossIntroE.isSuper){ X.font='bold 15px Georgia,serif'; X.fillStyle='#fff'; X.fillText('— 章末超级首领 —', W/2, H/2+22); }
     X.shadowBlur=0; X.globalAlpha=1; }
+  // letterbox 刘海/灵动岛预留条: 纯黑填安全区外的四条带(盖住任何外溢)
+  if(SAFE.top||SAFE.right||SAFE.bottom||SAFE.left){ X.fillStyle='#000'; if(SAFE.top)X.fillRect(0,0,W,SAFE.top); if(SAFE.bottom)X.fillRect(0,H-SAFE.bottom,W,SAFE.bottom); if(SAFE.left)X.fillRect(0,0,SAFE.left,H); if(SAFE.right)X.fillRect(W-SAFE.right,0,SAFE.right,H); }
 }
 // Boss 全宽血条 + 名号 (刷宝高潮节点的仪式感)
 function drawBossBar(){
   const boss=enemies.find(e=>e.boss); if(!boss) return;
-  const bw=Math.min(W-60,420), bx=(W-bw)/2, by=82, bh=16;
+  const bw=Math.min(VW-60,420), bx=VX+(VW-bw)/2, by=82+SAFE.top, bh=16; // letterbox: Boss条居中安全区+避让刘海
   X.save();
   X.fillStyle='#000a'; X.fillRect(bx-2,by-2,bw+4,bh+4);
   X.fillStyle='#1a0805'; X.fillRect(bx,by,bw,bh);
@@ -2170,7 +2173,7 @@ function drawBossBar(){
 }
 // Minimap: 右上角小地图(已探索房/当前/Boss/玩家)
 function drawMinimap(){
-  const bw=104, bh=72, bx=W-bw-10, by=104;
+  const bw=104, bh=72, bx=W-bw-10-SAFE.right, by=104+SAFE.top; // letterbox: 小地图避让刘海
   X.save(); X.globalAlpha=0.82; X.fillStyle='#0a0a12'; X.strokeStyle='#5a5a70'; X.lineWidth=1;
   X.fillRect(bx,by,bw,bh); X.strokeRect(bx,by,bw,bh);
   const sx=bw/(MW*TILE), sy=bh/(MH*TILE), sc=Math.min(sx,sy)*0.92;
@@ -2438,8 +2441,8 @@ function applySave(s){ const CLSMAP={warrior:'barbarian',mage:'sorceress',duelis
   player.perks=s.perks||{dmg:0,life:0,crit:0,as:0,armor:0};
   player.attrs=s.attrs||{str:0,dex:0,vit:0,eng:0}; player.statPoints=s.statPoints||0; player.skillPoints=s.skillPoints||0; player.skillLvl=s.skillLvl||{}; player.maxStage=s.maxStage||s.stage||1;
   player.torment=s.torment||0; player.maxTorment=s.maxTorment||0; player.respecUsed=s.respecUsed||false; player.hardcore=s.hardcore||false;
-  player.unlocked=s.unlocked&&s.unlocked.length?s.unlocked:['dash','cleave','nova'];
-  player.loadout=s.loadout&&s.loadout.length?s.loadout.filter(id=>SKILLS[id]):['dash','cleave','nova'];
+  player.unlocked=s.unlocked&&s.unlocked.length?s.unlocked.filter(id=>SKILLS[id]):[];
+  player.loadout=s.loadout&&s.loadout.length?s.loadout.filter(id=>SKILLS[id]):[];
   recalcProcs(); unlockSkillsForLevel(); }
 
 // ---------- title / pause ----------
@@ -2457,7 +2460,7 @@ document.getElementById('tips-go').onclick=()=>{ document.getElementById('tips')
 function resetRun(){ player.lvl=1; player.xp=0; player.xpNext=30; player.eq={weapon:null,helm:null,body:null,gloves:null,boots:null,belt:null,ring:null,amulet:null};
   const C=CLASSES[player.cls]||CLASSES.barbarian; // 职业起始
   merc.eq={weapon:null,helm:null,body:null}; bag=[]; stage=1; curMod=null; player.gold=0; player.unlocked=[...C.skills]; player.loadout=[...C.skills]; player.frenzyT=0; player.cd={}; player.procs={}; player.uniques={}; player.perks={dmg:0,life:0,crit:0,as:0,armor:0}; pendingPerks=0; player.torment=player.torment||0; player.maxTorment=player.maxTorment||0;
-  player.attrs={str:C.attrs.str,dex:C.attrs.dex,vit:C.attrs.vit,eng:C.attrs.eng}; player.statPoints=0; player.skillPoints=0; player.skillLvl={}; for(const sk of C.skills){ if(!SKILLS[sk]||!SKILLS[sk].passive) player.skillLvl[sk]=1; } player.maxStage=1; // 起始技能预投1点(保可玩, 作synergy基础)
+  player.attrs={str:C.attrs.str,dex:C.attrs.dex,vit:C.attrs.vit,eng:C.attrs.eng}; player.statPoints=5; player.skillPoints=1; player.skillLvl={}; player.maxStage=1; // D2式空起步: 1级即给1技能点+5属性点, 自己投
   applyBasic(C); }
 function applyBasic(C){ const b=(C&&C.basic)||{ranged:false,range:38}; player.atkRange=b.range; player.basicRanged=!!b.ranged; player.basicProjC=b.c; player.basicSp=b.sp||520; }
 const BUILD_HINTS={ // loop5 build北极星: 出生给流派牵引(降53技能认知过载)
