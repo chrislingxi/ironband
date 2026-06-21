@@ -19,3 +19,8 @@
 具体清单见 assets/audio/SOURCES.txt。
 
 游戏引擎：Phaser 3（MIT License）。
+
+[全分辨率逐职业纸娃娃层 HD avatar]
+  来源: FLARE Team / Clint Bellanger 等, flareteam/flare-game (mods/fantasycore/avatar)
+  许可: CC-BY-SA 3.0
+  层: 法师袍(mage_vest/hood/skirt/sleeves)+staff / 女体leather+longbow / 男体leather+battle_axe + default body

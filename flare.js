@@ -60,6 +60,13 @@ const ENEMY_MAP={ skeleton:'skeleton', archer:'skeleton_archer', zombie:'zombie'
 // 分层纸娃娃绘制顺序(先底后顶); longbow 仅佣兵
 const AVATAR_ORDER=['default_feet','default_legs','leather_pants','default_chest','leather_chest','leather_boots','default_hands','head_long','longbow'];
 const avatar={}; // name -> sprite
+// 全分辨率逐职业纸娃娃(WS2: 真·独立形象, CC-BY-SA FLARE全分辨率层, 底→顶叠序)
+const HD_LAYERS={
+  sorceress:['default_feet','default_legs','mage_skirt','mage_vest','mage_sleeves','mage_hood','staff'],
+  amazon:['default_feet','leather_pants','leather_chest','default_hands','head_long','longbow'],
+  barbarian:['m_default_feet','m_default_legs','m_leather_chest','m_default_hands','m_head_short','m_battle_axe'],
+};
+const hdAvatar={}; let hdReady=false;
 let ready=false, avatarReady=false;
 
 async function init(){
@@ -69,12 +76,20 @@ async function init(){
   // 异步加载纸娃娃层(不阻塞怪物)
   await Promise.all(AVATAR_ORDER.map(async n=>{ avatar[n]=await loadSprite('avatar/'+n+'.png','anim/avatar/'+n+'.txt'); }));
   avatarReady=true;
+  // 全分辨率逐职业层(WS2): 失败不影响16px回退
+  try{ const hdSet=new Set(); for(const c in HD_LAYERS)HD_LAYERS[c].forEach(n=>hdSet.add(n));
+    await Promise.all([...hdSet].map(async n=>{ hdAvatar[n]=await loadSprite('hd/img/'+n+'.png','hd/anim/'+n+'.txt'); }));
+    hdReady=true; }catch(e){ hdReady=false; }
 }
 
-// 画分层纸娃娃. withBow=佣兵(弓手), anim=stance/run/swing/shoot
-function drawAvatar(ctx,bx,by,ang,anim,ms,scale,withBow,flash){
-  if(!avatarReady) return false;
+// 画分层纸娃娃. withBow=佣兵(弓手), anim=stance/run/swing/shoot, cls=职业(HD逐职业层)
+function drawAvatar(ctx,bx,by,ang,anim,ms,scale,withBow,flash,cls){
   const dir=angleToDir(ang);
+  // 全分辨率逐职业纸娃娃优先(WS2: 真·独立形象)
+  if(cls && hdReady && HD_LAYERS[cls]){ const hscale=scale*0.26; let drewHd=false; // 全分辨率帧大, 缩到合适体型
+    for(const n of HD_LAYERS[cls]){ const spr=hdAvatar[n]; if(!spr||!spr.img) continue; if(draw(ctx,spr,anim,dir,ms,bx,by,hscale,flash||0)) drewHd=true; }
+    if(drewHd) return true; }
+  if(!avatarReady) return false;
   let drew=false;
   for(const n of AVATAR_ORDER){
     if(n==='longbow' && !withBow) continue;
