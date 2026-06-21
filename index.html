@@ -143,6 +143,8 @@
     display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px #000a; }
   #campexit { position:absolute; right:14px; top:60px; padding:9px 14px; border-radius:9px; background:#2a1414e0; border:1px solid #c9555a;
     pointer-events:auto; font-size:13px; font-weight:700; color:#ffb3b3; align-items:center; justify-content:center; box-shadow:0 2px 6px #000a; }
+  #campmenu { position:absolute; right:14px; top:104px; padding:9px 14px; border-radius:9px; background:#1a2414e0; border:1px solid #c9883a;
+    pointer-events:auto; font-size:13px; font-weight:700; color:#ffd76b; align-items:center; justify-content:center; box-shadow:0 2px 6px #000a; }
   #npcbtn { position:absolute; right:50%; transform:translateX(50%); bottom:120px; padding:12px 26px; border-radius:12px; background:#2a2418ee; border:2px solid #ffd76b;
     pointer-events:auto; font-size:16px; font-weight:800; color:#ffd76b; align-items:center; justify-content:center; box-shadow:0 3px 10px #000c; }
   .campsvc { display:flex; align-items:center; gap:10px; width:300px; max-width:86vw; padding:11px 14px; border-radius:10px;
@@ -235,6 +237,7 @@
   <div id="holdbtn" title="站桩攻击">🦶</div>
   <div id="campbtn" title="营地">⛺</div>
   <div id="campexit" style="display:none">⚔ 离营</div>
+  <div id="campmenu" style="display:none">📋 服务台</div>
   <div id="npcbtn" style="display:none">▶ 交互</div>
   <div id="perkscreen" class="overlay" style="display:none">
     <div style="font-size:24px;font-weight:800;color:#ffe08a">升级！选择强化</div>
@@ -782,7 +785,8 @@ function tmHp(){ return 1+(player.torment||0)*0.6; } // panel4: 0.85→0.6缓血
 function tmDmg(){ return 1+(player.torment||0)*0.38; } // panel4: 0.5→0.38
 function spawnEnemy(kind,x,y,scale,forceElite){
   const a=ARCH[kind]; const s=scale||1; const m=curMod||{}; const th=tmHp(), td=tmDmg();
-  const e={kind,x,y,r:a.r,c:a.c,hp:a.hp*s*2.4*(m.ehp||1)*th,maxhp:a.hp*s*2.4*(m.ehp||1)*th,dmg:a.dmg*s*1.5*(m.edmg||1)*td,ms:a.ms,range:a.range,
+  const sdH=stage<=2?1:(1+(stage-2)*0.20), sdD=stage<=2?1:(1+(stage-2)*0.14); // 修#4: 第3关起难度系数(血/关+20%·伤/关+14%, 追上玩家加持后的强度)
+  const e={kind,x,y,r:a.r,c:a.c,hp:a.hp*s*2.4*(m.ehp||1)*th*sdH,maxhp:a.hp*s*2.4*(m.ehp||1)*th*sdH,dmg:a.dmg*s*1.5*(m.edmg||1)*td*sdD,ms:a.ms,range:a.range,
     atkInt:a.atk,atkT:Math.random(),xp:Math.round(a.xp*(1+(player.torment||0)*0.5)),ranged:a.ranged,hitFlash:0,boss:false,
     charger:a.charger,summon:a.summon,chillOnHit:a.chillOnHit,suicide:a.suicide,split:a.split,reflect:a.reflect,ghost:a.ghost,corpseboom:a.corpseboom};
   // 精英怪(D3式词缀): 更大更猛, 光环, 必爆好货
@@ -1346,12 +1350,15 @@ function renderSkillPick(){ // WS4: 技能页 = D2三系树(投资+上阵合一,
   hdr.innerHTML='技能点 <span style="color:#7dd3ff">'+player.skillPoints+'</span> · 点「升级」投点，点「上阵」装到技能栏(≤4)'; el.appendChild(hdr);
   const tabs=SKILL_TABS[player.cls]||[]; if(tabs.length){ if(!curSkillTab||!tabs.some(t=>t.k===curSkillTab))curSkillTab=tabs[0].k;
     const tw=document.createElement('div'); tw.style.cssText='display:flex;gap:6px;width:100%;margin:4px 0 8px';
-    for(const tb of tabs){ const cnt=player.unlocked.filter(id=>SKILLS[id]&&skillTabOf(id)===tb.k).length; const b=document.createElement('div'); b.style.cssText='flex:1;text-align:center;padding:8px 2px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid '+(curSkillTab===tb.k?'#c9883a':'#3a3a4a')+';background:'+(curSkillTab===tb.k?'#2a2418':'#15151ccc')+';color:'+(curSkillTab===tb.k?'#ffd76b':'#9a9aab'); b.innerHTML=tb.n+' <span style="opacity:.6;font-size:9px">'+cnt+'</span>'; b.onclick=()=>{ curSkillTab=tb.k; renderSkillPick(); }; tw.appendChild(b); }
+    const pool0=CLASS_SKILLS[player.cls]||[];
+    for(const tb of tabs){ const inTab=pool0.filter(id=>SKILLS[id]&&skillTabOf(id)===tb.k); const unl=inTab.filter(id=>player.unlocked.includes(id)).length; const b=document.createElement('div'); b.style.cssText='flex:1;text-align:center;padding:8px 2px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid '+(curSkillTab===tb.k?'#c9883a':'#3a3a4a')+';background:'+(curSkillTab===tb.k?'#2a2418':'#15151ccc')+';color:'+(curSkillTab===tb.k?'#ffd76b':'#9a9aab'); b.innerHTML=tb.n+' <span style="opacity:.6;font-size:9px">'+unl+'/'+inTab.length+'</span>'; b.onclick=()=>{ curSkillTab=tb.k; renderSkillPick(); }; tw.appendChild(b); }
     el.appendChild(tw); }
   const tierOf=(id,seen)=>{ const rq=SKILL_REQ[id]; if(!rq)return 0; seen=seen||{}; if(seen[id])return 0; seen[id]=1; let m=0; for(const k in rq) m=Math.max(m,1+tierOf(k,seen)); return m; };
-  const sortedSkills=[...player.unlocked].filter(id=>SKILLS[id]).sort((a,b)=>tierOf(a)-tierOf(b));
+  const pool=(CLASS_SKILLS[player.cls]||[]).concat((player.oskills||[]).filter(x=>!(CLASS_SKILLS[player.cls]||[]).includes(x)));
+  const sortedSkills=[...new Set(pool)].filter(id=>SKILLS[id]).sort((a,b)=>tierOf(a)-tierOf(b)||((SKILL_UNLOCK_LV[a]||1)-(SKILL_UNLOCK_LV[b]||1))); // 全树: 显示整个职业技能池(含未解锁), D2式
   let _shownTier=-1;
   for(const id of sortedSkills){ const s=SKILLS[id]; if(!s)continue; if(tabs.length && skillTabOf(id)!==curSkillTab)continue;
+    const isLocked=!player.unlocked.includes(id);
     const _t=tierOf(id); if(_t!==_shownTier){ _shownTier=_t; const tl=document.createElement('div'); tl.style.cssText='width:100%;font-size:10px;color:#7a7a8a;margin:3px 0 1px;border-top:1px solid #3a3020;padding-top:3px'; tl.textContent=_t===0?'— 基础(无前置) —':'— 第'+_t+'层(需前置) —'; el.appendChild(tl); }
     const lv=player.skillLvl[id]||1; const can=player.skillPoints>0;
     const d=document.createElement('div'); d.className='item'; d.style.width='118px';
@@ -1361,6 +1368,12 @@ function renderSkillPick(){ // WS4: 技能页 = D2三系树(投资+上阵合一,
     const body=s.passive ? `<div class="af" style="font-size:10px;color:#a0d68a">被动 · ${s.desc||''} <span style="color:#8aa">(Lv${lv})</span></div>`
       : `<div class="af" style="font-size:10px">技能伤害 +${Math.round((lv-1)*gp)}% <span style="color:#8aa">(每级+${gp}%)</span></div>${synTxt}`;
     const onLoad=player.loadout.includes(id);
+    if(isLocked){ // 未解锁: 灰显+解锁条件, 禁升级/上阵(D2全树可见)
+      d.style.opacity='0.5'; d.style.borderColor='#333';
+      const ulv=SKILL_UNLOCK_LV[id]||1; const reqMet=!rq0||Object.keys(rq0).every(k=>(player.skillLvl[k]||0)>=rq0[k]);
+      const cond = (player.lvl<ulv?('角色Lv'+ulv):'') + (!reqMet&&rq0?(' · 需'+Object.keys(rq0).map(k=>(SKILLS[k]?SKILLS[k].name:k)+'≥'+rq0[k]).join('/')):'');
+      d.innerHTML=`<div class="nm" style="color:#888">${iconImg('skill_'+id,s.ico)} ${s.name}</div>${reqTxt}<div class="af" style="font-size:9px;color:#7a7a8a">${s.passive?'被动':''}${(s.desc||'').slice(0,18)}</div><div class="who"><b style="color:#a98;opacity:.8">🔒 ${cond||'未解锁'}</b></div>`;
+      el.appendChild(d); continue; }
     d.style.borderColor=onLoad?'#ffd76b':(s.passive?'#7a5fb0':'#5a7fd0');
     const rqm=s.passive?{ok:true}:skillReqMet(id);
     const upLbl = rqm.ok ? '+升级' : ('🔒需'+(rqm.need||'前置'));
@@ -1637,8 +1650,8 @@ function genCamp(){ MW=CAMP_W; MH=CAMP_H; MAP=[];
 function enterCamp(){ if(win||paused)return; inCamp=true; paused=false; enemies=[]; projectiles=[]; loots=[]; floaters=[]; particles=[]; rings=[]; corpses=[]; decals=[]; bossIntroT=0;
   genCamp(); player.x=11*TILE; player.y=7*TILE; player.dead=false; move=null; merc.x=player.x-30; merc.y=player.y+20; merc.dead=false;
   cam.x=player.x; cam.y=player.y; banner('⛺ 营地 · 避难所（走近摊位交互）','#ffd76b');
-  document.getElementById('campbtn').style.display='none'; document.getElementById('campexit').style.display='flex'; }
-function leaveCamp(){ inCamp=false; nearNPC=null; document.getElementById('campbtn').style.display='flex'; document.getElementById('campexit').style.display='none';
+  document.getElementById('campbtn').style.display='none'; document.getElementById('campexit').style.display='flex'; document.getElementById('campmenu').style.display='flex'; }
+function leaveCamp(){ inCamp=false; nearNPC=null; document.getElementById('campbtn').style.display='flex'; document.getElementById('campexit').style.display='none'; document.getElementById('campmenu').style.display='none';
   document.getElementById('npcbtn').style.display='none'; startStage(); }
 function tryInteract(){ if(!inCamp||!nearNPC)return; const s=nearNPC.svc;
   if(s==='gear'){ invEl.style.display='flex'; renderInv(); switchInvTab('char'); }
@@ -2184,7 +2197,8 @@ function drawActor(x,y,r,col,flash,swing,face,label,hpfrac,type,moving){
     const CLS_VIS = hero ? ({sorceress:{tint:'hue-rotate(185deg) saturate(1.3)',aura:'#7a9cff',sc:1.0},amazon:{tint:'hue-rotate(80deg) saturate(1.2)',aura:'#8ad06a',sc:1.0},barbarian:{tint:'saturate(1.35) brightness(1.06)',aura:'#d0764a',sc:1.12}}[player.cls]) : null;
     if(CLS_VIS && !LOW_FX){ X.save(); X.globalAlpha=0.5; const g=X.createRadialGradient(x,y+r*0.66,0,x,y+r*0.66,r*1.05); g.addColorStop(0,CLS_VIS.aura+'55'); g.addColorStop(1,CLS_VIS.aura+'00'); X.fillStyle=g; X.beginPath(); X.ellipse(x,y+r*0.66,r*1.05,r*0.42,0,0,TAU); X.fill(); X.restore(); } // 职业光环改脚下地光(批3: 修"全身光球"观感, 不再裹成球)
     const heroSc=(r*0.10)*(CLS_VIS?CLS_VIS.sc:1);
-    let _drew; if(CLS_VIS && !LOW_FX){ X.save(); X.filter=CLS_VIS.tint; _drew=Flare.drawAvatar(X,x,y+r*0.5,face,anim,t*1000,heroSc,withBow,flash,player.cls); X.filter='none'; X.restore(); } else { _drew=Flare.drawAvatar(X,x,y+r*0.5,face,anim,t*1000,heroSc,withBow,flash,player.cls); } // 批3: LOW_FX跳滤镜省重栅格; 传cls(WS2逐职业分层用)
+    const drawCls = hero ? player.cls : null; // 修#3: 佣兵不用玩家HD职业形象(原误传player.cls→佣兵=玩家职业+HD多层开销), 走轻量16px
+    let _drew; if(CLS_VIS && !LOW_FX){ X.save(); X.filter=CLS_VIS.tint; _drew=Flare.drawAvatar(X,x,y+r*0.5,face,anim,t*1000,heroSc,withBow,flash,drawCls); X.filter='none'; X.restore(); } else { _drew=Flare.drawAvatar(X,x,y+r*0.5,face,anim,t*1000,heroSc,withBow,flash,drawCls); } // 批3: LOW_FX跳滤镜省重栅格
     if(_drew){
       // 需求2(真机批3-②): 装备驱动的职业道具层 — 武器随装备稀有度上色/发光, 戴盔显冠饰, 护甲显肩甲, 加描边+高光显立体
       if(CLS_VIS){ const fx=Math.cos(face),fy=Math.sin(face), px=-fy, py=fx; const eq=player.eq||{}; X.save();
@@ -2465,13 +2479,14 @@ function openCamp(){ if(win)return; camphubEl.style.display='flex'; if(!paused){
 function closeCamp(){ camphubEl.style.display='none'; }
 document.getElementById('campbtn').onclick=enterCamp; // 走动营地
 document.getElementById('campexit').onclick=leaveCamp;
+document.getElementById('campmenu').onclick=()=>openCamp(); // 修#5: 营地内一键开服务菜单(免走位逐个找NPC)
 document.getElementById('npcbtn').onclick=tryInteract;
 document.getElementById('camp-resume').onclick=()=>{ closeCamp(); if(invPaused){ invPaused=false; paused=false; last=now(); } };
 function campToInv(focus){ closeCamp(); invEl.style.display='flex'; renderInv(); switchInvTab(focus==='gem'?'gem':focus==='char'?'char':focus==='skill'?'skill':'gear'); }
 document.getElementById('svc-gear').onclick=()=>campToInv('gear');
 document.getElementById('svc-gem').onclick=()=>campToInv('gem');
 document.getElementById('svc-craft').onclick=()=>campToInv('gear');
-document.getElementById('svc-merchant').onclick=()=>campToInv('gear');
+document.getElementById('svc-merchant').onclick=()=>openGamble(); // 修#5: 赌商直接赌(原误开背包gear页)
 function renderMercPick(){ const el=document.getElementById('mercpick'); el.innerHTML='';
   for(const k of Object.keys(MERC_TYPES)){ const t=MERC_TYPES[k]; const on=merc.type===k;
     const d=document.createElement('div'); d.className='campsvc'; if(on)d.style.borderColor=t.c;
