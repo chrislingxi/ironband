@@ -104,7 +104,7 @@ function drawEnemy(ctx,e,bx,by){
   let tint=TINT[e.kind];
   if(e.isSuper) tint='saturate(1.5) brightness(1.1) drop-shadow(0 0 12px '+(e.c||'#ff5e3a')+')'; // 超级Boss: 饱和+自发光描边
   if(e.frozen>0) tint='brightness(1.2) saturate(0.5) drop-shadow(0 0 6px #bfe9ff) sepia(0.3) hue-rotate(160deg)'; // 冰冻: 冰蓝僵直
-  if(tint){ ctx.save(); ctx.filter=tint; const r=draw(ctx,spr,anim,dir,ms,bx,by+e.r*0.55,scale,e.hitFlash||0); ctx.filter='none'; ctx.restore(); return r; }
+  if(tint && !window._LOWFX){ ctx.save(); ctx.filter=tint; const r=draw(ctx,spr,anim,dir,ms,bx,by+e.r*0.55,scale,e.hitFlash||0); ctx.filter='none'; ctx.restore(); return r; } // 批3: LOW_FX跳滤镜省整帧重栅格
   return draw(ctx,spr,anim,dir,ms,bx,by+e.r*0.55,scale,e.hitFlash||0); // by下移到脚底, 传受击白闪
 }
 const ESCALE={skeleton:1.15,archer:1.15,zombie:1.2,imp:1.0,brute:0.62,boss:0.95,mage:0.62,antlion:0.55,fireant:0.5,iceant:0.5,fallen:1.0,shaman:0.62,doll:0.85,maggot:0.55,leaper:0.55,quill:0.5,succubus:0.24,bird:0.18,scarab:0.55,gloam:0.62,moonlord:0.62};

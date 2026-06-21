@@ -43,7 +43,8 @@
     display:flex; flex-direction:column; align-items:center; justify-content:center;
     font-size:11px; font-weight:700; position:relative; box-shadow:0 3px 8px #000a;
     color:#fff; overflow:hidden; }
-  .skill .ico { font-size:22px; line-height:1; }
+  .skill .ico { font-size:22px; line-height:1; display:flex; align-items:center; justify-content:center; width:100%; height:100%; }
+  .skill .icoimg { width:100%; height:100%; object-fit:cover; border-radius:50%; } /* 圆键圆图标(方PNG填满+圆裁剪, 修不自洽) */
   .skill .cd { position:absolute; inset:0; background:#000c; display:flex; align-items:center;
     justify-content:center; font-size:18px; opacity:0; }
   .skill.big { width:74px; height:74px; }
@@ -292,7 +293,7 @@
     <div class="btn2 alt" id="classback" style="margin-top:10px;opacity:.6">返回</div>
   </div>
 </div>
-<script src="flare.js?v=10"></script>
+<script src="flare.js?v=11"></script>
 <script>
 "use strict";
 /* =========================================================================
@@ -690,8 +691,10 @@ const MERC_TYPES={
   mage:  {name:'秘法佣兵',  ico:'🔮', melee:false, hp:64,  dmg:7,  atk:1.0, range:230, dmgM:1.4,  role:'远程·高爆发脆皮', c:'#9c5ad0', aura:{k:'pierce',v:18},auraN:'信念光环·元素穿透+18%'},
   barb:  {name:'野蛮佣兵',  ico:'⚔️', melee:true,  hp:120, dmg:8,  atk:0.5, range:44,  dmgM:1.25, role:'近战·高速高输出', c:'#c08040', aura:{k:'lifePct',v:14},auraN:'战斗命令·生命+14%'},
 };
-function mercAura(){ return (!merc.dead && merc.type && MERC_TYPES[merc.type] && MERC_TYPES[merc.type].aura) || null; } // 佣兵光环反哺玩家(loop4: 佣兵木桩→构筑组件)
-function applyMercType(k){ const t=MERC_TYPES[k]||MERC_TYPES.archer; merc.type=k; merc.name=t.name; merc.melee=t.melee; merc.maxhp=t.hp; merc.hp=t.hp; merc.baseDmg=t.dmg; merc.atkInt=t.atk; merc.atkRange=t.range; merc.dmgM=t.dmgM; merc.c=t.c; merc.dead=false; merc.reviveT=0; }
+function mercAura(){ if(merc.dead||!merc.type)return null; const a=MERC_TYPES[merc.type]&&MERC_TYPES[merc.type].aura; if(!a)return null; const tier=1+Math.floor((player.lvl||1)/12); const inc=(a.k==='pierce'||a.k==='lifePct')?tier*2:tier*3; return {k:a.k, v:a.v+inc}; } // 光环随等级scale(批3: 穿透/生命增幅放缓防破环境, 伤害/攻速给大些)
+function mercScale(){ const lvl=player.lvl||1, tor=player.torment||0; return {hp:1+(lvl-1)*0.12+tor*0.45, dmg:1+(lvl-1)*0.08+tor*0.20}; } // 佣兵血/伤随玩家等级+Torment(批3: 修高难度秒死)
+function applyMercType(k){ const t=MERC_TYPES[k]||MERC_TYPES.archer; const sc=mercScale(); merc.type=k; merc.name=t.name; merc.melee=t.melee; merc.maxhp=Math.round(t.hp*sc.hp); merc.hp=merc.maxhp; merc.baseDmg=Math.round(t.dmg*sc.dmg); merc.atkInt=t.atk; merc.atkRange=t.range; merc.dmgM=t.dmgM; merc.c=t.c; merc.dead=false; merc.reviveT=0; }
+function refreshMercScale(){ if(!merc.type)return; const t=MERC_TYPES[merc.type]||MERC_TYPES.archer; const sc=mercScale(); const frac=merc.maxhp>0?merc.hp/merc.maxhp:1; merc.maxhp=Math.round(t.hp*sc.hp); merc.hp=Math.round(merc.maxhp*(merc.dead?1:frac)); merc.baseDmg=Math.round(t.dmg*sc.dmg); } // 升级/换Torment时重算佣兵上限(保血量百分比)
 let move=null; // target {x,y} or enemy
 let enemies=[], projectiles=[], loots=[], floaters=[], particles=[];
 let bag=[]; let stage=1; let win=false; let corpses=[]; let decals=[]; let whiteFlash=0; let hurtDir=null, hurtDirT=0; // decals=血迹; whiteFlash=Boss白闪; hurtDir=屏外受击来向
@@ -995,7 +998,7 @@ function gainXp(v){ player.xp+=v; while(player.xp>=player.xpNext){ player.xp-=pl
   sfx('level'); banner('升级！Lv '+player.lvl+'　+5属性 +1技能点 → 点 🎒 分配','#ffd76b');
   player.statPoints+=5; player.skillPoints+=1; // 暗黑2式: 每级5属性点+1技能点(进角色面板分配)
   if(!localStorage.getItem('ib_taughtPts')){ localStorage.setItem('ib_taughtPts','1'); try{toggleInv();}catch(e){} } // 首次升级自动开面板教学
-  unlockSkillsForLevel(); } }
+  unlockSkillsForLevel(); refreshMercScale(); } } // 批3: 升级同步佣兵血/伤上限
 function showPerk(){
   if(player.dead){ pendingPerks=0; return; }
   paused=true;
@@ -1041,6 +1044,8 @@ const SKILLS={
   // 亚马逊/野蛮人被动技能(loop2选项5: 构筑深度拉平; peff=非元素被动效果, 投点直接生效)
   az_pierce:{name:'穿刺',ico:'🎯',passive:true,peff:'pierce',desc:'物理穿透/级+4%(降敌抗)'},
   az_crit:{name:'致命打击',ico:'💢',passive:true,peff:'crit',desc:'暴击率/级+3%'},
+  dodge:{name:'躲避',ico:'🥾',passive:true,peff:'dodge',desc:'近战闪避/级+3%(上限45%)'},
+  evade:{name:'规避',ico:'🌀',passive:true,peff:'evade',desc:'弹射闪避/级+3%(上限45%)'},
   bw_mastery:{name:'武器精通',ico:'🪓',passive:true,peff:'critdmg',desc:'暴击率/级+2%·暴伤/级+8%'},
   bw_ironskin:{name:'铁皮',ico:'🛡',passive:true,peff:'armor',desc:'护甲/级+12%'},
   dash:   {name:'冲刺',ico:'💨',cd:2.0,mp:0, run(ps){ const dx=Math.cos(player.face),dy=Math.sin(player.face); let nx=player.x,ny=player.y;
@@ -1138,6 +1143,7 @@ const SKILLS={
     splitLF:{n:6,sp:480,dmg:ps.dmg*0.6}}); player.swing=0.1; sfx('nova'); }},
   // 补技能宽度(req3): 火焰箭(火属性箭)/冰冷之箭(冰箭减速)
   fireArrow:{name:'火焰箭',ico:'🔥',cd:0.8,mp:4, run(ps){ const a=player.face,sp=600; projectiles.push({x:player.x+Math.cos(a)*18,y:player.y+Math.sin(a)*18,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1.2,dmg:ps.dmg*0.85,fromPlayer:true,elem:'fire',c:'#ff8a3c'}); player.swing=0.08; sfx('dash'); }},
+  magicArrow:{name:'魔法箭',ico:'🪄',cd:0.5,mp:1, run(ps){ const a=player.face,sp=660; projectiles.push({x:player.x+Math.cos(a)*18,y:player.y+Math.sin(a)*18,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1.3,dmg:ps.dmg*0.9,fromPlayer:true,pierce:true,c:'#dfe6ff'}); player.swing=0.06; sfx('dash'); }}, // 弓系起手: 低耗魔法箭(穿透)
   coldArrow:{name:'冰冷之箭',ico:'❄️',cd:0.9,mp:5, run(ps){ const a=player.face,sp=600; projectiles.push({x:player.x+Math.cos(a)*18,y:player.y+Math.sin(a)*18,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1.2,dmg:ps.dmg*0.8,fromPlayer:true,elem:'cold',chill:1.8,c:'#bfe9ff'}); player.swing=0.08; sfx('dash'); }},
   innersight:{name:'洞察',ico:'👁️',cd:10,mp:10, run(ps){ aoeDamage(player.x,player.y,170,0.1,ps,e=>{e.vuln=4;}); ringFx(player.x,player.y,170,'#fff3a0'); sfx('nova'); }},
   // ===== 野蛮人 Barbarian (战斗/战吼) =====
@@ -1169,15 +1175,29 @@ const SKILL_ORDER=['dash','cleave','slam','frenzy','nova','fireball','chain',
   'fireMastery','coldMastery','lightMastery']; // 解锁/展示顺序
 const SKILL_UNLOCK_LV={dash:1,cleave:1,slam:1,frenzy:6,nova:1,fireball:5,chain:8,
   iceBolt:1,fireBolt:1,chargedBolt:1,teleport:18,frostNova:6,staticField:6,glacialSpike:10,lightning:12,fireBall:12,chainLightning:14,blizzard:18,meteor:18,nova:12,frozenOrb:20,hydra:16,freezingArrow:10,lightningFury:12,bw_doubleswing:3,bw_concentrate:6,az_pierce:4,az_crit:6,bw_mastery:4,bw_ironskin:6,fireWall:18,inferno:6,fireArrow:1,coldArrow:6,bw_doublethrow:5,bw_stun:8,
-  multishot:1,jab:1,lightningjav:3,innersight:3,poisonjav:5,strafe:5,guidedarrow:8,charged:8,decoy:7,valkyrie:12,
+  multishot:1,magicArrow:1,dodge:1,evade:6,jab:1,lightningjav:3,innersight:3,poisonjav:5,strafe:5,guidedarrow:8,charged:8,decoy:7,valkyrie:12,
   bw_bash:1,bw_whirlwind:24,bw_berserk:30,bw_leap:10,bw_warcry:5,bw_battleorders:12,
   fireMastery:4,coldMastery:4,lightMastery:4};
 // 三职业专属技能池(D2式, 选职后只解锁本职技能)
 const CLASS_SKILLS={
   sorceress:['iceBolt','fireBolt','chargedBolt','teleport','frostNova','staticField','glacialSpike','lightning','fireBall','chainLightning','blizzard','meteor','nova','frozenOrb','hydra','fireWall','inferno','fireMastery','coldMastery','lightMastery'],
-  amazon:['multishot','jab','dash','lightningjav','innersight','poisonjav','strafe','guidedarrow','charged','decoy','valkyrie','freezingArrow','lightningFury','fireArrow','coldArrow','az_pierce','az_crit'],
+  amazon:['multishot','magicArrow','fireArrow','coldArrow','strafe','guidedarrow','freezingArrow','jab','lightningjav','poisonjav','charged','lightningFury','innersight','decoy','valkyrie','dodge','evade','az_pierce','az_crit'],
   barbarian:['bw_bash','cleave','dash','bw_whirlwind','bw_berserk','slam','bw_leap','bw_warcry','frenzy','bw_battleorders','bw_doubleswing','bw_concentrate','bw_doublethrow','bw_stun','bw_mastery','bw_ironskin'],
 };
+// D2技能树: 每职业3系标签页(严格对标D2三树结构, 真机批3-③)
+const SKILL_TABS={
+  sorceress:[{k:'cold',n:'❄ 冰冷系'},{k:'light',n:'⚡ 闪电系'},{k:'fire',n:'🔥 火焰系'}],
+  amazon:[{k:'bow',n:'🏹 弓弩系'},{k:'jav',n:'🗡 标枪长矛'},{k:'pas',n:'✦ 被动魔法'}],
+  barbarian:[{k:'combat',n:'⚔ 战斗技巧'},{k:'warcry',n:'📯 战吼'},{k:'mastery',n:'🛡 武器精通'}],
+};
+const AZ_TAB={ multishot:'bow',magicArrow:'bow',fireArrow:'bow',coldArrow:'bow',strafe:'bow',guidedarrow:'bow',freezingArrow:'bow', jab:'jav',poisonjav:'jav',lightningjav:'jav',charged:'jav',lightningFury:'jav', innersight:'pas',decoy:'pas',valkyrie:'pas',dodge:'pas',evade:'pas',az_pierce:'pas',az_crit:'pas' };
+const BW_TAB={ bw_bash:'combat',cleave:'combat',bw_leap:'combat',bw_doubleswing:'combat',slam:'combat',bw_concentrate:'combat',frenzy:'combat',bw_whirlwind:'combat',bw_berserk:'combat',bw_doublethrow:'combat',bw_stun:'combat',dash:'combat', bw_warcry:'warcry',bw_battleorders:'warcry', bw_mastery:'mastery',bw_ironskin:'mastery' };
+let curSkillTab=null; // 当前查看的技能树系
+function skillTabOf(id){ const cls=player.cls;
+  if(cls==='sorceress'){ const e=SKILL_ELEM[id]||(SKILLS[id]&&SKILLS[id].melem); if(e==='cold'||e==='light'||e==='fire')return e; if(id==='teleport')return 'light'; return 'fire'; }
+  if(cls==='amazon')return AZ_TAB[id]||'pas';
+  if(cls==='barbarian')return BW_TAB[id]||'combat';
+  return 'combat'; }
 // D2式 synergy: 投资同系技能→整系加伤(每关联技能等级+4%)
 // D2式 per-skill synergy系数(投资同系技能→招牌技伤害成倍, 不再统一+3%): 火0.08/冰0.07/电0.06/弓标0.06/战0.05
 const SYNERGY={
@@ -1197,14 +1217,14 @@ const SKILL_GROW={ iceBolt:0.10,fireBolt:0.10,chargedBolt:0.10,bw_bash:0.10,jab:
 const SKILL_REQ={ glacialSpike:{iceBolt:1}, frozenOrb:{glacialSpike:1}, blizzard:{glacialSpike:1,frostNova:1},
   fireBall:{fireBolt:1}, meteor:{fireBall:1}, hydra:{fireBall:1},
   lightning:{chargedBolt:1}, chainLightning:{lightning:1}, nova:{chargedBolt:1},
-  glacialSpike2:{}, guidedarrow:{multishot:1}, freezingArrow:{lightningjav:1}, lightningFury:{lightningjav:1}, valkyrie:{decoy:1},
+  glacialSpike2:{}, guidedarrow:{multishot:1}, freezingArrow:{lightningjav:1}, lightningFury:{lightningjav:1}, valkyrie:{decoy:1}, evade:{dodge:1},
   bw_whirlwind:{bw_bash:1}, bw_concentrate:{bw_bash:1}, bw_berserk:{bw_whirlwind:1} };
 function skillReqMet(id){ const rq=SKILL_REQ[id]; if(!rq)return {ok:true}; for(const k in rq){ if((player.skillLvl[k]||0)<rq[k]) return {ok:false,need:SKILLS[k]&&SKILLS[k].name}; } return {ok:true}; }
 // 三正统D2职业: 法师(元素)/亚马逊(弓+标枪)/野蛮人(战斗+战吼), 差异化属性+技能池+被动
 const CLASSES={
   sorceress:{name:'法师',ico:'🔮',desc:'三系元素(冰/电/火) · 精力主导 · 技能伤+15%·法力+40',attrs:{eng:9,vit:3,dex:2,str:0},skills:['iceBolt','fireBolt','chargedBolt'], basic:{ranged:true,range:170,c:'#9fd0ff',sp:480}},
-  amazon:   {name:'亚马逊',ico:'🏹',desc:'弓与标枪 · 敏捷主导 · 攻速+15%·暴击+8%',attrs:{dex:9,vit:3,str:2,eng:0},skills:['multishot','jab','dash'], basic:{ranged:true,range:210,c:'#cfe8a0',sp:560}},
-  barbarian:{name:'野蛮人',ico:'⚔️',desc:'近战狂战 · 力/体主导 · 全伤+8%·护甲+60',attrs:{str:7,vit:6,dex:1,eng:0},skills:['bw_bash','cleave','dash'], basic:{ranged:false,range:38}},
+  amazon:   {name:'亚马逊',ico:'🏹',desc:'弓与标枪 · 敏捷主导 · 攻速+15%·暴击+8%',attrs:{dex:9,vit:3,str:2,eng:0},skills:['multishot','fireArrow','jab'], basic:{ranged:true,range:210,c:'#cfe8a0',sp:560}}, // 起手对标D2(多重射击/火焰箭/刺戳, 去dash)
+  barbarian:{name:'野蛮人',ico:'⚔️',desc:'近战狂战 · 力/体主导 · 全伤+8%·护甲+60',attrs:{str:7,vit:6,dex:1,eng:0},skills:['bw_bash','slam','bw_warcry'], basic:{ranged:false,range:38}}, // 起手对标D2(猛击/震地/战吼, 去cleave/dash)
 };
 function useSkill(id){
   if(player.dead||paused||inCamp) return; // 营地禁技能(防位移穿墙+投射物堆积)
@@ -1234,6 +1254,7 @@ let rings=[];
 function ringFx(x,y,r,c){ rings.push({x,y,r:10,max:r,c,t:0,life:0.35}); }
 // ---- juice: 屏震 / 顿帧 / 受击红闪 ----
 let shakeT=0, shakeMag=0, hitStop=0, dmgFlash=0, _bombing=false;
+let LOW_FX=false, _fxManual=null; // 批3性能: FPS自适应低特效(关shadowBlur/滤镜); _fxManual=用户手动档(true/false/null自动)
 function shake(mag,dur){ shakeMag=Math.max(shakeMag,mag); shakeT=Math.max(shakeT,dur); }
 function freeze(d){ hitStop=Math.max(hitStop,d); }
 function vibrate(ms){ try{ navigator.vibrate && navigator.vibrate(ms); }catch(e){} }
@@ -1353,11 +1374,18 @@ function renderCharPanel(){
     const d=document.createElement('div'); d.className='item'; d.style.width='118px'; d.style.borderColor='#9fd0ff';
     d.innerHTML=`<div class="nm">施法档位 <span style="color:#9fd0ff">${tier}</span></div><div class="af" style="font-size:10px">FCR ${fcr}% · 差 ${nextNeed}% 到下一档</div>`;
     el.appendChild(d); }
-  // 技能升级
-  // 技能树tier分层(loop3 UX: 看得见'冰弹→冰枪→暴雪'链路, 前置排前面)
+  // 技能升级 — D2三系标签页(真机批3-③: 严格对标D2技能树, 三树分屏+tier分层+前置连线)
+  const tabs=SKILL_TABS[player.cls]||[]; if(tabs.length){ if(!curSkillTab||!tabs.some(t=>t.k===curSkillTab))curSkillTab=tabs[0].k;
+    const tw=document.createElement('div'); tw.style.cssText='display:flex;gap:6px;width:100%;margin:4px 0 8px';
+    for(const tb of tabs){ const cnt=player.unlocked.filter(id=>SKILLS[id]&&skillTabOf(id)===tb.k).length; const b=document.createElement('div'); b.style.cssText='flex:1;text-align:center;padding:7px 2px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid '+(curSkillTab===tb.k?'#c9883a':'#3a3a4a')+';background:'+(curSkillTab===tb.k?'#2a2418':'#15151ccc')+';color:'+(curSkillTab===tb.k?'#ffd76b':'#9a9aab'); b.innerHTML=tb.n+' <span style="opacity:.6;font-size:9px">'+cnt+'</span>'; b.onclick=()=>{ curSkillTab=tb.k; renderCharPanel(); }; tw.appendChild(b); }
+    el.appendChild(tw); }
+  // 技能树tier分层(看得见'冰弹→冰枪→暴雪'链路, 前置排前面)
   const tierOf=(id,seen)=>{ const rq=SKILL_REQ[id]; if(!rq)return 0; seen=seen||{}; if(seen[id])return 0; seen[id]=1; let m=0; for(const k in rq) m=Math.max(m,1+tierOf(k,seen)); return m; };
-  const sortedSkills=[...player.unlocked].filter(id=>SKILLS[id]).sort((a,b)=>{ const ea=SKILL_ELEM[a]||(SKILLS[a].passive?'z':'phys'), eb=SKILL_ELEM[b]||(SKILLS[b].passive?'z':'phys'); if(ea!==eb)return ea<eb?-1:1; return tierOf(a)-tierOf(b); }); // 按元素系分组+tier升序
-  for(const id of sortedSkills){ const s=SKILLS[id]; if(!s)continue; const lv=player.skillLvl[id]||1; const can=player.skillPoints>0;
+  const sortedSkills=[...player.unlocked].filter(id=>SKILLS[id]).sort((a,b)=>tierOf(a)-tierOf(b)); // tier升序(系内分层)
+  let _shownTier=-1;
+  for(const id of sortedSkills){ const s=SKILLS[id]; if(!s)continue; if(tabs.length && skillTabOf(id)!==curSkillTab)continue; // 只显当前系
+    const _t=tierOf(id); if(_t!==_shownTier){ _shownTier=_t; const tl=document.createElement('div'); tl.style.cssText='width:100%;font-size:10px;color:#7a7a8a;margin:2px 0 1px;border-top:1px solid #2a2a36;padding-top:3px'; tl.textContent=_t===0?'— 基础(无前置) —':'— 第'+_t+'层(需前置) —'; el.appendChild(tl); } // tier分隔
+    const lv=player.skillLvl[id]||1; const can=player.skillPoints>0;
     const d=document.createElement('div'); d.className='item'; d.style.width='118px'; d.style.borderColor='#5a7fd0';
     const syn=Math.round(synergyBonus(id)*100); const synTxt=SYNERGY[id]?`<div class="af" style="font-size:9px;color:#c9a6ff">同系协同 +${syn}% (${SYNERGY[id].map(e=>SKILLS[e.k]&&SKILLS[e.k].name).filter(Boolean).join('/')})</div>`:'';
     // 前置链路指示(技能树连线): ↑前置技能 满足绿/未满足灰
@@ -1454,7 +1482,7 @@ function showItemDetail(i,p0,detEl){
   const setObj=it.setId?SETS.find(s=>s.id===it.setId):null; const setTxt=setObj?('◆['+setObj.name+'套] '+setObj.desc):'';
   const old=player.eq[it.type]; player.eq[it.type]=it; recalcProcs(); const p1=powerOf(); player.eq[it.type]=old; recalcProcs();
   const dlt=p1-p0; const cmp=dlt>0?`<span style="color:#5ed85e">▲ 战力 +${dlt}</span>`:dlt<0?`<span style="color:#ff7b6b">▼ 战力 ${dlt}</span>`:`<span style="opacity:.5">＝ 持平</span>`;
-  const canMerc=it.type==='weapon'; const dGold=dismantleGold(it), rCost=rerollCost(it);
+  const canMerc=(it.type==='weapon'||it.type==='helm'||it.type==='body'); const dGold=dismantleGold(it), rCost=rerollCost(it); // 批3: 佣兵3孔(头/甲/武器, 对标D2佣兵)
   const sockTxt=(it.sockets&&it.sockets.length)?'孔位 '+it.sockets.map(g=>g?('<span style="color:'+g.color+'">●</span>'):'○').join(' ')+(it.sockets.some(g=>g)?'（'+it.sockets.filter(g=>g).map(g=>'+'+g.v+g.suf).join(' ')+'）':''):'';
   detEl.className='on';
   detEl.innerHTML=`<div style="color:${it.color};font-weight:700">${it.ico} ${it.name} <span style="opacity:.6">[${it.rarity}]</span></div>
@@ -1509,7 +1537,7 @@ function equip(who,i){
   const it=bag[i]; if(!it)return;
   if(who==='me' && !meetReq(it)){ const need=Object.entries(it.req).map(([k,v])=>({str:'力量',dex:'敏捷',vit:'体力',eng:'精力'}[k]+v)).join('/'); banner('属性不足，需 '+need+'（去角色页加点）','#ff9a9a'); return; }
   if(who==='me'){ const old=player.eq[it.type]; player.eq[it.type]=it; bag.splice(i,1); if(old)bag.push(old); recalcProcs(); const ps=pstat(); player.maxhp=ps.maxhp; player.hp=Math.min(player.hp,player.maxhp); }
-  else { if(it.type!=='weapon')return; const old=merc.eq.weapon; merc.eq.weapon=it; bag.splice(i,1); if(old)bag.push(old); }
+  else { if(it.type!=='weapon'&&it.type!=='helm'&&it.type!=='body')return; const slot=it.type; const old=merc.eq[slot]; merc.eq[slot]=it; bag.splice(i,1); if(old)bag.push(old); }
   sfx('pickup'); saveGame(); renderInv();
 }
 // 镶嵌宝石: 装到第一个有空孔的已穿戴装备
@@ -1528,7 +1556,7 @@ function socketGem(i){ const gem=bag[i]; if(!gem||!gem.gem)return;
   if(cands.length===0){ banner('没有空孔的已穿戴装备（先穿带孔装备）','#ff9a9a'); return; }
   if(cands.length===1){ pendingGem=i; placeGemInSlot(cands[0]); return; } // 唯一选择直接落位
   // 多个候选: 选孔(点纸娃娃带孔槽落位)
-  pendingGem=i; const tab=document.querySelector('[data-tab="equip"]'); if(tab)tab.click(); renderInv();
+  pendingGem=i; try{switchInvTab('gear');}catch(e){} renderInv(); // 批3修: 原跳转[data-tab="equip"]空指(无equip tab), 改切到装备页让玩家点已穿戴装备的孔
   banner('💎 选孔镶嵌：点亮的装备槽中选一个落位 '+gem.gemN,'#ffd76b');
 }
 
@@ -1557,7 +1585,7 @@ function showClear(){
     tr.innerHTML='<span style="font-size:11px;color:#ff8a5e">难度周目:</span>';
     for(let t=0;t<=(player.maxTorment||0);t++){ const b=document.createElement('div'); b.className='item'; b.style.cssText='width:auto;padding:5px 11px;text-align:center;cursor:pointer;border-color:'+(t===(player.torment||0)?'#ff5e3a':'#5a5a70');
       b.innerHTML='<span style="color:'+(t===(player.torment||0)?'#ff8a5e':'#aaa')+'">'+TORMENT_NAMES[t]+(t>0?' +'+Math.round(t*85)+'%血':'')+'</span>';
-      b.onclick=()=>{ player.torment=t; saveGame(); showClear(); }; tr.appendChild(b); }
+      b.onclick=()=>{ player.torment=t; refreshMercScale(); saveGame(); showClear(); }; tr.appendChild(b); }
     wp.appendChild(tr); }
   // 继续深入: 3难度词缀 + 平稳, 进入 maxStage(更深)
   const pool=MUTATORS.slice(); const picks=[];
@@ -1600,6 +1628,8 @@ function tryInteract(){ if(!inCamp||!nearNPC)return; const s=nearNPC.svc;
 function openGamble(){ const cost=Math.round(120*Math.pow(1.14,stage)); if(player.gold<cost){ banner('金币不足（需'+cost+'💰）','#ff9a9a'); return; }
   player.gold-=cost; const x=Math.random(); const rar= x<0.01?'套装':x<0.10?'暗金':x<0.40?'稀有':'魔法';
   const it=genItem(Math.max(stage,3),null,rar); bag.push(it); sfx('loot-rare'); banner('🎲 赌出：'+it.name+' ['+it.rarity+']',it.color); saveGame(); }
+// 分阶段新手引导(真机批3-④): 一次性教学提示, localStorage持久不重复
+function teachOnce(key,text,col){ if(localStorage.getItem('ib_teach_'+key))return false; try{localStorage.setItem('ib_teach_'+key,'1');}catch(e){} const b=document.getElementById('banner'); b.textContent=text; b.style.color=col||'#9ad6ff'; b.style.opacity=1; clearTimeout(b._t); b._t=setTimeout(()=>b.style.opacity=0,5600); return true; }
 function startStage(){
   win=false; enemies=[]; projectiles=[]; loots=[]; floaters=[]; particles=[]; rings=[]; corpses=[]; decals=[]; bossIntroT=0;
   spawnedRooms.clear(); // 修复: 跨局/跨层残留key导致房间不刷怪→死锁
@@ -1616,6 +1646,9 @@ function startStage(){
   playChapterBGM(stage); // 按章切换BGM
   if((stage-1)%5===0){ showStoryCard(act.n); paused=true; storyPaused=true; } // 进章首层: 剧情叙事卡
   document.getElementById('hint').style.display='none';
+  // 分阶段引导(真机批3-④): 第2章带宝石→教 打孔→镶嵌 流程(延迟到章节banner后)
+  if(stage>=2 && bag.some(it=>it.gem)) setTimeout(()=>teachOnce('socket','💎 宝石镶嵌: 回营地⛺ → 工匠台🔩给装备打孔 → 宝石囊点宝石镶入孔位','#ffd76b'),2800);
+  if(stage>=2) setTimeout(()=>teachOnce('craft','🔨 工匠台可洗练词缀/打孔/分解换金 — 装备不再纯靠掉落'),2800);
 }
 
 // ---------- update ----------
@@ -1703,6 +1736,8 @@ function update(dt){
     // 击退脉冲(带衰减+墙校验)
     if(e.kx||e.ky){ const nx=e.x+e.kx*dt, ny=e.y+e.ky*dt; if(walkable(nx,e.y))e.x=nx; if(walkable(e.x,ny))e.y=ny;
       const dec=1-Math.min(1,dt*11); e.kx*=dec; e.ky*=dec; if(Math.abs(e.kx)<3)e.kx=0; if(Math.abs(e.ky)<3)e.ky=0; }
+    // 出墙兜底(修怪卡墙bug): 中心嵌墙时推向最近可走tile中心, 螺旋搜索
+    if(!walkable(e.x,e.y)){ let fixed=false; for(let rad=1;rad<=4&&!fixed;rad++){ for(let dy=-rad;dy<=rad&&!fixed;dy++)for(let dx=-rad;dx<=rad&&!fixed;dx++){ if(Math.abs(dx)!==rad&&Math.abs(dy)!==rad)continue; const tx=Math.floor(e.x/TILE)+dx, ty=Math.floor(e.y/TILE)+dy; if(MAP[ty]&&MAP[ty][tx]===0){ const cx=(tx+0.5)*TILE, cy=(ty+0.5)*TILE; const d=Math.hypot(cx-e.x,cy-e.y)||1; e.x+=(cx-e.x)/d*Math.min(d,180*dt); e.y+=(cy-e.y)/d*Math.min(d,180*dt); fixed=true; } } } e.kx=0; e.ky=0; }
     // 硬直/冰冻: 打断 AI(冰冻=D2 Freeze完全僵直)
     if(e.frozen>0){ e.frozen-=dt; e.moving=false; e.kx=(e.kx||0)*0.8; e.ky=(e.ky||0)*0.8; continue; }
     if(e.stun>0){ e.stun-=dt; continue; }
@@ -1818,10 +1853,10 @@ function update(dt){
   spawnTrigger();
   // ----- effects timers -----
   // 特效更新: filter 一次 O(n), 取代每帧 [...]复制+splice(indexOf) 的 O(n²)
-  floaters=floaters.filter(f=>{ f.t+=dt; f.y+=f.vy*dt; f.vy+=60*dt; return f.t<f.life; });
-  particles=particles.filter(p=>{ p.t+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=0.9; p.vy*=0.9; return p.t<p.life; });
-  rings=rings.filter(rr=>{ rr.t+=dt; rr.r=rr.max*(rr.t/rr.life); return rr.t<rr.life; });
-  corpses=corpses.filter(c=>{ c.t+=dt; return c.t<c.life; });
+  floaters=floaters.filter(f=>{ f.t+=dt; f.y+=f.vy*dt; f.vy+=60*dt; return f.t<f.life; }); if(floaters.length>60)floaters=floaters.slice(-60);
+  particles=particles.filter(p=>{ p.t+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt; p.vx*=0.9; p.vy*=0.9; return p.t<p.life; }); if(particles.length>400)particles=particles.slice(-400);
+  rings=rings.filter(rr=>{ rr.t+=dt; rr.r=rr.max*(rr.t/rr.life); return rr.t<rr.life; }); if(rings.length>30)rings=rings.slice(-30);
+  corpses=corpses.filter(c=>{ c.t+=dt; return c.t<c.life; }); if(corpses.length>40)corpses=corpses.slice(-40); // 批3性能: 数组硬上限防累积
   player.hitFlash=Math.max(0,player.hitFlash-dt);
   if(player.uniques&&player.uniques.regrowth&&!player.dead&&player.hp<player.maxhp) player.hp=Math.min(player.maxhp,player.hp+player.maxhp*0.02*dt); // 回春之心: 每秒回2%
   whiteFlash=Math.max(0,whiteFlash-dt*2); hurtDirT=Math.max(0,hurtDirT-dt);
@@ -1838,7 +1873,8 @@ function spawnTrigger(){ const r=roomAt(player.x,player.y); if(r&&r.idx!==0&&!sp
 function nearestEnemy(x,y,maxd){ let best=null,bd=maxd||1e9; for(const e of enemies){const d=dist(x,y,e.x,e.y);if(d<bd){bd=d;best=e;}} return best; }
 function shoot(x,y,tx,ty,dmg,fromPlayer,crit,chill){ const a=Math.atan2(ty-y,tx-x),sp=fromPlayer?420:260; projectiles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:1.4,dmg,fromPlayer,crit:!!crit,bossChill:chill,c:chill?'#bfe3ff':undefined}); }
 function attackFx(e,tx,ty){ for(let i=0;i<4;i++)particles.push({x:(e.x+tx)/2,y:(e.y+ty)/2,vx:rnd(-40,40),vy:rnd(-40,40),life:.2,t:0,c:'#f55',r:2}); }
-function hurtPlayer(dmg,sx,sy){ if(player.dead)return; dmg*=(1-(pstat().dr||0)); if(player.uniques&&player.uniques.glasscannon)dmg*=1.22; player.hp-=dmg; player.hitFlash=0.18; // 玻璃大炮真实代价: 受伤+22%
+function hurtPlayer(dmg,sx,sy){ if(player.dead)return; const avoid=Math.min(0.45,Math.max(passLvl('dodge'),passLvl('evade'))*0.03); if(avoid>0&&Math.random()<avoid){ floaters.push({x:player.x,y:player.y-28,vy:-46,t:0,life:.7,txt:'闪避',col:'#9ad6ff'}); return; } // 亚马逊躲避/规避被动: 几率完全闪避
+  dmg*=(1-(pstat().dr||0)); if(player.uniques&&player.uniques.glasscannon)dmg*=1.22; player.hp-=dmg; player.hitFlash=0.18; // 玻璃大炮真实代价: 受伤+22%
   if(sx!=null){ const d=dist(sx,sy,player.x,player.y); if(d>Math.min(W,H)*0.32){ hurtDir=Math.atan2(sy-player.y,sx-player.x); hurtDirT=0.5; } } // 屏外来向预警
   dmgFlash=Math.min(1,dmgFlash+0.5); shake(Math.min(14,6+dmg*0.3),0.18); sfx('hurt'); vibrate(30);
   // 荆棘之甲: 反弹伤害给周围怪
@@ -1848,7 +1884,7 @@ function hurtPlayer(dmg,sx,sy){ if(player.dead)return; dmg*=(1-(pstat().dr||0));
   if(player.hp<=0){ player.hp=0; player.dead=true; shake(20,0.5);
     if(player.hardcore){ try{localStorage.removeItem(SAVE_KEY);}catch(e){} try{localStorage.setItem('ib_hcDeaths',(parseInt(localStorage.getItem('ib_hcDeaths')||'0')+1));}catch(e){} banner('☠ 专家模式·角色阵亡 — 存档已删除','#ff3b2e'); setTimeout(()=>{ showTitle&&showTitle(); },2200); } // Hardcore: 阵亡删档
     else document.getElementById('respawn').style.display='flex'; } }
-function hurtMerc(dmg){ if(merc.dead)return; merc.hp-=dmg; merc.hitFlash=0.18; if(merc.hp<=0){ merc.hp=0; merc.dead=true; merc.reviveT=8; banner(merc.name+'倒下，8s 后归队','#aaa'); } }
+function hurtMerc(dmg){ if(merc.dead)return; merc.hp-=dmg; merc.hitFlash=0.18; if(merc.hp<=0){ merc.hp=0; merc.dead=true; merc.reviveT=8+(player.torment||0)*2; banner(merc.name+'倒下，'+Math.round(merc.reviveT)+'s 后归队','#aaa'); } }
 function updateMerc(dt){
   if(merc.dead){ merc.reviveT-=dt; if(merc.reviveT<=0){ merc.dead=false; merc.hp=merc.maxhp; merc.x=player.x; merc.y=player.y; banner(merc.name+'归队','#9f9'); } return; }
   merc.hitFlash=Math.max(0,merc.hitFlash-dt);
@@ -1950,7 +1986,7 @@ function draw(){
   // 火把柱(墙边, 跳动火焰; 光在照明层)
   for(const p of props){ if(p.t!=='torch')continue; if(p.x<cam.x-W/2-40||p.x>cam.x+W/2+40||p.y<cam.y-H/2-40||p.y>cam.y+H/2+40)continue;
     X.fillStyle='#2a2018'; X.fillRect(p.x-2,p.y-22,4,22); // 柱
-    const fl=0.7+Math.sin(now()*9+p.ph)*0.3; X.fillStyle='#ff8a2e'; X.shadowColor='#ff7a2e'; X.shadowBlur=14*fl; X.beginPath(); X.ellipse(p.x,p.y-25,4,7*fl,0,0,TAU); X.fill();
+    const fl=0.7+Math.sin(now()*9+p.ph)*0.3; X.fillStyle='#ff8a2e'; X.shadowColor='#ff7a2e'; if(!LOW_FX)X.shadowBlur=14*fl; X.beginPath(); X.ellipse(p.x,p.y-25,4,7*fl,0,0,TAU); X.fill();
     X.fillStyle='#ffe08a'; X.beginPath(); X.ellipse(p.x,p.y-25,2,4*fl,0,0,TAU); X.fill(); X.shadowBlur=0; }
   // walls (立体凸起块: 暗投影+前面渐变+顶面提亮+顶棱高光, 强化地牢纵深)
   const WH=14; // 假高度
@@ -1965,7 +2001,7 @@ function draw(){
     X.fillStyle=shade(th.wt,34); X.fillRect(w.x,w.y-WH,TILE,2); // 顶棱高光
     X.fillStyle='#00000040'; X.fillRect(w.x,w.y+TILE-WH-2,TILE,2); } // 厚度棱线阴影
   // rings
-  for(const r of rings){ const k=clamp(1-r.t/r.life,0,1); X.strokeStyle=r.c; X.shadowColor=r.c; X.shadowBlur=12; X.globalAlpha=k*0.85; X.lineWidth=clamp(6*k,1.5,6); X.beginPath(); X.arc(r.x,r.y,r.r,0,TAU); X.stroke(); X.globalAlpha=1; X.lineWidth=1; X.shadowBlur=0; } // 冲击波: 发光+扩散收宽
+  for(const r of rings){ const k=clamp(1-r.t/r.life,0,1); X.strokeStyle=r.c; X.shadowColor=r.c; if(!LOW_FX)X.shadowBlur=12; X.globalAlpha=k*0.85; X.lineWidth=clamp(6*k,1.5,6); X.beginPath(); X.arc(r.x,r.y,r.r,0,TAU); X.stroke(); X.globalAlpha=1; X.lineWidth=1; X.shadowBlur=0; } // 冲击波: 发光+扩散收宽
   // loot
   for(const l of loots){ const yy=l.y+Math.sin(l.bob)*3; const sc=1+(l.pop||0)*1.2; const beam=l.beam||0;
     // 品质光柱(落地强光闪: beam 越大越亮越高)
@@ -1974,7 +2010,7 @@ function draw(){
     bg.addColorStop(0,l.color+'00'); bg.addColorStop(1,l.color+(beam>0.3?'ee':'aa'));
     X.globalAlpha=clamp(0.55+beam,0,1); X.fillStyle=bg; X.fillRect(l.x-(6+beam*6),l.y-bh,12+beam*12,bh+6); X.globalAlpha=1;
     X.fillStyle='#0008'; X.beginPath(); X.ellipse(l.x,l.y+8,11,4,0,0,TAU); X.fill();
-    X.shadowColor=l.color; X.shadowBlur=16+beam*24; X.fillStyle=l.color; X.beginPath(); X.arc(l.x,yy,6*sc,0,TAU); X.fill(); X.shadowBlur=0;
+    X.shadowColor=l.color; if(!LOW_FX)X.shadowBlur=16+beam*24; X.fillStyle=l.color; X.beginPath(); X.arc(l.x,yy,6*sc,0,TAU); X.fill(); X.shadowBlur=0;
     const im=l.type&&canvasIco(l.type); // 真图标优先, 缺失(宝石等)回退emoji
     if(im&&im.complete&&im.naturalWidth){ const s=20*sc; X.drawImage(im,l.x-s/2,yy-s/2,s,s); }
     else { X.font=(14*sc).toFixed(0)+'px Georgia,serif'; X.textAlign='center'; X.fillText(l.ico,l.x,yy+5); }
@@ -2000,7 +2036,7 @@ function draw(){
   // projectiles (敌方弹道更醒目: 大+亮+脉冲光晕+拖尾, 让冷箭来向可读)
   for(const p of projectiles){ const mine=p.fromPlayer; const col=p.c||(mine?'#9bdcff':'#ff5e3a'); const rr=mine?4:5+Math.abs(Math.sin(now()*12))*1.5;
     if(!mine){ X.strokeStyle=col; X.globalAlpha=0.4; X.lineWidth=2; X.beginPath(); X.moveTo(p.x-p.vx*0.03,p.y-p.vy*0.03); X.lineTo(p.x,p.y); X.stroke(); X.globalAlpha=1; X.lineWidth=1; } // 敌弹拖尾
-    X.fillStyle=col; X.shadowColor=col; X.shadowBlur=mine?8:14; X.beginPath(); X.arc(p.x,p.y,rr,0,TAU); X.fill(); X.shadowBlur=0; }
+    X.fillStyle=col; X.shadowColor=col; if(!LOW_FX)X.shadowBlur=mine?8:14; X.beginPath(); X.arc(p.x,p.y,rr,0,TAU); X.fill(); X.shadowBlur=0; }
   // particles
   for(const p of particles){ X.globalAlpha=clamp(1-p.t/p.life,0,1); X.fillStyle=p.c; X.beginPath(); X.arc(p.x,p.y,p.r,0,TAU); X.fill(); X.globalAlpha=1; }
   // floaters
@@ -2124,21 +2160,36 @@ function drawActor(x,y,r,col,flash,swing,face,label,hpfrac,type,moving){
     const anim = swing>0 ? ((hero&&!player.basicRanged)?'swing':'shoot') : (moving?'run':'stance');
     // 需求2: 职业形象视觉区分(纸娃娃同体, 用职业色调tint+光环/体型对标D2三职业气质)
     const CLS_VIS = hero ? ({sorceress:{tint:'hue-rotate(185deg) saturate(1.3)',aura:'#7a9cff',sc:1.0},amazon:{tint:'hue-rotate(80deg) saturate(1.2)',aura:'#8ad06a',sc:1.0},barbarian:{tint:'saturate(1.35) brightness(1.06)',aura:'#d0764a',sc:1.12}}[player.cls]) : null;
-    if(CLS_VIS){ const g=X.createRadialGradient(x,y+r*0.2,0,x,y+r*0.2,r*1.5); g.addColorStop(0,CLS_VIS.aura+'40'); g.addColorStop(1,CLS_VIS.aura+'00'); X.fillStyle=g; X.fillRect(x-r*1.5,y-r*1.3,r*3,r*3); } // 职业光环
+    if(CLS_VIS && !LOW_FX){ X.save(); X.globalAlpha=0.5; const g=X.createRadialGradient(x,y+r*0.66,0,x,y+r*0.66,r*1.05); g.addColorStop(0,CLS_VIS.aura+'55'); g.addColorStop(1,CLS_VIS.aura+'00'); X.fillStyle=g; X.beginPath(); X.ellipse(x,y+r*0.66,r*1.05,r*0.42,0,0,TAU); X.fill(); X.restore(); } // 职业光环改脚下地光(批3: 修"全身光球"观感, 不再裹成球)
     const heroSc=(r*0.10)*(CLS_VIS?CLS_VIS.sc:1);
-    let _drew; if(CLS_VIS){ X.save(); X.filter=CLS_VIS.tint; _drew=Flare.drawAvatar(X,x,y+r*0.5,face,anim,t*1000,heroSc,withBow,flash); X.filter='none'; X.restore(); } else { _drew=Flare.drawAvatar(X,x,y+r*0.5,face,anim,t*1000,heroSc,withBow,flash); }
+    let _drew; if(CLS_VIS && !LOW_FX){ X.save(); X.filter=CLS_VIS.tint; _drew=Flare.drawAvatar(X,x,y+r*0.5,face,anim,t*1000,heroSc,withBow,flash,player.cls); X.filter='none'; X.restore(); } else { _drew=Flare.drawAvatar(X,x,y+r*0.5,face,anim,t*1000,heroSc,withBow,flash,player.cls); } // 批3: LOW_FX跳滤镜省重栅格; 传cls(WS2逐职业分层用)
     if(_drew){
-      // 需求2(loop2选项4): 职业专属道具剪影叠加, 让三职业外轮廓第一眼不同(非仅调色)
-      if(CLS_VIS){ const fx=Math.cos(face),fy=Math.sin(face); X.save();
-        if(player.cls==='sorceress'){ // 发光法杖(侧持)
-          const hx=x-r*0.55,hy=y-r*0.1; X.strokeStyle='#6a4a2a'; X.lineWidth=3; X.beginPath(); X.moveTo(hx,hy+r*0.7); X.lineTo(hx,hy-r*0.9); X.stroke();
-          X.fillStyle='#9fc8ff'; X.shadowColor='#7a9cff'; X.shadowBlur=10; X.beginPath(); X.arc(hx,hy-r,r*0.22,0,TAU); X.fill(); X.shadowBlur=0; X.lineWidth=1; }
-        else if(player.cls==='amazon'){ // 弓(朝向)
-          const bx=x+fx*r*0.5,by2=y+fy*r*0.5; X.strokeStyle='#c8a060'; X.lineWidth=2.5; X.beginPath(); X.arc(bx,by2,r*0.65,face-1.0,face+1.0); X.stroke();
-          X.strokeStyle='#e8d0a0'; X.lineWidth=1; X.beginPath(); X.moveTo(bx+Math.cos(face-1.0)*r*0.65,by2+Math.sin(face-1.0)*r*0.65); X.lineTo(bx+Math.cos(face+1.0)*r*0.65,by2+Math.sin(face+1.0)*r*0.65); X.stroke(); }
-        else if(player.cls==='barbarian'){ // 大肩甲+背后大剑
-          X.fillStyle='#7a4030'; for(const s of [-1,1]){ X.beginPath(); X.arc(x+s*r*0.7,y-r*0.4,r*0.34,0,TAU); X.fill(); }
-          X.strokeStyle='#b0b0c0'; X.lineWidth=4; X.beginPath(); X.moveTo(x-r*0.5,y+r*0.6); X.lineTo(x+r*0.6,y-r*1.1); X.stroke(); X.lineWidth=2; X.strokeStyle='#6a4a2a'; X.beginPath(); X.moveTo(x-r*0.5,y+r*0.6); X.lineTo(x-r*0.2,y+r*0.2); X.stroke(); X.lineWidth=1; }
+      // 需求2(真机批3-②): 装备驱动的职业道具层 — 武器随装备稀有度上色/发光, 戴盔显冠饰, 护甲显肩甲, 加描边+高光显立体
+      if(CLS_VIS){ const fx=Math.cos(face),fy=Math.sin(face), px=-fy, py=fx; const eq=player.eq||{}; X.save();
+        const wpnCol = (eq.weapon&&eq.weapon.color)||'#c8a060'; const wpnGlow = !!(eq.weapon&&(eq.weapon.rarity==='暗金'||eq.weapon.rarity==='稀有'||eq.weapon.runeword||eq.weapon.setId));
+        const bodyCol = (eq.body&&eq.body.color)||'#7a4030'; const helmCol = (eq.helm&&eq.helm.color)||null;
+        // 肩甲(护甲驱动: 穿了体甲→肩甲随其稀有度色)
+        if(eq.body){ X.fillStyle=bodyCol; X.strokeStyle='#0006'; X.lineWidth=1.4; for(const s of [-1,1]){ const sx=x+px*s*r*0.62, sy=y-r*0.32+py*s*r*0.18; X.beginPath(); X.arc(sx,sy,r*0.32,0,TAU); X.fill(); X.stroke(); X.fillStyle=shade(bodyCol,32); X.beginPath(); X.arc(sx-r*0.08,sy-r*0.08,r*0.12,0,TAU); X.fill(); X.fillStyle=bodyCol; } }
+        // 头盔冠饰(戴盔驱动)
+        if(helmCol){ X.fillStyle=helmCol; X.strokeStyle='#0007'; X.lineWidth=1.2; X.beginPath(); X.arc(x,y-r*0.78,r*0.30,Math.PI,0); X.fill(); X.stroke(); X.fillStyle='#e23a3a'; X.fillRect(x-r*0.04,y-r*1.12,r*0.08,r*0.30); X.fillStyle='#fff7'; X.fillRect(x-r*0.13,y-r*0.86,r*0.07,r*0.14); }
+        if(player.cls==='sorceress'){ // 发光法杖(侧持, 大宝珠, 杖随武器色)
+          const hx=x+px*r*0.62-fx*r*0.1, hy=y-r*0.05; X.strokeStyle=shade(wpnCol,-25); X.lineWidth=4; X.beginPath(); X.moveTo(hx,hy+r*0.85); X.lineTo(hx-px*r*0.1,hy-r*1.05); X.stroke(); X.strokeStyle=shade(wpnCol,25); X.lineWidth=1.4; X.beginPath(); X.moveTo(hx,hy+r*0.8); X.lineTo(hx-px*r*0.1,hy-r*1.0); X.stroke();
+          X.fillStyle='#bfe0ff'; X.shadowColor=wpnGlow?wpnCol:'#7a9cff'; X.shadowBlur=wpnGlow?16:10; X.beginPath(); X.arc(hx-px*r*0.1,hy-r*1.12,r*0.26,0,TAU); X.fill(); X.fillStyle='#fff'; X.beginPath(); X.arc(hx-px*r*0.16,hy-r*1.2,r*0.09,0,TAU); X.fill(); X.shadowBlur=0; X.lineWidth=1; }
+        else if(player.cls==='amazon'){ // 大弓(明显持握于身前)+搭箭, 随装备稀有度上色发光
+          const hx=x+fx*r*0.4+px*r*0.4, hy=y+fy*r*0.4+py*r*0.4; const a0=face+Math.PI/2;
+          if(wpnGlow){ X.shadowColor=wpnCol; X.shadowBlur=10; }
+          X.strokeStyle=shade(wpnCol,-12); X.lineWidth=3.6; X.beginPath(); X.arc(hx,hy,r*1.0,a0-1.15,a0+1.15); X.stroke();
+          X.strokeStyle=shade(wpnCol,40); X.lineWidth=1.4; X.beginPath(); X.arc(hx,hy,r*1.0,a0-1.05,a0+1.05); X.stroke(); X.shadowBlur=0; // 内侧高光=立体
+          const e1x=hx+Math.cos(a0-1.15)*r,e1y=hy+Math.sin(a0-1.15)*r, e2x=hx+Math.cos(a0+1.15)*r,e2y=hy+Math.sin(a0+1.15)*r;
+          X.strokeStyle='#f2e8c8'; X.lineWidth=1; X.beginPath(); X.moveTo(e1x,e1y); X.lineTo(e2x,e2y); X.stroke(); // 弓弦
+          X.strokeStyle='#d8c4a0'; X.lineWidth=1.8; X.beginPath(); X.moveTo((e1x+e2x)/2,(e1y+e2y)/2); X.lineTo(hx+fx*r*1.15,hy+fy*r*1.15); X.stroke(); // 搭箭
+          X.fillStyle='#caa'; X.beginPath(); X.moveTo(hx+fx*r*1.15,hy+fy*r*1.15); X.lineTo(hx+fx*r*0.95+px*r*0.08,hy+fy*r*0.95+py*r*0.08); X.lineTo(hx+fx*r*0.95-px*r*0.08,hy+fy*r*0.95-py*r*0.08); X.fill(); }
+        else if(player.cls==='barbarian'){ // 背后大剑(挥砍朝向)+剑随武器色
+          if(wpnGlow){ X.shadowColor=wpnCol; X.shadowBlur=10; }
+          const gx=x-fx*r*0.5-px*r*0.3, gy=y+r*0.55, tx=x+fx*r*0.7+px*r*0.2, ty=y-r*1.05;
+          X.strokeStyle=shade(wpnCol,-5); X.lineWidth=5; X.beginPath(); X.moveTo(gx,gy); X.lineTo(tx,ty); X.stroke();
+          X.strokeStyle=shade(wpnCol,45); X.lineWidth=1.8; X.beginPath(); X.moveTo(gx,gy); X.lineTo(tx,ty); X.stroke(); X.shadowBlur=0; // 刃高光=立体
+          X.strokeStyle='#6a4a2a'; X.lineWidth=3; const cx=gx+(tx-gx)*0.18, cy2=gy+(ty-gy)*0.18; X.beginPath(); X.moveTo(cx-px*r*0.22,cy2-py*r*0.22); X.lineTo(cx+px*r*0.22,cy2+py*r*0.22); X.stroke(); X.lineWidth=1; } // 护手
         X.restore(); }
       if(hpfrac<1){ X.fillStyle='#000a'; X.fillRect(x-r,y-r-15,r*2,4); X.fillStyle='#5ed85e'; X.fillRect(x-r,y-r-15,r*2*clamp(hpfrac,0,1),4); }
       X.fillStyle='#fff'; X.font='9px Georgia,serif'; X.textAlign='center'; X.fillText(label,x,y+r+12);
@@ -2363,7 +2414,7 @@ function beginGame(fromSave){ initAudio(); if(fromSave){ const s=loadSave(); if(
 document.getElementById('tips-go').onclick=()=>{ document.getElementById('tips').style.display='none'; try{ localStorage.setItem('ironband_tips','1'); }catch(e){} if(invPaused){ invPaused=false; paused=false; last=now(); } };
 function resetRun(){ player.lvl=1; player.xp=0; player.xpNext=30; player.eq={weapon:null,helm:null,body:null,gloves:null,boots:null,belt:null,ring:null,amulet:null};
   const C=CLASSES[player.cls]||CLASSES.barbarian; // 职业起始
-  merc.eq={weapon:null}; bag=[]; stage=1; curMod=null; player.gold=0; player.unlocked=[...C.skills]; player.loadout=[...C.skills]; player.frenzyT=0; player.cd={}; player.procs={}; player.uniques={}; player.perks={dmg:0,life:0,crit:0,as:0,armor:0}; pendingPerks=0; player.torment=player.torment||0; player.maxTorment=player.maxTorment||0;
+  merc.eq={weapon:null,helm:null,body:null}; bag=[]; stage=1; curMod=null; player.gold=0; player.unlocked=[...C.skills]; player.loadout=[...C.skills]; player.frenzyT=0; player.cd={}; player.procs={}; player.uniques={}; player.perks={dmg:0,life:0,crit:0,as:0,armor:0}; pendingPerks=0; player.torment=player.torment||0; player.maxTorment=player.maxTorment||0;
   player.attrs={str:C.attrs.str,dex:C.attrs.dex,vit:C.attrs.vit,eng:C.attrs.eng}; player.statPoints=0; player.skillPoints=0; player.skillLvl={}; for(const sk of C.skills){ if(!SKILLS[sk]||!SKILLS[sk].passive) player.skillLvl[sk]=1; } player.maxStage=1; // 起始技能预投1点(保可玩, 作synergy基础)
   applyBasic(C); }
 function applyBasic(C){ const b=(C&&C.basic)||{ranged:false,range:38}; player.atkRange=b.range; player.basicRanged=!!b.ranged; player.basicProjC=b.c; player.basicSp=b.sp||520; }
@@ -2435,7 +2486,12 @@ function frame(){ const t=now(); let dt=t-last; last=t; dt=Math.min(dt,0.05);
   if(hitStop>0){ hitStop-=dt; dt*=0.06; }
   if(shakeT>0){ shakeT-=dt; if(shakeT<=0)shakeMag=0; }
   if(dmgFlash>0) dmgFlash=Math.max(0,dmgFlash-dt*2.4);
-  update(dt); draw(); requestAnimationFrame(frame); }
+  if(projectiles.length>60)projectiles=projectiles.slice(-60); // 批3性能: 投射物上限
+  const _t0=(window.performance&&performance.now)?performance.now():0;
+  update(dt); draw();
+  if(_t0){ const ft=performance.now()-_t0; _fxAcc=(_fxAcc||0)*0.9+ft*0.1; window._LOWFX=LOW_FX=(_fxManual!==null)?_fxManual:(_fxAcc>22); } // 平滑帧耗时>22ms→低特效(滞回防抖)
+  requestAnimationFrame(frame); }
+let _fxAcc=0;
 if(window.Flare){ Flare._setPlayer(()=>player.x,()=>player.y); Flare.init(); }
 genDungeon(1); player.x=(rooms[0].x+rooms[0].w/2)*TILE; player.y=(rooms[0].y+rooms[0].h/2)*TILE;
 merc.x=player.x-30; merc.y=player.y; cam.x=player.x; cam.y=player.y;
