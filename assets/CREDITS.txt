@@ -1,0 +1,23 @@
+暗夜行者 Nightwalker — 美术素材署名 (Art Asset Attribution)
+==============================================================
+
+assets/flare/ 下的角色纸娃娃与怪物精灵图来自 FLARE 开源游戏项目:
+
+  FLARE (Free/Libre Action Roleplaying Engine) — flare-game
+  https://github.com/flareteam/flare-game
+  mods/fantasycore  (角色纸娃娃 avatar/、怪物 enemies/)
+
+许可: Creative Commons Attribution-ShareAlike 3.0 (CC-BY-SA 3.0)
+  https://creativecommons.org/licenses/by-sa/3.0/
+
+主要作者 (Authors / Contributors):
+  Clint Bellanger, Justin Nichol, Pennomi, bart, Blarumyrran 等
+  完整名单见 flare-game 仓库 CREDITS.txt
+
+说明:
+- 怪物精灵与纸娃娃层均为 flare-game fantasycore 原始打包图 (flare_sprite_packer 输出),
+  动画定义文件 (anim/*.txt) 直接取自上游, 经 8-bit 调色板量化压缩 (尺寸与帧坐标不变)。
+- 依 CC-BY-SA 3.0, 本项目相应美术部分以相同方式署名并采用相同/兼容许可继续分发。
+- hobgoblin 精灵为 goblin 别名 (上游 fantasycore 无 hobgoblin)。
+
+音效与 BGM (assets/sfx、assets/bgm) 为程序化合成回退, 暂未引入外部素材。
