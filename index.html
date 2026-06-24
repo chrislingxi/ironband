@@ -205,7 +205,7 @@
   <div id="inv">
     <div id="close">关闭</div>
     <div id="invtabs" style="display:flex;gap:6px;width:100%;max-width:520px;margin-bottom:4px">
-      <div class="invtab on" data-t="char">🧍 角色</div><div class="invtab" data-t="gear">🗡️ 装备</div><div class="invtab" data-t="gem">💎 宝石</div><div class="invtab" data-t="skill">✦ 技能</div>
+      <div class="invtab on" data-t="char">📊 属性</div><div class="invtab" data-t="skill">✦ 技能</div><div class="invtab" data-t="gear">🗡️ 装备</div><div class="invtab" data-t="gem">💎 宝石</div>
     </div>
     <div data-tab="char" style="width:100%;max-width:520px">
       <h2 style="font-size:13px" id="charhdr">角色面板 · 属性加点（升级获得，在此分配 — 暗黑式）</h2>
@@ -265,7 +265,7 @@
   <div id="camphub" class="overlay" style="display:none;overflow:auto;padding:18px 0;gap:9px">
     <div style="font-size:26px;font-weight:800;color:#ff8a3c">⛺ 营地</div>
     <div style="font-size:11px;opacity:.6;margin-bottom:4px">随时可回营地整备 · 不必等通关</div>
-    <div class="campsvc" id="svc-gear"><div class="ci">🧍</div><div><div class="ct">装备人偶</div><div class="cd2">查看/穿戴 8 部位装备 · 属性技能加点</div></div></div>
+    <div class="campsvc" id="svc-gear"><div class="ci">🧍</div><div><div class="ct">装备人偶</div><div class="cd2">查看/穿戴 8 部位装备 · 顶栏切「属性 / 技能」页加点</div></div></div>
     <div class="campsvc" id="svc-gem"><div class="ci">💎</div><div><div class="ct">宝石囊</div><div class="cd2">查看宝石 · 镶嵌进装备孔位</div></div></div>
     <div class="campsvc" id="svc-craft"><div class="ci">🔨</div><div><div class="ct">工匠台</div><div class="cd2">洗练词缀 · 打孔 · 分解换金</div></div></div>
     <div class="campsvc" id="svc-merchant"><div class="ci">🛒</div><div><div class="ct">赌商</div><div class="cd2">花金币赌装备</div></div></div>
@@ -278,15 +278,19 @@
     <div id="shoppanel" style="display:none;flex-direction:column;gap:6px;width:340px;max-width:90vw"></div>
     <div class="btn2" id="camp-resume" style="margin-top:8px;min-width:160px">⚔ 继续冒险</div>
   </div>
-  <div id="tips" class="overlay" style="display:none;overflow:auto;padding:18px 0;gap:8px">
-    <div style="font-size:24px;font-weight:800;color:#ffd76b">⚔ 上手指南</div>
-    <div style="font-size:11px;opacity:.55;margin-bottom:4px">暗夜行者是暗黑式刷宝 ARPG · 刷怪→捡装备→变强→打更深</div>
-    <div class="campsvc"><div class="ci">🕹️</div><div><div class="ct">移动 / 攻击</div><div class="cd2">左半屏按住拖动＝摇杆移动 · 点怪自动攻击</div></div></div>
-    <div class="campsvc"><div class="ci">✨</div><div><div class="ct">技能</div><div class="cd2">右下技能键释放 · 升级解锁更多 · 🦶可切站桩攻击</div></div></div>
-    <div class="campsvc"><div class="ci">🧍</div><div><div class="ct">成长（暗黑式）</div><div class="cd2">升级给属性点+技能点 · 🎒角色面板分配 · 同系技能有协同加成</div></div></div>
-    <div class="campsvc"><div class="ci">⛺</div><div><div class="ct">营地（随时可回）</div><div class="cd2">右上⛺键 · 工匠台洗练/打孔 · 宝石囊镶嵌 · 整备装备</div></div></div>
-    <div class="campsvc"><div class="ci">☠</div><div><div class="ct">目标</div><div class="cd2">清空地牢的怪、击败 Boss 通关 · 越深掉落越好</div></div></div>
-    <div class="btn2" id="tips-go" style="margin-top:8px;min-width:160px">⚔ 开始冒险</div>
+  <div id="tips" class="overlay" style="display:none">
+    <div style="width:344px;max-width:91vw;background:linear-gradient(160deg,#1a140cf6,#0d0a07f6);border:1px solid #6b5230;border-radius:16px;padding:16px 18px 14px;box-shadow:0 10px 46px #000d">
+      <div style="font-size:19px;font-weight:800;color:#ffb84d;text-align:center;letter-spacing:1px;font-family:'D2Display',Georgia,serif">暗夜行者 · 上手</div>
+      <div id="tip-art" style="height:152px;display:flex;align-items:center;justify-content:center;margin:10px 0 6px"></div>
+      <div id="tip-title" style="font-size:16px;font-weight:800;color:#ffd76b;text-align:center"></div>
+      <div id="tip-text" style="font-size:12.5px;line-height:1.65;color:#d8c8a8;text-align:center;min-height:40px;margin-top:5px;padding:0 4px"></div>
+      <div id="tip-dots" style="display:flex;gap:7px;justify-content:center;margin:8px 0 12px"></div>
+      <div style="display:flex;gap:10px">
+        <div class="btn2 alt" id="tip-prev" style="flex:1;min-width:0;opacity:.6">◂ 上一步</div>
+        <div class="btn2" id="tip-next" style="flex:1;min-width:0">下一步 ▸</div>
+      </div>
+      <div style="text-align:center;margin-top:9px"><span id="tips-go" style="font-size:11px;color:#9a8a6a;cursor:pointer;text-decoration:underline">跳过引导，直接开打</span></div>
+    </div>
   </div>
   <div id="pause" class="overlay" style="display:none">
     <div style="font-size:24px;font-weight:800;color:#ffd76b">暂停</div>
@@ -1696,12 +1700,14 @@ function descendTo(target,mod){ curMod=mod||null; document.getElementById('clear
 // ===== 可走动营地(D2避难所式: 营地=特殊场景, 玩家走动+NPC摊位邻近触发) =====
 let inCamp=false, nearNPC=null, campVisit=0; // campVisit: 每次进营地+1, 商店据此刷新库存
 const CAMP_W=22, CAMP_H=14;
+// 营地NPC(重评后6席, 职责互不重叠 — 对标D2镇民): 铁匠/商人/赌商/佣兵统领/女祭司/守秘人
 const CAMP_NPCS=[
-  {id:'gear',  name:'夏茜',  role:'整备工匠', ico:'🧍', col:'#c9a25a', gx:6,  gy:5,  svc:'gear'},
-  {id:'craft', name:'拉佐克',role:'锻造大师', ico:'🔨', col:'#b06a3a', gx:10, gy:4,  svc:'craft'},
-  {id:'gamble',name:'基德',  role:'流浪商人', ico:'🎲', col:'#5aa0c9', gx:15, gy:5,  svc:'gamble'},
-  {id:'merc',  name:'卡西雅',role:'佣兵统领', ico:'🛡️', col:'#7a9a5a', gx:8,  gy:9,  svc:'merc'},
-  {id:'stash', name:'储物箱',role:'整理',     ico:'📦', col:'#8a7a5a', gx:14, gy:9,  svc:'stash'},
+  {id:'gear',  name:'拉佐克',role:'铁匠 · 整备',   col:'#c98a4a', gx:5,  gy:4, svc:'gear'},   // 穿戴/洗练/打孔/分解/升华(合并旧整备+锻造)
+  {id:'shop',  name:'哲德',  role:'商人 · 货架',   col:'#4f93c0', gx:9,  gy:3, svc:'shop'},   // 购买轮换货架
+  {id:'gamble',name:'基德',  role:'赌商 · 赌装备', col:'#caa050', gx:14, gy:4, svc:'gamble'}, // 花金币赌
+  {id:'merc',  name:'卡西雅',role:'佣兵统领',      col:'#7a9a5a', gx:17, gy:6, svc:'merc'},   // 换佣兵
+  {id:'respec',name:'阿卡拉',role:'女祭司 · 洗点', col:'#b48ad0', gx:6,  gy:9, svc:'respec'}, // 重置属性/技能点
+  {id:'stash', name:'守秘人',role:'储物仓库',      col:'#8a7a5a', gx:13, gy:9, svc:'stash'},  // 跨局仓库
 ];
 function genCamp(){ MW=CAMP_W; MH=CAMP_H; MAP=[];
   for(let y=0;y<MH;y++){ MAP[y]=[]; for(let x=0;x<MW;x++) MAP[y][x]=(x===0||y===0||x===MW-1||y===MH-1)?1:0; }
@@ -1713,11 +1719,15 @@ function enterCamp(){ if(win||paused)return; inCamp=true; paused=false; campVisi
 function leaveCamp(){ inCamp=false; nearNPC=null; document.getElementById('campbtn').style.display='flex'; document.getElementById('campexit').style.display='none'; document.getElementById('campmenu').style.display='none';
   document.getElementById('npcbtn').style.display='none'; startStage(); }
 function tryInteract(){ if(!inCamp||!nearNPC)return; const s=nearNPC.svc;
-  if(s==='gear'){ invEl.style.display='flex'; renderInv(); switchInvTab('char'); }
-  else if(s==='craft'){ invEl.style.display='flex'; renderInv(); switchInvTab('gear'); }
+  // 营地服务台单面板聚焦: 走近某NPC只展开其对应面板
+  const showPanel=(id,render)=>{ const hub=document.getElementById('camphub'); hub.style.display='flex'; if(!paused){ paused=true; invPaused=true; }
+    for(const p of ['mercpick','stashpanel','shoppanel']){ const el=document.getElementById(p); if(el)el.style.display=(p===id)?'flex':'none'; } if(render)render(); };
+  if(s==='gear'){ invEl.style.display='flex'; renderInv(); switchInvTab('gear'); banner('🔨 铁匠 · 点装备格→洗练/打孔/分解/升华','#ffd76b'); }
+  else if(s==='shop'){ showPanel('shoppanel',renderShop); }
   else if(s==='gamble') openGamble();
-  else if(s==='merc'){ document.getElementById('camphub').style.display='flex'; const mp=document.getElementById('mercpick'); mp.style.display='flex'; renderMercPick(); }
-  else if(s==='stash'){ invEl.style.display='flex'; renderInv(); switchInvTab('gear'); banner('整理：背包已按品质排序','#9ed89e'); bag.sort((a,b)=>(b.gem?0:RARITY.findIndex(r=>r.n===b.rarity))-(a.gem?0:RARITY.findIndex(r=>r.n===a.rarity))); renderInv(); } }
+  else if(s==='merc'){ showPanel('mercpick',renderMercPick); }
+  else if(s==='stash'){ showPanel('stashpanel',renderStash); }
+  else if(s==='respec'){ const b=document.getElementById('svc-respec'); if(b)b.click(); } }
 function openGamble(){ const cost=Math.round(120*Math.pow(1.14,stage)); if(player.gold<cost){ banner('金币不足（需'+cost+'💰）','#ff9a9a'); return; }
   player.gold-=cost; const x=Math.random(); const rar= x<0.01?'套装':x<0.10?'暗金':x<0.40?'稀有':'魔法';
   const it=genItem(Math.max(stage,3),null,rar); bag.push(it); sfx('loot-rare'); banner('🎲 赌出：'+it.name+' ['+it.rarity+']',it.color); saveGame(); }
@@ -1775,6 +1785,7 @@ function update(dt){
   if(player.chillT>0) player.chillT=Math.max(0,player.chillT-dt); // 冰霜减速衰减
   const chillMul=player.chillT>0?0.62:1;
   stageTime+=dt; if(_comboT>0){_comboT-=dt; if(_comboT<=0)stageCombo=0;} // 局内目标:连击窗口衰减
+  updateAmbient(dt); // 主题氛围粒子
   // ----- player movement -----
   const _px=player.x, _py=player.y;
   if(joy.active && (joy.dx||joy.dy)){
@@ -2050,6 +2061,29 @@ function updateHUD(ps){
   document.getElementById('hint').style.display=inSpawn?'':'none';
 }
 
+// ---------- 主题氛围粒子(屏幕空间, 按章节地表: 雾尘/风沙/孢子/火星/飘雪) ----------
+let ambient=[], _ambDz=null;
+const AMB_CFG={ ice:{n:80,c:'#e8f4ff'}, lava:{n:54,c:'#ff7a2e'}, sand:{n:64,c:'#d8c089'}, vine:{n:38,c:'#a6dc82'}, bone:{n:30,c:'#9fb0a8'}, soul:{n:34,c:'#c8a0e0'}, ash:{n:46,c:'#c9b8a0'} };
+function spawnAmb(dz,anywhere){ const r=Math.random; let vx,vy,size,rise=false;
+  if(dz==='lava'||dz==='soul'){ rise=true; vy=-(16+r()*30); vx=(r()-0.5)*12; size=1.4+r()*2; }
+  else if(dz==='ice'){ vy=24+r()*30; vx=(r()-0.5)*16; size=1.4+r()*2.2; }
+  else if(dz==='sand'||dz==='ash'){ vy=(r()-0.5)*10; vx=42+r()*78; size=1+r()*1.6; }
+  else if(dz==='vine'){ vy=10+r()*16; vx=(r()-0.5)*18; size=1.6+r()*2; }
+  else { vy=7+r()*12; vx=(r()-0.5)*8; size=1.2+r()*1.8; } // bone: 雾尘缓降
+  const p={vx,vy,size,ph:r()*6,t:0,a:0.22+r()*0.4,rise};
+  p.x=r()*(W||360); p.y= anywhere ? r()*(H||640) : (rise?(H+8):-8); return p; }
+function updateAmbient(dt){ if(LOW_FX||inCamp||!W){ if(ambient.length)ambient.length=0; return; }
+  const dz=theme().deco; if(dz!==_ambDz){ _ambDz=dz; ambient.length=0; }
+  const cfg=AMB_CFG[dz]||AMB_CFG.bone; while(ambient.length<cfg.n) ambient.push(spawnAmb(dz,true));
+  for(const p of ambient){ p.t+=dt; p.x+=p.vx*dt; p.y+=p.vy*dt;
+    if(dz==='ice'||dz==='vine') p.x+=Math.sin(p.t*1.4+p.ph)*12*dt; // 飘摆
+    if(p.rise?(p.y<-12):(p.y>H+12)) Object.assign(p,spawnAmb(dz,false));
+    if(p.x<-12)p.x=W+12; else if(p.x>W+12)p.x=-12; } }
+function drawAmbient(){ if(!ambient.length)return; const c=(AMB_CFG[_ambDz]||AMB_CFG.bone).c; const glow=(_ambDz==='lava'||_ambDz==='soul');
+  X.save(); if(glow)X.globalCompositeOperation='lighter';
+  for(const p of ambient){ X.globalAlpha=p.a*(glow?(0.55+Math.sin(p.t*4+p.ph)*0.4):1); X.fillStyle=c;
+    if(glow&&!LOW_FX){ X.shadowColor=c; X.shadowBlur=6; } X.beginPath(); X.arc(p.x,p.y,p.size,0,TAU); X.fill(); }
+  X.restore(); X.globalAlpha=1; }
 // ---------- render ----------
 const cam={x:0,y:0};
 function draw(){
@@ -2109,7 +2143,14 @@ function draw(){
     X.fillStyle=shade(th.wt,16); X.fillRect(w.x,w.y-WH,TILE,TILE-2);
     X.fillStyle=shade(th.wf,4); X.fillRect(w.x+3,w.y-WH+3,TILE-6,TILE-8); // 顶面内嵌
     X.fillStyle=shade(th.wt,34); X.fillRect(w.x,w.y-WH,TILE,2); // 顶棱高光
-    X.fillStyle='#00000040'; X.fillRect(w.x,w.y+TILE-WH-2,TILE,2); } // 厚度棱线阴影
+    X.fillStyle='#00000040'; X.fillRect(w.x,w.y+TILE-WH-2,TILE,2); // 厚度棱线阴影
+    // 墙体主题装饰(每幕identity): 冰棱反光/熔岩缝/苔藓/裂纹/砂岩层理
+    const wh=((w.x*374761393)^(w.y*668265263))>>>0; const dz=th.deco;
+    if(dz==='ice'){ X.fillStyle='rgba(220,240,255,0.30)'; X.fillRect(w.x+2,w.y-WH+2,TILE-4,2); if(wh%3===0){ X.strokeStyle='rgba(200,230,255,0.4)'; X.lineWidth=1; X.beginPath(); X.moveTo(w.x+8+(wh%20),w.y-WH+6); X.lineTo(w.x+16+(wh%20),w.y+TILE*0.5); X.stroke(); } }
+    else if(dz==='lava'){ const fl=0.5+Math.sin(now()*3+w.x*0.05)*0.5; X.fillStyle='rgba(255,90,30,'+(0.25+fl*0.3).toFixed(2)+')'; X.fillRect(w.x,w.y+TILE-WH-2,TILE,2); if(wh%3===0){ X.fillStyle='rgba(255,140,50,'+(0.2+fl*0.3).toFixed(2)+')'; X.fillRect(w.x+(wh%40),w.y-WH+4,3,TILE*0.6); } }
+    else if(dz==='vine'){ if(wh%2===0){ X.fillStyle='rgba(58,106,60,0.7)'; for(let i=0;i<3;i++)X.fillRect(w.x+4+i*18+((wh>>i)&7),w.y-WH+((wh>>4)&10),5,7+((wh>>i)&6)); X.fillStyle='rgba(90,150,80,0.6)'; X.fillRect(w.x+6,w.y-WH+2,4,5); } }
+    else if(dz==='sand'){ X.fillStyle='rgba(0,0,0,0.14)'; X.fillRect(w.x,Math.round(w.y-WH+TILE*0.42),TILE,2); X.fillRect(w.x,Math.round(w.y-WH+TILE*0.72),TILE,2); X.fillStyle=shade(th.wf,16)+'55'; X.fillRect(w.x,Math.round(w.y-WH+TILE*0.42)-2,TILE,1); }
+    else if(wh%4===0){ X.strokeStyle='rgba(0,0,0,0.4)'; X.lineWidth=1; X.beginPath(); X.moveTo(w.x+6+(wh%30),w.y-WH+5); X.lineTo(w.x+18+(wh%24),w.y+10); X.stroke(); } } // bone: 石裂纹
   // rings
   for(const r of rings){ const k=clamp(1-r.t/r.life,0,1); X.strokeStyle=r.c; X.shadowColor=r.c; if(!LOW_FX)X.shadowBlur=12; X.globalAlpha=k*0.85; X.lineWidth=clamp(6*k,1.5,6); X.beginPath(); X.arc(r.x,r.y,r.r,0,TAU); X.stroke(); X.globalAlpha=1; X.lineWidth=1; X.shadowBlur=0; } // 冲击波: 发光+扩散收宽
   // loot
@@ -2162,26 +2203,44 @@ function draw(){
   X.textAlign='center';
   for(const f of floaters){ X.globalAlpha=clamp(1-f.t/f.life,0,1); X.fillStyle=f.col; X.font=(f.crit?'bold 22px':'bold 15px')+' Georgia,serif';
     X.fillText(f.txt,f.x,f.y); X.globalAlpha=1; }
-  if(inCamp){ // 营地NPC: 人形剪影+木摊+职业道具(替代emoji色块)
-    for(const n of CAMP_NPCS){ const sx=(n.gx+0.5)*TILE, sy=(n.gy+0.5)*TILE;
-      X.fillStyle='#0006'; X.beginPath(); X.ellipse(sx,sy+12,18,7,0,0,TAU); X.fill(); // 影
-      X.fillStyle='#3a2a18'; X.fillRect(sx-20,sy+4,40,8); X.fillStyle='#553f24'; X.fillRect(sx-20,sy+4,40,2); // 木摊
-      // 人形: 袍身(职业色)+头
-      X.fillStyle=n.col; X.beginPath(); X.moveTo(sx,sy-22); X.lineTo(sx-9,sy+4); X.lineTo(sx+9,sy+4); X.closePath(); X.fill();
-      X.fillStyle=shade(n.col,22); X.beginPath(); X.arc(sx,sy-24,6,0,TAU); X.fill();
-      X.fillStyle='#e8b58a'; X.beginPath(); X.arc(sx,sy-23,3.5,0,TAU); X.fill(); // 脸
-      // 职业道具
-      X.strokeStyle='#caa'; X.lineWidth=2; X.lineCap='round';
-      if(n.id==='craft'){ X.strokeStyle='#999'; X.beginPath(); X.moveTo(sx+10,sy-18); X.lineTo(sx+10,sy-2); X.stroke(); X.fillStyle='#777'; X.fillRect(sx+6,sy-22,9,6); } // 锤
-      else if(n.id==='merc'){ X.strokeStyle='#ccd'; X.beginPath(); X.moveTo(sx+11,sy-24); X.lineTo(sx+11,sy+2); X.stroke(); } // 长矛
-      else if(n.id==='gamble'){ X.fillStyle='#caa050'; X.fillRect(sx+7,sy-6,8,8); X.fillStyle='#ffd76b'; X.beginPath(); X.arc(sx+11,sy-8,2,0,TAU); X.fill(); } // 货箱+金
-      else if(n.id==='stash'){ X.fillStyle='#6a4f2a'; X.fillRect(sx-10,sy-8,20,12); X.fillStyle='#8a6a3a'; X.fillRect(sx-10,sy-8,20,3); } // 箱
-      else { X.strokeStyle='#999'; X.beginPath(); X.moveTo(sx-11,sy-4); X.lineTo(sx-11,sy-16); X.stroke(); } // 工具
-      X.lineWidth=1; X.lineCap='butt';
-      X.textAlign='center';
-      if(nearNPC===n){ X.strokeStyle='#ffd76b'; X.lineWidth=2; X.strokeRect(sx-20,sy-34,40,50); X.lineWidth=1;
-        X.fillStyle='#ffd76b'; X.font='bold 11px Georgia,serif'; X.fillText(n.name+' · '+n.role,sx,sy-38); }
-      else { X.fillStyle='#cbb89a'; X.font='10px Georgia,serif'; X.fillText(n.name,sx,sy+24); } }
+  if(inCamp){ // 营地NPC: 差异化人形(渐变长袍+头+脸)+ 主题摊位道具
+    for(const n of CAMP_NPCS){ const sx=(n.gx+0.5)*TILE, sy=(n.gy+0.5)*TILE, near=nearNPC===n;
+      const by=sy+Math.sin(now()*1.4+n.gx)*1.5; // 轻微呼吸起伏
+      X.fillStyle='#00000044'; X.beginPath(); X.ellipse(sx,sy+13,19,7,0,0,TAU); X.fill(); // 影
+      // 长袍(职业色竖向渐变=立体)
+      const bg=X.createLinearGradient(sx,by-26,sx,by+8); bg.addColorStop(0,shade(n.col,26)); bg.addColorStop(1,shade(n.col,-26));
+      X.fillStyle=bg; X.beginPath(); X.moveTo(sx,by-23); X.quadraticCurveTo(sx-13,by-4,sx-11,by+8); X.lineTo(sx+11,by+8); X.quadraticCurveTo(sx+13,by-4,sx,by-23); X.closePath(); X.fill();
+      X.fillStyle=shade(n.col,-34); X.beginPath(); X.moveTo(sx+2,by-22); X.quadraticCurveTo(sx+12,by-4,sx+11,by+8); X.lineTo(sx+3,by+8); X.closePath(); X.fill(); // 袍暗面
+      X.fillStyle=shade(n.col,34); X.beginPath(); X.arc(sx,by-25,6.5,0,TAU); X.fill(); // 头巾/帽
+      X.fillStyle='#e8b58a'; X.beginPath(); X.arc(sx,by-23,4,0,TAU); X.fill(); // 脸
+      X.fillStyle='#3a2a1a'; X.fillRect(sx-2.4,by-23.5,1.4,1.4); X.fillRect(sx+1,by-23.5,1.4,1.4); // 眼
+      X.lineCap='round';
+      if(n.id==='gear'){ // 铁匠: 铁砧+锤+火花
+        X.fillStyle='#33333d'; X.fillRect(sx+12,by-3,19,10); X.fillStyle='#45454f'; X.fillRect(sx+12,by-3,19,3); X.fillStyle='#2a2a32'; X.fillRect(sx+18,by+7,7,5);
+        X.strokeStyle='#7a5a3a'; X.lineWidth=3; X.beginPath(); X.moveTo(sx+9,by-19); X.lineTo(sx+19,by-7); X.stroke(); X.fillStyle='#8a8a92'; X.fillRect(sx+15,by-12,9,6);
+        X.fillStyle='#ffd76b'; for(let i=0;i<3;i++){ X.beginPath(); X.arc(sx+21+i*3,by-5-Math.abs(Math.sin(now()*9+i))*6,1.3,0,TAU); X.fill(); } }
+      else if(n.id==='shop'){ // 商人: 货柜+红蓝药瓶+金币
+        X.fillStyle='#5a3f22'; X.fillRect(sx+10,by-2,27,9); X.fillStyle='#6f4f2a'; X.fillRect(sx+10,by-2,27,2);
+        X.fillStyle='#c0392b'; X.fillRect(sx+13,by-9,4,7); X.fillStyle='#2980d0'; X.fillRect(sx+19,by-9,4,7);
+        X.fillStyle='#ffd76b'; X.beginPath(); X.arc(sx+29,by-3,3,0,TAU); X.fill(); X.beginPath(); X.arc(sx+33,by-3,3,0,TAU); X.fill(); }
+      else if(n.id==='gamble'){ // 赌商: 木箱+骰子
+        X.fillStyle='#6a4a2a'; X.fillRect(sx+11,by-7,15,13); X.fillStyle='#7e5a34'; X.fillRect(sx+11,by-7,15,3);
+        X.fillStyle='#f0ecd8'; X.fillRect(sx+14,by-3,6,6); X.fillStyle='#2a2a2a'; X.fillRect(sx+15,by-2,1.6,1.6); X.fillRect(sx+17.5,by,1.6,1.6); }
+      else if(n.id==='merc'){ // 佣兵统领: 长矛+圆盾
+        X.strokeStyle='#cfd4dc'; X.lineWidth=2.5; X.beginPath(); X.moveTo(sx-14,by-28); X.lineTo(sx-14,by+6); X.stroke();
+        X.fillStyle='#dfe4ec'; X.beginPath(); X.moveTo(sx-14,by-34); X.lineTo(sx-17,by-26); X.lineTo(sx-11,by-26); X.closePath(); X.fill();
+        X.fillStyle='#6f8a4f'; X.beginPath(); X.arc(sx+15,by-4,8,0,TAU); X.fill(); X.strokeStyle='#4a6a3a'; X.lineWidth=2; X.beginPath(); X.arc(sx+15,by-4,8,0,TAU); X.stroke(); X.fillStyle='#9ab87a'; X.beginPath(); X.arc(sx+15,by-4,2.5,0,TAU); X.fill(); }
+      else if(n.id==='respec'){ // 女祭司: 发光法杖宝珠
+        X.strokeStyle='#8a6a3a'; X.lineWidth=2; X.beginPath(); X.moveTo(sx+13,by-30); X.lineTo(sx+13,by+6); X.stroke();
+        if(!LOW_FX){ X.shadowColor='#b48ad0'; X.shadowBlur=11; } X.fillStyle='#e0c4ff'; X.beginPath(); X.arc(sx+13,by-32,4.5,0,TAU); X.fill(); X.shadowBlur=0;
+        X.fillStyle='#b48ad0'; if(!LOW_FX){ X.globalAlpha=0.5+Math.sin(now()*3)*0.2; X.beginPath(); X.arc(sx+13,by-32,7,0,TAU); X.fill(); X.globalAlpha=1; } }
+      else if(n.id==='stash'){ // 守秘人: 大储物箱
+        X.fillStyle='#5a4226'; X.fillRect(sx+9,by-9,23,15); X.fillStyle='#6e5230'; X.fillRect(sx+9,by-9,23,5); X.fillStyle='#3e2e18'; X.fillRect(sx+9,by-1,23,1.5);
+        X.fillStyle='#caa54a'; X.fillRect(sx+19,by-4,3.5,8); X.fillStyle='#e8c868'; X.fillRect(sx+19.5,by-3,1,3); }
+      X.lineWidth=1; X.lineCap='butt'; X.textAlign='center';
+      if(near){ X.strokeStyle='#ffd76b'; X.lineWidth=2; X.strokeRect(sx-22,by-36,44,52); X.lineWidth=1;
+        X.fillStyle='#000a'; X.fillRect(sx-44,by-52,88,15); X.fillStyle='#ffd76b'; X.font='bold 11px D2Display,Georgia,serif'; X.fillText(n.name+' · '+n.role,sx,by-41); }
+      else { X.fillStyle='#000a'; X.fillRect(sx-22,by+18,44,13); X.fillStyle='#cbb89a'; X.font='10px Georgia,serif'; X.fillText(n.name,sx,by+27); } }
   }
   X.restore();
   // 火把照明: 玩家周围亮, 边缘渐暗(氛围) + 暖光晕
@@ -2207,6 +2266,7 @@ function draw(){
     else if(e.boss){ col='255,110,60'; rad=150; a=0.18; }
     if(col) lamp(SX(e.x),SY(e.y),col,rad,a); }
   X.globalCompositeOperation='source-over';
+  if(!LOW_FX && !inCamp) drawAmbient(); // 主题氛围粒子(屏幕空间, 浮于光照之上)
   // 低血脉动警示 vignette
   if(!player.dead && player.hp/player.maxhp < 0.3){ const pulse=0.28+Math.abs(Math.sin(now()*4))*0.30;
     const g=X.createRadialGradient(W/2,H/2,Math.min(W,H)*0.34,W/2,H/2,Math.max(W,H)*0.72);
@@ -2318,59 +2378,106 @@ function drawActor(x,y,r,col,flash,swing,face,label,hpfrac,type,moving){
       return;
     }
   }
-  const bob = moving ? Math.abs(Math.sin(t*9))*r*0.12 : Math.sin(t*2)*r*0.03;
-  const stride = moving ? Math.sin(t*9)*r*0.32 : 0;
-  const fx=Math.cos(face), fy=Math.sin(face);
-  const cloth = flash>0 ? '#ffffff' : col;
-  const dark  = flash>0 ? '#ffffff' : shade(cloth,-46);
-  const light = flash>0 ? '#ffffff' : shade(cloth,28);
-  const skin  = '#e8b58a';
-  const metal = flash>0 ? '#ffffff' : (hero?'#c2ccdb':'#9c7a44');
+  // ===== 矢量回退主美术(无FLARE素材时实际渲染): 暗黑式三职业差异化剪影 =====
+  const bob = moving ? Math.abs(Math.sin(t*9))*r*0.11 : Math.sin(t*1.8)*r*0.025;
+  const stride = moving ? Math.sin(t*9)*r*0.30 : 0;
+  const fx=Math.cos(face), fy=Math.sin(face), px=-fy, py=fx; // px,py:侧向(决定朝屏幕左/右)
+  const sgn = px>=0?1:-1;
   const cy = y - bob;
-  // 地面阴影
-  X.fillStyle='#00000055'; X.beginPath(); X.ellipse(x,y+r*0.72,r*0.92,r*0.38,0,0,TAU); X.fill();
-  // 披风(战士) — 朝向背面
-  if(hero){ X.fillStyle=flash>0?'#fff':'#9c2b27'; X.beginPath();
-    X.moveTo(x-fx*r*0.30, cy-r*0.10);
-    X.lineTo(x-fx*r*1.15 - fy*r*0.55, cy+r*0.85);
-    X.lineTo(x-fx*r*1.15 + fy*r*0.55, cy+r*0.85);
-    X.closePath(); X.fill(); }
-  // 腿(走路摆动)
-  X.strokeStyle=dark; X.lineWidth=r*0.36; X.lineCap='round';
-  X.beginPath(); X.moveTo(x-r*0.26, cy+r*0.30); X.lineTo(x-r*0.26+stride, cy+r*0.92); X.stroke();
-  X.beginPath(); X.moveTo(x+r*0.26, cy+r*0.30); X.lineTo(x+r*0.26-stride, cy+r*0.92); X.stroke();
-  // 躯干
-  X.fillStyle=cloth; X.beginPath(); X.ellipse(x, cy+r*0.12, r*0.60, r*0.66, 0,0,TAU); X.fill();
-  X.fillStyle=light; X.beginPath(); X.ellipse(x-r*0.18, cy-r*0.02, r*0.26, r*0.40, 0,0,TAU); X.fill(); // 高光
-  X.fillStyle=dark; X.fillRect(x-r*0.52, cy+r*0.46, r*1.04, r*0.16); // 腰带
-  X.fillStyle=hero?'#d8c33a':shade(cloth,-10); X.fillRect(x-r*0.12, cy+r*0.46, r*0.24, r*0.16); // 带扣
-  // 肩甲
-  X.fillStyle=metal; X.beginPath(); X.arc(x-r*0.52,cy-r*0.06,r*0.28,0,TAU); X.arc(x+r*0.52,cy-r*0.06,r*0.28,0,TAU); X.fill();
-  // 头 + 头盔/兜帽
-  const hy=cy-r*0.62;
-  X.fillStyle=skin; X.beginPath(); X.arc(x,hy,r*0.40,0,TAU); X.fill();
-  if(hero){ X.fillStyle=metal; X.beginPath(); X.arc(x,hy-r*0.04,r*0.44,Math.PI*1.04,Math.PI*1.96); X.fill();
-    X.fillRect(x-r*0.44,hy-r*0.10,r*0.88,r*0.12); // 盔檐
-    X.fillStyle=shade(metal,-30); X.fillRect(x-r*0.05,hy-r*0.30,r*0.10,r*0.34); } // 鼻甲
-  else { X.fillStyle=shade(col,-20); X.beginPath(); X.arc(x,hy-r*0.06,r*0.48,Math.PI*0.80,Math.PI*2.20); X.fill();
-    X.fillStyle='#000a'; X.beginPath(); X.arc(x+fx*r*0.18,hy+fy*r*0.06,r*0.22,0,TAU); X.fill(); } // 兜帽阴影
-  // 武器(朝向)
-  if(hero){ // 剑
-    const gx=x+fx*r*0.5, gy=cy+fy*r*0.45, bx=gx+fx*r*1.1, by=gy+fy*r*1.1;
-    X.lineCap='round'; X.strokeStyle='#6b4a25'; X.lineWidth=r*0.16; X.beginPath(); X.moveTo(x+fx*r*0.2,cy+fy*r*0.3); X.lineTo(gx,gy); X.stroke();
-    X.strokeStyle='#8a6a3a'; X.lineWidth=r*0.30; X.beginPath(); X.moveTo(gx-fy*r*0.28,gy+fx*r*0.28); X.lineTo(gx+fy*r*0.28,gy-fx*r*0.28); X.stroke(); // 护手
-    X.strokeStyle=swing>0?'#ffffff':'#e2eaf4'; X.lineWidth=r*0.18; X.beginPath(); X.moveTo(gx,gy); X.lineTo(bx,by); X.stroke();
-    X.strokeStyle=swing>0?'#fff':'#b9c6d8'; X.lineWidth=r*0.06; X.beginPath(); X.moveTo(gx,gy); X.lineTo(bx,by); X.stroke();
-  } else { // 弓
-    const bx=x+fx*r*0.72, by=cy+fy*r*0.62;
-    X.strokeStyle='#7a5526'; X.lineWidth=r*0.13; X.beginPath(); X.arc(bx,by,r*0.62,face-1.15,face+1.15); X.stroke();
-    X.strokeStyle='#e8e8e8'; X.lineWidth=1.4; X.beginPath();
-    X.moveTo(bx+Math.cos(face-1.15)*r*0.62,by+Math.sin(face-1.15)*r*0.62);
-    X.lineTo(bx+Math.cos(face+1.15)*r*0.62,by+Math.sin(face+1.15)*r*0.62); X.stroke();
+  const F = flash>0;
+  const eqp = hero ? (player.eq||{}) : (merc.eq||{});
+  const wpn = eqp.weapon||null, wpnCol=(wpn&&wpn.color)||null;
+  const wpnGlow = !!(wpn&&(wpn.rarity==='暗金'||wpn.rarity==='稀有'||wpn.runeword||wpn.setId));
+  const bodyCol=(eqp.body&&eqp.body.color)||null, helmCol=(eqp.helm&&eqp.helm.color)||null;
+  const skin=F?'#fff':'#d39a68', skinD=F?'#fff':'#a26e42';
+  const setGlow=(on,c)=>{ if(on&&!LOW_FX){ X.shadowColor=c; X.shadowBlur=12; } };
+  // 地面软阴影(双层柔边)
+  X.fillStyle='#00000038'; X.beginPath(); X.ellipse(x,y+r*0.76,r*1.0,r*0.34,0,0,TAU); X.fill();
+  X.fillStyle='#00000055'; X.beginPath(); X.ellipse(x,y+r*0.74,r*0.66,r*0.22,0,0,TAU); X.fill();
+  function legs(col){ X.strokeStyle=F?'#fff':shade(col,-28); X.lineWidth=r*0.30; X.lineCap='round';
+    X.beginPath(); X.moveTo(x-r*0.22,cy+r*0.34); X.lineTo(x-r*0.24+stride,cy+r*0.94); X.stroke();
+    X.beginPath(); X.moveTo(x+r*0.22,cy+r*0.34); X.lineTo(x+r*0.24-stride,cy+r*0.94); X.stroke();
+    X.fillStyle=F?'#fff':shade(col,-48);
+    X.beginPath(); X.ellipse(x-r*0.24+stride,cy+r*0.96,r*0.16,r*0.09,0,0,TAU); X.fill();
+    X.beginPath(); X.ellipse(x+r*0.24-stride,cy+r*0.96,r*0.16,r*0.09,0,0,TAU); X.fill();
+    X.lineCap='butt'; X.lineWidth=1; }
+
+  if(hero && player.cls==='barbarian'){ // 野蛮人: 宽肩裸躯+毛皮护肩+双刃巨斧
+    const fur=F?'#fff':'#4a3826', lth=F?'#fff':(bodyCol?shade(bodyCol,-8):'#5c3e22'), lthL=F?'#fff':shade(lth,26);
+    X.fillStyle=fur; X.beginPath(); X.moveTo(x-fx*r*0.2,cy-r*0.2); X.lineTo(x-fx*r*1.0-px*r*0.5,cy+r*0.9); X.lineTo(x-fx*r*1.0+px*r*0.5,cy+r*0.9); X.closePath(); X.fill(); // 毛皮披风
+    legs('#5c3e22');
+    X.fillStyle=skin; X.beginPath(); X.ellipse(x,cy+r*0.14,r*0.62,r*0.60,0,0,TAU); X.fill(); // 粗壮裸躯
+    X.fillStyle=skinD; X.beginPath(); X.ellipse(x+r*0.24,cy+r*0.16,r*0.22,r*0.42,0,0,TAU); X.fill();
+    X.strokeStyle=skinD; X.lineWidth=1.6; X.beginPath(); X.moveTo(x,cy-r*0.14); X.lineTo(x,cy+r*0.36); X.stroke(); X.lineWidth=1; // 胸肌沟
+    X.strokeStyle=lth; X.lineWidth=r*0.15; X.beginPath(); X.moveTo(x-r*0.48,cy-r*0.18); X.lineTo(x+r*0.42,cy+r*0.46); X.stroke(); X.lineWidth=1; // 皮甲斜带
+    X.fillStyle=lth; X.fillRect(x-r*0.5,cy+r*0.42,r*1.0,r*0.2); X.fillStyle=lthL; X.fillRect(x-r*0.5,cy+r*0.42,r*1.0,r*0.05); // 腰布
+    for(const s of [-1,1]){ X.fillStyle=fur; X.beginPath(); X.arc(x+s*r*0.6,cy-r*0.16,r*0.34,0,TAU); X.fill(); X.fillStyle=shade(fur,20); X.beginPath(); X.arc(x+s*r*0.6-r*0.08,cy-r*0.24,r*0.13,0,TAU); X.fill(); } // 巨型毛皮护肩
+    const hy=cy-r*0.66; X.fillStyle=skin; X.beginPath(); X.arc(x,hy,r*0.33,0,TAU); X.fill();
+    X.fillStyle=F?'#fff':'#3a2a1a'; X.beginPath(); X.arc(x,hy+r*0.12,r*0.33,0.15,Math.PI-0.15); X.fill(); // 络腮大胡
+    if(helmCol){ X.fillStyle=F?'#fff':helmCol; X.beginPath(); X.arc(x,hy-r*0.02,r*0.39,Math.PI,0); X.fill();
+      X.fillStyle=F?'#fff':shade(helmCol,-26); for(const s of[-1,1]){ X.beginPath(); X.moveTo(x+s*r*0.32,hy-r*0.12); X.lineTo(x+s*r*0.6,hy-r*0.62); X.lineTo(x+s*r*0.16,hy-r*0.22); X.closePath(); X.fill(); } } // 牛角盔
+    else { X.fillStyle=F?'#fff':'#6a2520'; X.fillRect(x-r*0.34,hy-r*0.12,r*0.68,r*0.12); } // 红头巾
+    X.fillStyle='#ffe7a0'; X.fillRect(x-r*0.15,hy-r*0.02,r*0.09,r*0.05); X.fillRect(x+r*0.06,hy-r*0.02,r*0.09,r*0.05); // 凶目
+    const wc=wpnCol||'#9aa0ac', reach=swing>0?1.2:0.85; const ax=x+fx*r*1.05*reach, ay=cy+fy*r*1.05*reach;
+    setGlow(wpnGlow,wc); X.strokeStyle=F?'#fff':'#6a4a2a'; X.lineWidth=r*0.13; X.lineCap='round'; X.beginPath(); X.moveTo(x-fx*r*0.15,cy+r*0.12); X.lineTo(ax,ay); X.stroke(); // 斧柄
+    X.fillStyle=F?'#fff':wc; X.beginPath();
+    X.moveTo(ax+px*r*0.52,ay+py*r*0.52); X.quadraticCurveTo(ax+fx*r*0.5,ay+fy*r*0.5, ax+px*r*0.52-fx*r*0.12,ay+py*r*0.52-fy*r*0.12);
+    X.lineTo(ax-px*r*0.52+fx*r*0.12,ay-py*r*0.52+fy*r*0.12); X.quadraticCurveTo(ax+fx*r*0.5,ay+fy*r*0.5, ax-px*r*0.52,ay-py*r*0.52); X.closePath(); X.fill(); // 双刃斧
+    X.fillStyle=F?'#fff':shade(wc,42); X.beginPath(); X.arc(ax,ay,r*0.11,0,TAU); X.fill(); X.shadowBlur=0; X.lineCap='butt'; X.lineWidth=1;
   }
-  X.lineCap='butt'; X.lineWidth=1;
-  // 攻击挥砍弧
-  if(swing>0){ X.strokeStyle='#ffffffcc'; X.lineWidth=4; X.beginPath(); X.arc(x,cy,r+15,face-0.85,face+0.85); X.stroke(); X.lineWidth=1; }
+  else if(hero && player.cls==='sorceress'){ // 法师: 尖帽+飘逸长袍+发光法杖宝珠
+    const robe=F?'#fff':(bodyCol||'#3a2e7a'), robeL=F?'#fff':shade(robe,30), robeD=F?'#fff':shade(robe,-34);
+    X.fillStyle=robe; X.beginPath(); X.moveTo(x-r*0.30,cy-r*0.08); X.lineTo(x-r*0.62+stride*0.4,cy+r*0.98); X.quadraticCurveTo(x,cy+r*1.06,x+r*0.62-stride*0.4,cy+r*0.98); X.lineTo(x+r*0.30,cy-r*0.08); X.closePath(); X.fill(); // 长袍裙摆
+    X.fillStyle=robeD; X.beginPath(); X.moveTo(x+r*0.06,cy-r*0.08); X.lineTo(x+r*0.3,cy+r*0.99); X.lineTo(x+r*0.62-stride*0.4,cy+r*0.98); X.lineTo(x+r*0.30,cy-r*0.08); X.closePath(); X.fill(); // 袍暗面
+    X.strokeStyle=robeD; X.lineWidth=1.4; for(const o of[-0.18,0.18]){ X.beginPath(); X.moveTo(x+o*r,cy+r*0.12); X.lineTo(x+o*r*1.7,cy+r*0.94); X.stroke(); } X.lineWidth=1; // 袍褶
+    X.fillStyle=robe; X.beginPath(); X.ellipse(x,cy,r*0.4,r*0.5,0,0,TAU); X.fill();
+    X.fillStyle=robeL; X.beginPath(); X.ellipse(x-r*0.13,cy-r*0.06,r*0.15,r*0.3,0,0,TAU); X.fill();
+    X.fillStyle=robeL; X.beginPath(); X.moveTo(x-r*0.4,cy-r*0.18); X.lineTo(x,cy+r*0.04); X.lineTo(x+r*0.4,cy-r*0.18); X.lineTo(x,cy-r*0.34); X.closePath(); X.fill(); // 披肩领
+    const hy=cy-r*0.6; X.fillStyle=skin; X.beginPath(); X.arc(x,hy,r*0.29,0,TAU); X.fill();
+    X.fillStyle=helmCol?(F?'#fff':helmCol):robeD; X.beginPath(); X.moveTo(x-r*0.42,hy-r*0.01); X.quadraticCurveTo(x,hy+r*0.08,x+r*0.42,hy-r*0.01); X.quadraticCurveTo(x+sgn*r*0.5,hy-r*0.5,x+sgn*r*0.16,hy-r*0.92); X.closePath(); X.fill(); // 尖帽
+    X.fillStyle=F?'#fff':shade(robe,45); X.beginPath(); X.arc(x+sgn*r*0.16,hy-r*0.92,r*0.07,0,TAU); X.fill(); // 帽尖宝珠
+    const wc=wpnCol||'#7a9cff', stx=x+sgn*r*0.56, base=cy+r*0.72, top=cy-r*0.96;
+    setGlow(true,wpnGlow?wc:'#7a9cff'); X.strokeStyle=F?'#fff':'#6a4a2a'; X.lineWidth=r*0.09; X.beginPath(); X.moveTo(stx,base); X.lineTo(stx,top); X.stroke(); // 法杖
+    X.fillStyle=F?'#fff':'#cfe6ff'; X.beginPath(); X.arc(stx,top-r*0.16,r*0.22,0,TAU); X.fill();
+    X.fillStyle=F?'#fff':wc; X.globalAlpha=0.65; X.beginPath(); X.arc(stx,top-r*0.16,r*0.13,0,TAU); X.fill(); X.globalAlpha=1; X.shadowBlur=0; X.lineWidth=1;
+    if(swing>0&&!LOW_FX){ for(let i=0;i<4;i++){ const a=t*6+i*1.6; X.fillStyle=wc; X.globalAlpha=0.6; X.beginPath(); X.arc(stx+Math.cos(a)*r*0.4,top-r*0.16+Math.sin(a)*r*0.4,2,0,TAU); X.fill(); } X.globalAlpha=1; } // 施法微粒
+  }
+  else if(hero && player.cls==='amazon'){ // 亚马逊: 皮甲+马尾+箭袋+大弓搭箭
+    const cloth=F?'#fff':(bodyCol||'#3c6a44'), clothL=F?'#fff':shade(cloth,28), lth=F?'#fff':'#7a5a32';
+    X.fillStyle=F?'#fff':'#6a4a2a'; X.save(); X.translate(x-fx*r*0.32,cy-r*0.08); X.rotate(face+Math.PI/2); X.fillRect(-r*0.08,-r*0.42,r*0.16,r*0.72); X.fillStyle=F?'#fff':'#caa56a'; for(let i=0;i<3;i++)X.fillRect(-r*0.02,-r*0.42+i*r*0.12,r*0.04,r*0.07); X.restore(); // 箭袋
+    legs('#6a4f2e');
+    X.fillStyle=cloth; X.beginPath(); X.ellipse(x,cy+r*0.1,r*0.44,r*0.56,0,0,TAU); X.fill(); // 苗条躯干
+    X.fillStyle=clothL; X.beginPath(); X.ellipse(x-r*0.12,cy-r*0.02,r*0.15,r*0.3,0,0,TAU); X.fill();
+    X.fillStyle=lth; X.fillRect(x-r*0.4,cy+r*0.32,r*0.8,r*0.14); // 皮腰
+    X.strokeStyle=F?'#fff':shade(lth,-18); X.lineWidth=2; X.beginPath(); X.moveTo(x-r*0.3,cy-r*0.08); X.quadraticCurveTo(x,cy+r*0.04,x+r*0.3,cy-r*0.08); X.stroke(); X.lineWidth=1; // 胸甲弧
+    X.fillStyle=F?'#fff':'#9aa0ac'; X.beginPath(); X.arc(x-r*0.44,cy-r*0.1,r*0.21,0,TAU); X.fill(); // 单肩轻甲
+    const hy=cy-r*0.6; X.fillStyle=skin; X.beginPath(); X.arc(x,hy,r*0.29,0,TAU); X.fill();
+    X.fillStyle=F?'#fff':'#5a3a1e'; X.beginPath(); X.arc(x,hy-r*0.06,r*0.31,Math.PI*1.05,Math.PI*1.95); X.fill(); // 发
+    X.beginPath(); X.moveTo(x-sgn*r*0.1,hy-r*0.08); X.quadraticCurveTo(x-sgn*r*0.6,hy+r*0.12,x-sgn*r*0.38,hy+r*0.52); X.lineTo(x-sgn*r*0.18,hy+r*0.42); X.closePath(); X.fill(); // 马尾
+    const wc=wpnCol||'#caa56a', bx=x+fx*r*0.5, by=cy+fy*r*0.5, a0=face+Math.PI/2;
+    setGlow(wpnGlow,wc); X.strokeStyle=F?'#fff':shade(wc,-8); X.lineWidth=r*0.1; X.beginPath(); X.arc(bx,by,r*0.96,a0-1.2,a0+1.2); X.stroke();
+    X.strokeStyle=F?'#fff':shade(wc,42); X.lineWidth=r*0.04; X.beginPath(); X.arc(bx,by,r*0.96,a0-1.1,a0+1.1); X.stroke(); X.shadowBlur=0;
+    const e1x=bx+Math.cos(a0-1.2)*r*0.96,e1y=by+Math.sin(a0-1.2)*r*0.96, e2x=bx+Math.cos(a0+1.2)*r*0.96,e2y=by+Math.sin(a0+1.2)*r*0.96;
+    X.strokeStyle='#efe3c0'; X.lineWidth=1; X.beginPath(); X.moveTo(e1x,e1y); X.lineTo(e2x,e2y); X.stroke(); // 弦
+    if(swing>0){ X.strokeStyle='#d8c4a0'; X.lineWidth=1.6; X.beginPath(); X.moveTo((e1x+e2x)/2,(e1y+e2y)/2); X.lineTo(bx+fx*r*1.15,by+fy*r*1.15); X.stroke(); X.fillStyle='#caa'; X.beginPath(); X.arc(bx+fx*r*1.15,by+fy*r*1.15,r*0.06,0,TAU); X.fill(); } X.lineWidth=1; // 搭箭
+  }
+  else { // 佣兵: 兜帽斗篷 · 近战=长枪卫兵 / 远程=罗格弓手
+    const col2=F?'#fff':col, colD=F?'#fff':shade(col,-40), colL=F?'#fff':shade(col,22);
+    X.fillStyle=colD; X.beginPath(); X.moveTo(x-fx*r*0.2,cy-r*0.18); X.lineTo(x-fx*r*0.92-px*r*0.42,cy+r*0.9); X.lineTo(x-fx*r*0.92+px*r*0.42,cy+r*0.9); X.closePath(); X.fill(); // 斗篷
+    legs(shade(col,-18));
+    X.fillStyle=col2; X.beginPath(); X.ellipse(x,cy+r*0.1,r*0.46,r*0.56,0,0,TAU); X.fill();
+    X.fillStyle=colL; X.beginPath(); X.ellipse(x-r*0.12,cy-r*0.02,r*0.15,r*0.3,0,0,TAU); X.fill();
+    const hy=cy-r*0.6; X.fillStyle=skin; X.beginPath(); X.arc(x,hy,r*0.28,0,TAU); X.fill();
+    X.fillStyle=colD; X.beginPath(); X.arc(x,hy-r*0.06,r*0.38,Math.PI*0.78,Math.PI*2.22); X.fill(); // 兜帽
+    X.fillStyle='#000a'; X.beginPath(); X.arc(x+fx*r*0.12,hy+fy*r*0.04,r*0.17,0,TAU); X.fill();
+    X.fillStyle='#ff5a4a'; X.beginPath(); X.arc(x+fx*r*0.14,hy,r*0.04,0,TAU); X.fill(); // 兜帽下红眼
+    if(merc.melee){ const wc=(merc.eq.weapon&&merc.eq.weapon.color)||'#cfd4dc'; X.strokeStyle=F?'#fff':'#6a4a2a'; X.lineWidth=r*0.08; X.lineCap='round'; X.beginPath(); X.moveTo(x+sgn*r*0.42,cy+r*0.6); X.lineTo(x+sgn*r*0.42,cy-r*1.0); X.stroke();
+      X.fillStyle=F?'#fff':wc; X.beginPath(); X.moveTo(x+sgn*r*0.42,cy-r*1.28); X.lineTo(x+sgn*r*0.42-r*0.1,cy-r*0.96); X.lineTo(x+sgn*r*0.42+r*0.1,cy-r*0.96); X.closePath(); X.fill(); X.lineCap='butt'; X.lineWidth=1; } // 长枪
+    else { const wc=(merc.eq.weapon&&merc.eq.weapon.color)||'#caa56a', bx=x+fx*r*0.5,by=cy+fy*r*0.5,a0=face+Math.PI/2; X.strokeStyle=F?'#fff':shade(wc,-8); X.lineWidth=r*0.09; X.beginPath(); X.arc(bx,by,r*0.84,a0-1.15,a0+1.15); X.stroke();
+      const e1x=bx+Math.cos(a0-1.15)*r*0.84,e1y=by+Math.sin(a0-1.15)*r*0.84,e2x=bx+Math.cos(a0+1.15)*r*0.84,e2y=by+Math.sin(a0+1.15)*r*0.84; X.strokeStyle='#e8e8e8'; X.lineWidth=1; X.beginPath(); X.moveTo(e1x,e1y); X.lineTo(e2x,e2y); X.stroke(); } // 弓
+  }
+  // 近战挥砍弧(法师/亚马逊为远程, 不画)
+  if(swing>0 && !(hero&&(player.cls==='amazon'||player.cls==='sorceress'))){ X.strokeStyle='#ffffffcc'; X.lineWidth=4; X.beginPath(); X.arc(x,cy,r+15,face-0.8,face+0.8); X.stroke(); X.lineWidth=1; }
   // 血条 + 名牌
   if(hpfrac<1){ X.fillStyle='#000a'; X.fillRect(x-r,y-r-15,r*2,4); X.fillStyle='#5ed85e'; X.fillRect(x-r,y-r-15,r*2*clamp(hpfrac,0,1),4); }
   X.fillStyle='#fff'; X.font='9px Georgia,serif'; X.textAlign='center'; X.fillText(label,x,y+r+12);
@@ -2393,7 +2500,7 @@ function drawEnemy(e){
   // FLARE 真美术优先, 失败回退几何体
   const flareDrawn = window.Flare && Flare.ready() && Flare.drawEnemy(X,e,e.x,e.y); // loop1选项5: 超级Boss改走FLARE大精灵(2.3×+自发光), 成全场最震撼(req7)
   if(!flareDrawn){
-  if(e.elite){ X.shadowColor=e.elite.c; X.shadowBlur=12; }
+  if(!LOW_FX){ X.shadowColor=e.elite?e.elite.c:'#000000'; X.shadowBlur=e.elite?13:5; } // 暗黑式轮廓: 精英染色辉光/普通怪深描边 → 从昏暗地表浮出, 更像精心设计的魔物
   X.fillStyle=c;
   if(e.kind==='skeleton'||e.kind==='archer'){ // 骨架: 头骨+肋骨
     X.beginPath(); X.ellipse(x,y+r*0.2,r*0.5,r*0.66,0,0,TAU); X.fill();
@@ -2533,7 +2640,58 @@ function beginGame(fromSave){ initAudio(); if(fromSave){ const s=loadSave(); if(
   // 首次新游戏: 上手指南(覆盖系统较多的可发现性缺口)
   let seenTips=false; try{ seenTips=!!localStorage.getItem('ironband_tips'); }catch(e){}
   if(!fromSave && !seenTips){ document.getElementById('tips').style.display='flex'; paused=true; invPaused=true; } }
-document.getElementById('tips-go').onclick=()=>{ document.getElementById('tips').style.display='none'; try{ localStorage.setItem('ironband_tips','1'); }catch(e){} if(invPaused){ invPaused=false; paused=false; last=now(); } };
+// ===== 图文新手引导(分步插画, 内嵌SVG无需素材) =====
+(function(){
+  const SVG='<svg viewBox="0 0 200 152" width="218" height="152" xmlns="http://www.w3.org/2000/svg">';
+  const BG='<rect x="4" y="4" width="192" height="144" rx="11" fill="#0e0c18" stroke="#3a3450" stroke-width="2"/>';
+  const HERO=(cx,cy)=>'<ellipse cx="'+cx+'" cy="'+(cy+16)+'" rx="15" ry="5" fill="#0007"/><path d="M'+(cx-9)+' '+cy+' L'+(cx-12)+' '+(cy+15)+' L'+(cx+12)+' '+(cy+15)+' L'+(cx+9)+' '+cy+' Z" fill="#3f6fc8"/><circle cx="'+cx+'" cy="'+(cy-9)+'" r="8" fill="#d39a68"/>';
+  const ENEMY=(cx,cy)=>'<ellipse cx="'+cx+'" cy="'+(cy+15)+'" rx="15" ry="5" fill="#0007"/><circle cx="'+cx+'" cy="'+cy+'" r="15" fill="#7a2a2a"/><circle cx="'+(cx-6)+'" cy="'+(cy-3)+'" r="3" fill="#ffec5a"/><circle cx="'+(cx+6)+'" cy="'+(cy-3)+'" r="3" fill="#ffec5a"/>';
+  const STEPS=[
+    {t:'移动',d:'左半屏<b>按住拖动</b>＝虚拟摇杆，角色朝拖动方向走。',
+     art:SVG+BG+HERO(132,62)
+       +'<circle cx="56" cy="100" r="27" fill="#171530" stroke="#5a5a82" stroke-width="2"/><circle cx="68" cy="90" r="14" fill="#ffb84d"/>'
+       +'<path d="M74 95 q15 7 19 23 l-17 4 q-6 -16 -15 -18 z" fill="#d39a68" stroke="#a26e42"/>'
+       +'<path d="M92 60 h28 m-9 -9 l9 9 -9 9" stroke="#ffd76b" stroke-width="3.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'},
+    {t:'攻击',d:'<b>点怪</b>即自动靠近并攻击。点 🦶 可切「站桩」原地输出。',
+     art:SVG+BG+HERO(58,86)+ENEMY(126,70)
+       +'<circle cx="126" cy="70" r="27" fill="none" stroke="#ffd76b" stroke-width="2.4" opacity=".85"/>'
+       +'<path d="M126 92 q16 8 20 26 l-20 4 q-6 -18 -16 -20 z" fill="#d39a68" stroke="#a26e42"/>'
+       +'<path d="M96 50 q22 -4 38 12" stroke="#fff" stroke-width="3.2" fill="none" stroke-linecap="round"/></svg>'},
+    {t:'技能',d:'右下<b>技能键</b>释放法术/绝招（耗法力）。技能在背包升级，最多上阵 4 个。',
+     art:SVG+BG
+       +'<rect x="20" y="118" width="160" height="10" rx="5" fill="#1a1020"/><rect x="20" y="118" width="96" height="10" rx="5" fill="#7a2bd0"/>'
+       +[0,1,2,3].map(i=>'<circle cx="'+(58+i*30)+'" cy="74" r="15" fill="#2a2418" stroke="#c9883a" stroke-width="2"/>').join('')
+       +'<text x="58" y="80" font-size="15" text-anchor="middle">🗡️</text><text x="88" y="80" font-size="15" text-anchor="middle">🔥</text><text x="118" y="80" font-size="15" text-anchor="middle">❄️</text><text x="148" y="80" font-size="15" text-anchor="middle">⚡</text>'
+       +'<circle cx="148" cy="74" r="19" fill="none" stroke="#ffd76b" stroke-width="2" opacity=".7"/></svg>'},
+    {t:'拾取装备',d:'怪物掉落带<b>光柱</b>，走上去自动拾取。装备/宝石进 🎒 背包，穿戴变强。',
+     art:SVG+'<defs><linearGradient id="lb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffd76b" stop-opacity="0"/><stop offset="1" stop-color="#ffd76b" stop-opacity=".85"/></linearGradient></defs>'+BG+HERO(60,96)
+       +'<rect x="118" y="36" width="14" height="64" fill="url(#lb)"/><circle cx="125" cy="98" r="9" fill="#ffd76b"/><text x="125" y="103" font-size="13" text-anchor="middle">🗡️</text>'
+       +'<text x="125" y="30" font-size="11" fill="#ffd76b" text-anchor="middle" font-weight="bold">稀有装备</text></svg>'},
+    {t:'变强（暗黑式）',d:'升级给<b>属性点 ＋ 技能点</b>，在背包「属性 / 技能」页分配。同系技能有协同加成。',
+     art:SVG+BG
+       +'<g stroke="#ffe08a" stroke-width="3" stroke-linecap="round">'+[0,45,90,135,180,225,270,315].map(a=>{const r=a*Math.PI/180;return '<line x1="'+(100+Math.cos(r)*16).toFixed(1)+'" y1="'+(58+Math.sin(r)*16).toFixed(1)+'" x2="'+(100+Math.cos(r)*30).toFixed(1)+'" y2="'+(58+Math.sin(r)*30).toFixed(1)+'"/>';}).join('')+'</g>'
+       +'<circle cx="100" cy="58" r="16" fill="#ffb84d"/><text x="100" y="63" font-size="12" text-anchor="middle" font-weight="bold" fill="#3a2400">LV↑</text>'
+       +'<rect x="34" y="108" width="60" height="22" rx="6" fill="#1c2c1c" stroke="#5aa05a"/><text x="64" y="123" font-size="12" fill="#9ed89e" text-anchor="middle">+ 属性</text>'
+       +'<rect x="106" y="108" width="60" height="22" rx="6" fill="#1a2236" stroke="#5a7fd0"/><text x="136" y="123" font-size="12" fill="#9ad6ff" text-anchor="middle">+ 技能</text></svg>'},
+    {t:'营地与目标',d:'右上 <b>⛺</b> 随时回营：铁匠整备 · 商人货架 · 佣兵 · 洗点 · 仓库。目标：清地牢、击败 Boss，越深掉落越好。',
+     art:SVG+BG
+       +'<path d="M100 32 L150 104 L50 104 Z" fill="#6a4a2a" stroke="#8a6a3a" stroke-width="2"/><path d="M100 32 L100 104" stroke="#3a2a18" stroke-width="2"/><rect x="92" y="78" width="16" height="26" fill="#241a10"/>'
+       +'<circle cx="62" cy="96" r="7" fill="#c98a4a"/><circle cx="62" cy="86" r="4" fill="#e8b58a"/>'
+       +'<circle cx="140" cy="96" r="7" fill="#7a9a5a"/><circle cx="140" cy="86" r="4" fill="#e8b58a"/>'
+       +'<text x="100" y="124" font-size="12" fill="#ffd76b" text-anchor="middle">⛺ 随时回营整备</text></svg>'},
+  ];
+  let idx=0; const $=id=>document.getElementById(id);
+  function render(){ const s=STEPS[idx];
+    $('tip-art').innerHTML=s.art; $('tip-title').textContent=s.t; $('tip-text').innerHTML=s.d;
+    $('tip-dots').innerHTML=STEPS.map((_,i)=>'<span style="width:8px;height:8px;border-radius:50%;display:inline-block;background:'+(i===idx?'#ffd76b':'#5a4a2a')+'"></span>').join('');
+    $('tip-prev').style.visibility=idx===0?'hidden':'visible';
+    $('tip-next').textContent=idx===STEPS.length-1?'⚔ 开始冒险':'下一步 ▸'; }
+  function closeTips(){ $('tips').style.display='none'; try{ localStorage.setItem('ironband_tips','1'); }catch(e){} idx=0; if(invPaused){ invPaused=false; paused=false; last=now(); } }
+  $('tip-prev').onclick=()=>{ if(idx>0){ idx--; render(); } };
+  $('tip-next').onclick=()=>{ if(idx<STEPS.length-1){ idx++; render(); } else closeTips(); };
+  $('tips-go').onclick=closeTips; // 跳过(兼容bot自动路径点击)
+  render();
+})();
 function resetRun(){ player.lvl=1; player.xp=0; player.xpNext=30; player.eq={weapon:null,helm:null,body:null,gloves:null,boots:null,belt:null,ring:null,amulet:null};
   const C=CLASSES[player.cls]||CLASSES.barbarian; // 职业起始
   merc.eq={weapon:null,helm:null,body:null}; bag=[]; stage=1; curMod=null; player.gold=0; player.unlocked=[...C.skills]; player.loadout=[...C.skills]; player.frenzyT=0; player.cd={}; player.procs={}; player.uniques={}; player.perks={dmg:0,life:0,crit:0,as:0,armor:0}; pendingPerks=0; player.torment=player.torment||0; player.maxTorment=player.maxTorment||0;
