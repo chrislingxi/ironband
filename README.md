@@ -1,10 +1,20 @@
 # Ironband — 暗黑式刷宝 ARPG（手游 / Web）
 
 数据驱动的 Diablo 2 风格等距 ARPG，从零重构。纯单机，TypeScript + PixiJS(WebGL)，
-可发布到 GitHub Pages 在浏览器/手机直接玩。
+发布到 GitHub Pages 在浏览器/手机直接玩。
 
-> 状态：**Phase 0 脊柱**（等距渲染 + 浮动摇杆 + 固定步长循环 + 数据契约 + CI 闸门）。
+🎮 **在线试玩**：https://chrislingxi.github.io/ironband/ （合并到 main 后由 Actions 自动部署）
+
+> 状态：**M1 近战切片 + M2 刷宝闭环可玩**。等距走位、命中判定、怪物AI个性、打击感、
+> 野蛮人3技能、词缀掉落、装备改战力、经验升级、生死/波次循环均已就绪（占位美术，待 T1 换 FLARE 皮）。
 > 路线图与任务板见 [`docs/MODULES.md`](docs/MODULES.md)，设计决策见 [`docs/DESIGN.md`](docs/DESIGN.md)。
+
+## 怎么玩
+- **移动**：左半屏拖动浮动摇杆
+- **攻击**：自动攻击射程内最近的怪
+- **技能**：右下三个技能键（猛击 / 双挥 / 战嚎）
+- **背包**：左下 🎒 打开，点击物品穿戴、点击装备槽卸下
+- **目标**：清场→点击迎战下一波；阵亡→点击重生
 
 ## 快速开始
 ```bash
