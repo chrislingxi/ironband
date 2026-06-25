@@ -3,6 +3,7 @@ import { makePlayer, makeMonster } from '@game/entities/factory.ts';
 import type { DamageInstance } from '@game/systems/combat/index.ts';
 import { resolveAttack } from '@game/systems/combat/index.ts';
 import { updateMonsterAI, type AIContext } from '@game/systems/ai/behaviors.ts';
+import { BARB_SKILLS } from '@game/classes/barbarian.ts';
 import { dist, normalize, type Vec2 } from '@engine/math/vec.ts';
 import { mulberry32, randInt, type RNG } from '@engine/math/rng.ts';
 
@@ -37,6 +38,7 @@ export class Game {
   events: CombatEvent[] = []; // 每帧渲染后清空
   goldTotal = 0;
   timeMs = 0;
+  skillCd = [0, 0, 0]; // 三技能键冷却(秒)
   private rng: RNG;
   private nextGoldId = 1;
 
@@ -82,6 +84,7 @@ export class Game {
 
     // ----- 玩家 -----
     p.attackCd = Math.max(0, p.attackCd - dt);
+    for (let i = 0; i < 3; i++) this.skillCd[i] = Math.max(0, this.skillCd[i] - dt);
     p.hitFlash = Math.max(0, p.hitFlash - dt * 4);
     const stunned = now < p.combat.stunUntilMs;
     if (!p.dead && !stunned) {
@@ -143,6 +146,67 @@ export class Game {
       if (dist(g.pos, p.pos) < 1.2) { this.goldTotal += g.amount; g.amount = 0; }
     }
     this.gold = this.gold.filter((g) => g.amount > 0);
+  }
+
+  // 使用技能键 (0=猛击 1=双挥 2=战嚎). 返回是否成功释放.
+  useSkill(slot: number): boolean {
+    if (slot < 0 || slot > 2) return false;
+    const p = this.player;
+    if (p.dead || this.timeMs < p.combat.stunUntilMs || this.skillCd[slot] > 0) return false;
+    const aim = this.nearestMonster(p.pos, 12);
+    if (aim) p.facing = Math.atan2(aim.pos.y - p.pos.y, aim.pos.x - p.pos.x);
+    if (slot === 0) this.skBash();
+    else if (slot === 1) this.skDoubleSwing();
+    else this.skWarCry();
+    this.skillCd[slot] = BARB_SKILLS[slot].cooldown;
+    return true;
+  }
+
+  private scaleDamage(mult: number): DamageInstance[] {
+    return this.player.damage.map((d) => ({
+      type: d.type, min: Math.round(d.min * mult), max: Math.round(d.max * mult),
+    }));
+  }
+
+  private inArc(e: Entity, facing: number, range: number, halfAngle: number): boolean {
+    const dx = e.pos.x - this.player.pos.x, dy = e.pos.y - this.player.pos.y;
+    if (Math.hypot(dx, dy) - e.radius > range) return false;
+    let da = Math.atan2(dy, dx) - facing;
+    da = Math.atan2(Math.sin(da), Math.cos(da)); // 归一到[-π,π]
+    return Math.abs(da) <= halfAngle;
+  }
+
+  private skBash(): void {
+    const p = this.player;
+    const t = this.nearestMonster(p.pos, p.attackRange + 0.6);
+    if (t) {
+      this.attack(p, t, this.scaleDamage(2.6));
+      if (!t.dead) { // 强击退
+        const dx = t.pos.x - p.pos.x, dy = t.pos.y - p.pos.y, d = Math.hypot(dx, dy) || 1;
+        t.pos.x += (dx / d) * 0.45; t.pos.y += (dy / d) * 0.45;
+      }
+    }
+    this.swings.push({ pos: { ...p.pos }, facing: p.facing, ageMs: 0, kind: 'skill' });
+  }
+
+  private skDoubleSwing(): void {
+    const p = this.player;
+    const dmg = this.scaleDamage(1.25);
+    for (const e of this.monsters) if (!e.dead && this.inArc(e, p.facing, 2.2, 1.2)) this.attack(p, e, dmg);
+    this.swings.push({ pos: { ...p.pos }, facing: p.facing, ageMs: 0, kind: 'skill' });
+  }
+
+  private skWarCry(): void {
+    const p = this.player;
+    const dmg = this.scaleDamage(1.0);
+    for (const e of this.monsters) {
+      if (e.dead) continue;
+      if (dist(e.pos, p.pos) - e.radius <= 3.2) {
+        this.attack(p, e, dmg);
+        if (!e.dead) e.combat.stunUntilMs = Math.max(e.combat.stunUntilMs, this.timeMs + 800);
+      }
+    }
+    this.swings.push({ pos: { ...p.pos }, facing: p.facing, ageMs: 0, kind: 'skill' });
   }
 
   private nearestMonster(from: Vec2, range: number): Entity | null {

@@ -6,6 +6,7 @@ import { gridToScreen, screenToGrid, depthKey } from '@engine/math/iso.ts';
 import { normalize } from '@engine/math/vec.ts';
 import { Game } from '@game/sim/Game.ts';
 import type { Entity } from '@game/entities/entity.ts';
+import { HUD } from '@game/ui/hud.ts';
 
 // ── M1 战斗沙盒 ──
 // Phase0 等距脊柱 + T3 战斗内核 + T4 怪物AI 的可玩集成.
@@ -156,6 +157,7 @@ async function main() {
   }
 
   const joy = new Joystick(document.body);
+  const hud = new HUD(game, (slot) => game.useSkill(slot));
 
   const loop = new GameLoop(
     (dt) => {
@@ -196,6 +198,7 @@ async function main() {
       for (let i = damageTexts.length - 1; i >= 0; i--) {
         if (damageTexts[i].life <= 0) { damageTexts[i].t.destroy(); damageTexts.splice(i, 1); }
       }
+      hud.update();
       scene.centerOn(game.player.pos);
       // 屏震: 在相机居中后叠加随机偏移并衰减
       if (shakeMag > 0.1) {
