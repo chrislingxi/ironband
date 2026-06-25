@@ -194,6 +194,14 @@ async function main() {
   });
   document.body.appendChild(bagBtn);
 
+  // 升级等提示
+  const noticeEl = document.createElement('div');
+  noticeEl.style.cssText =
+    'position:absolute;top:28%;left:0;width:100%;text-align:center;font-family:Georgia,serif;font-size:34px;' +
+    'font-weight:800;color:#ffe08a;text-shadow:0 2px 10px #000;pointer-events:none;opacity:0;transition:opacity .4s;z-index:60;';
+  document.body.appendChild(noticeEl);
+  let noticeUntil = 0;
+
   // 阵亡/清场横幅 (点击重生/续战)
   const banner = document.createElement('div');
   banner.style.cssText =
@@ -250,6 +258,13 @@ async function main() {
         if (damageTexts[i].life <= 0) { damageTexts[i].t.destroy(); damageTexts.splice(i, 1); }
       }
       hud.update();
+      if (game.notices.length) {
+        noticeEl.textContent = game.notices[game.notices.length - 1];
+        noticeEl.style.opacity = '1';
+        noticeUntil = performance.now() + 1400;
+        game.notices.length = 0;
+      }
+      if (noticeUntil && performance.now() > noticeUntil) { noticeEl.style.opacity = '0'; noticeUntil = 0; }
       if (game.state === 'dead') {
         banner.style.display = 'flex';
         banner.innerHTML = '☠ 你已阵亡<div style="font-size:15px;opacity:.85">点击重生</div>';

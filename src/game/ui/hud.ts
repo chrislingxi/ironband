@@ -15,6 +15,9 @@ function injectStyle(): void {
   #hud .hptxt { position:absolute; left:14px; top:14px; width:210px; height:18px; text-align:center; line-height:18px;
     font-size:11px; font-weight:700; color:#fff; text-shadow:0 1px 1px #000; }
   #hud .gold { position:absolute; left:14px; top:38px; font-size:13px; color:#ffd24a; text-shadow:0 1px 2px #000; font-weight:700; }
+  #hud .lvl { position:absolute; left:232px; top:13px; font-family:Georgia,serif; font-size:15px; font-weight:800; color:#ffd76b; text-shadow:0 1px 2px #000; }
+  #hud .xpbar { position:absolute; left:14px; right:14px; bottom:6px; height:5px; border-radius:3px; background:#000a; overflow:hidden; }
+  #hud .xpbar > i { display:block; height:100%; width:0; background:linear-gradient(#ffe08a,#e0a020); }
   #hud .info { position:absolute; right:14px; top:14px; font-size:12px; color:#e8e0d0; text-align:right; text-shadow:0 1px 2px #000; opacity:.9; }
   #hud .skills { position:absolute; right:calc(16px + env(safe-area-inset-right)); bottom:calc(28px + env(safe-area-inset-bottom));
     display:flex; gap:14px; align-items:flex-end; pointer-events:auto; }
@@ -36,6 +39,8 @@ export class HUD {
   private hpTxt: HTMLElement;
   private goldEl: HTMLElement;
   private infoEl: HTMLElement;
+  private lvlEl: HTMLElement;
+  private xpFill: HTMLElement;
   private skills: { cd: HTMLElement; meta: (typeof BARB_SKILLS)[number] }[] = [];
 
   constructor(private game: Game, onSkill: (slot: number) => void) {
@@ -46,13 +51,17 @@ export class HUD {
       <div class="bar"><i></i></div>
       <div class="hptxt"></div>
       <div class="gold">⦿ 0</div>
+      <div class="lvl">Lv 1</div>
       <div class="info"></div>
+      <div class="xpbar"><i></i></div>
       <div class="skills"></div>`;
     document.body.appendChild(root);
     this.hpFill = root.querySelector('.bar > i') as HTMLElement;
     this.hpTxt = root.querySelector('.hptxt') as HTMLElement;
     this.goldEl = root.querySelector('.gold') as HTMLElement;
     this.infoEl = root.querySelector('.info') as HTMLElement;
+    this.lvlEl = root.querySelector('.lvl') as HTMLElement;
+    this.xpFill = root.querySelector('.xpbar > i') as HTMLElement;
     const skillsEl = root.querySelector('.skills') as HTMLElement;
 
     BARB_SKILLS.forEach((meta, i) => {
@@ -72,7 +81,9 @@ export class HUD {
     this.hpFill.style.width = `${ratio * 100}%`;
     this.hpTxt.textContent = `${Math.ceil(p.combat.hp)} / ${p.combat.maxHp}`;
     this.goldEl.textContent = `⦿ ${this.game.goldTotal}`;
-    this.infoEl.textContent = p.dead ? '☠ 已阵亡' : `剩余怪物: ${this.game.monsters.length}`;
+    this.lvlEl.textContent = `Lv ${this.game.character.level}`;
+    this.xpFill.style.width = `${Math.min(100, (this.game.character.xp / this.game.xpForNext()) * 100)}%`;
+    this.infoEl.textContent = p.dead ? '☠ 已阵亡' : `第${this.game.wave}波 · 剩余怪物 ${this.game.monsters.length}`;
     this.skills.forEach((s, i) => {
       const cd = this.game.skillCd[i];
       if (cd > 0.05) { s.cd.style.opacity = '1'; s.cd.textContent = cd.toFixed(1); }

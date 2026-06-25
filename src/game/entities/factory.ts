@@ -19,7 +19,7 @@ export function makePlayer(): Entity {
     pos: { x: 0, y: 0 }, facing: 0, speed: 4.6, radius: 0.45,
     combat: makeCombatant({ level: 1, hp: 55, maxHp: 55, attackRating: 110, defense: 12, fhr: 0, hitRecoveryFrames: 7 }),
     damage: [{ type: 'physical', min: 3, max: 6 }],
-    attackRange: 1.25, attackInterval: 0.55, attackCd: 0,
+    attackRange: 1.25, attackInterval: 0.55, attackCd: 0, xpReward: 0,
     hitFlash: 0, fleeing: false, moving: false, dead: false,
     color: 0xffd76b, size: 13,
   };
@@ -50,6 +50,7 @@ export function makeMonster(defId: string, x: number, y: number, rng: RNG, diff:
     damage: dmg,
     attackRange: ranged ? 9 : 0.9,
     attackInterval: ranged ? 1.8 : 1.1, attackCd: randInt(rng, 0, 60) / 100,
+    xpReward: m.exp[diff],
     hitFlash: 0, fleeing: false, moving: false, dead: false,
     color: ph.color, size: ph.size,
   };

@@ -46,6 +46,7 @@ export class Game {
   invCap = 32;
   swings: Swing[] = []; // 挥砍弧光 (打击感)
   events: CombatEvent[] = []; // 每帧渲染后清空
+  notices: string[] = []; // UI 提示(升级等), 渲染后清空
   goldTotal = 0;
   timeMs = 0;
   wave = 1;
@@ -122,8 +123,36 @@ export class Game {
       defender.pos.x += (dx / d) * kb;
       defender.pos.y += (dy / d) * kb;
     }
-    if (r.killed) defender.dead = true;
+    if (r.killed) {
+      defender.dead = true;
+      if (attacker === this.player && defender.kind === 'monster') this.grantXp(defender.xpReward);
+    }
   };
+
+  // 升级曲线 (随等级渐陡)
+  xpForNext(level = this.character.level): number {
+    return Math.floor(80 * Math.pow(level, 1.6));
+  }
+
+  // 累积经验并处理升级 (自动加点: 力2体2敏1, 升级回满血)
+  grantXp(amount: number): void {
+    const ch = this.character;
+    ch.xp += amount;
+    let leveled = false;
+    while (ch.xp >= this.xpForNext(ch.level)) {
+      ch.xp -= this.xpForNext(ch.level);
+      ch.level++;
+      ch.base.str += 2;
+      ch.base.vit += 2;
+      ch.base.dex += 1;
+      leveled = true;
+    }
+    if (leveled) {
+      this.recompute();
+      this.player.combat.hp = this.player.combat.maxHp;
+      this.notices.push(`升级! Lv ${ch.level}`);
+    }
+  }
 
   private spawn = (defId: string, x: number, y: number): void => {
     this.spawnMonster(defId, x, y);

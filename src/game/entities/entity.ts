@@ -19,6 +19,7 @@ export interface Entity {
   attackRange: number; // 格
   attackInterval: number; // 秒
   attackCd: number; // 剩余冷却(秒)
+  xpReward: number; // 击杀给予的经验
   hitFlash: number; // 0..1 受击白闪, 渲染用
   fleeing: boolean; // 堕落者逃跑态(渲染/调试)
   moving: boolean;
