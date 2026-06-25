@@ -1,0 +1,8 @@
+node_modules
+dist
+*.local
+.DS_Store
+.vite
+
+# 用户私有资产 (从自有 D2 安装提取的原版素材, 不入库)
+assets/extracted/
