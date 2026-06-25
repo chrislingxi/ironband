@@ -40,9 +40,11 @@ async function main() {
   const sprites = new Map<number, Container>();
   const corpseLayer = new Container();
   const goldLayer = new Container();
+  const itemLayer = new Container();
   const swingLayer = new Container();
   scene.entityLayer.addChild(corpseLayer);
   scene.entityLayer.addChild(goldLayer);
+  scene.entityLayer.addChild(itemLayer);
   scene.entityLayer.addChild(swingLayer);
   const damageTexts: { t: Text; life: number }[] = [];
   let shakeMag = 0; // 屏震强度(衰减)
@@ -145,6 +147,22 @@ async function main() {
     }
   }
 
+  const RARITY_COLOR: Record<string, number> = {
+    normal: 0xc8c8c8, magic: 0x6a8cff, rare: 0xffe85a, set: 0x33cc33, unique: 0xb8843a,
+  };
+  function syncGroundItems(): void {
+    itemLayer.removeChildren();
+    for (const gi of game.groundItems) {
+      const s = gridToScreen(gi.pos);
+      const col = RARITY_COLOR[gi.item.rarity] ?? 0xc8c8c8;
+      const g = new Graphics()
+        .poly([0, -7, 5, 0, 0, 7, -5, 0]).fill({ color: col }).stroke({ color: 0x000000, width: 1 });
+      g.position.set(s.x, s.y);
+      g.zIndex = depthKey(gi.pos);
+      itemLayer.addChild(g);
+    }
+  }
+
   function syncGold(): void {
     goldLayer.removeChildren();
     for (const gd of game.gold) {
@@ -201,6 +219,7 @@ async function main() {
       for (const m of game.monsters) syncEntity(m);
       syncCorpses();
       syncGold();
+      syncGroundItems();
       syncSwings();
       spawnDamageText();
       // 伤害数字漂浮淡出

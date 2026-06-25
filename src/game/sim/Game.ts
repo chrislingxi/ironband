@@ -4,6 +4,7 @@ import type { DamageInstance } from '@game/systems/combat/index.ts';
 import { resolveAttack } from '@game/systems/combat/index.ts';
 import { updateMonsterAI, type AIContext } from '@game/systems/ai/behaviors.ts';
 import { BARB_SKILLS } from '@game/classes/barbarian.ts';
+import { generateItem, type ItemInstance } from '@game/systems/items/index.ts';
 import { dist, normalize, type Vec2 } from '@engine/math/vec.ts';
 import { mulberry32, randInt, type RNG } from '@engine/math/rng.ts';
 
@@ -17,6 +18,11 @@ export interface GoldDrop {
   id: number;
   pos: Vec2;
   amount: number;
+}
+export interface GroundItem {
+  id: number;
+  pos: Vec2;
+  item: ItemInstance;
 }
 export interface Swing {
   pos: Vec2;
@@ -34,6 +40,9 @@ export class Game {
   monsters: Entity[] = [];
   corpses: Corpse[] = [];
   gold: GoldDrop[] = [];
+  groundItems: GroundItem[] = []; // 地面掉落
+  inventory: ItemInstance[] = []; // 背包 (单格)
+  invCap = 32;
   swings: Swing[] = []; // 挥砍弧光 (打击感)
   events: CombatEvent[] = []; // 每帧渲染后清空
   goldTotal = 0;
@@ -132,6 +141,15 @@ export class Game {
         if (this.rng() < 0.6) {
           this.gold.push({ id: this.nextGoldId++, pos: { ...e.pos }, amount: randInt(this.rng, 1, 6) });
         }
+        // 物品掉落 (TreasureClass-lite): 按怪等级生成
+        if (this.rng() < 0.32) {
+          const off = () => (this.rng() - 0.5) * 0.8;
+          this.groundItems.push({
+            id: this.nextGoldId++,
+            pos: { x: e.pos.x + off(), y: e.pos.y + off() },
+            item: generateItem(e.combat.level, this.rng),
+          });
+        }
       }
     }
     this.monsters = this.monsters.filter((e) => !e.dead);
@@ -150,6 +168,17 @@ export class Game {
     }
     this.gold = this.gold.filter((g) => g.amount > 0);
 
+    // 磁吸拾取地面物品 (背包未满)
+    if (!p.dead) {
+      this.groundItems = this.groundItems.filter((gi) => {
+        if (dist(gi.pos, p.pos) < 1.2 && this.inventory.length < this.invCap) {
+          this.inventory.push(gi.item);
+          return false;
+        }
+        return true;
+      });
+    }
+
     // ----- 状态机: 阵亡 / 清场 -----
     if (this.state === 'playing') {
       if (p.dead) this.state = 'dead';
@@ -166,6 +195,7 @@ export class Game {
     this.monsters = [];
     this.corpses = [];
     this.gold = [];
+    this.groundItems = [];
     this.swings = [];
     this.state = 'playing';
     this.spawnWaveAroundPlayer();
