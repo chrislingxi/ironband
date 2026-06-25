@@ -7,6 +7,7 @@ import { normalize } from '@engine/math/vec.ts';
 import { Game } from '@game/sim/Game.ts';
 import type { Entity } from '@game/entities/entity.ts';
 import { HUD } from '@game/ui/hud.ts';
+import { InventoryPanel } from '@game/ui/inventory.ts';
 
 // ── M1 战斗沙盒 ──
 // Phase0 等距脊柱 + T3 战斗内核 + T4 怪物AI 的可玩集成.
@@ -177,6 +178,22 @@ async function main() {
   const joy = new Joystick(document.body);
   const hud = new HUD(game, (slot) => game.useSkill(slot));
 
+  // 背包/装备面板 (打开时暂停模拟)
+  let paused = false;
+  const panel = new InventoryPanel(game, () => { panel.hide(); paused = false; });
+  const bagBtn = document.createElement('div');
+  bagBtn.textContent = '🎒';
+  bagBtn.style.cssText =
+    'position:absolute;left:calc(14px + env(safe-area-inset-left));bottom:calc(30px + env(safe-area-inset-bottom));' +
+    'width:54px;height:54px;border-radius:12px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
+    'align-items:center;justify-content:center;font-size:26px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
+  bagBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (panel.open) { panel.hide(); paused = false; }
+    else { panel.show(); paused = true; }
+  });
+  document.body.appendChild(bagBtn);
+
   // 阵亡/清场横幅 (点击重生/续战)
   const banner = document.createElement('div');
   banner.style.cssText =
@@ -193,6 +210,7 @@ async function main() {
 
   const loop = new GameLoop(
     (dt) => {
+      if (paused) return; // 背包打开时暂停
       // 顿帧: 击杀瞬间冻结模拟 (打击重量感)
       if (hitstop > 0) { hitstop -= dt; return; }
       // 摇杆屏幕方向 → 世界格子方向
