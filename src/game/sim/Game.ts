@@ -17,6 +17,12 @@ export interface GoldDrop {
   pos: Vec2;
   amount: number;
 }
+export interface Swing {
+  pos: Vec2;
+  facing: number;
+  ageMs: number;
+  kind: 'basic' | 'skill';
+}
 export interface PlayerInput {
   move: Vec2; // 世界格子方向 (已归一化), 长度=强度
 }
@@ -27,6 +33,7 @@ export class Game {
   monsters: Entity[] = [];
   corpses: Corpse[] = [];
   gold: GoldDrop[] = [];
+  swings: Swing[] = []; // 挥砍弧光 (打击感)
   events: CombatEvent[] = []; // 每帧渲染后清空
   goldTotal = 0;
   timeMs = 0;
@@ -52,6 +59,15 @@ export class Game {
       killed: r.killed,
       toPlayer: defender.kind === 'player',
     });
+    // 击退 (重量感): 把怪推离攻击者一小段, 不致死时
+    if (defender.kind === 'monster' && !r.killed) {
+      const dx = defender.pos.x - attacker.pos.x;
+      const dy = defender.pos.y - attacker.pos.y;
+      const d = Math.hypot(dx, dy) || 1;
+      const kb = 0.18;
+      defender.pos.x += (dx / d) * kb;
+      defender.pos.y += (dy / d) * kb;
+    }
     if (r.killed) defender.dead = true;
   };
 
@@ -87,6 +103,7 @@ export class Game {
           p.facing = Math.atan2(target.pos.y - p.pos.y, target.pos.x - p.pos.x);
           this.attack(p, target, p.damage);
           p.attackCd = p.attackInterval;
+          this.swings.push({ pos: { ...p.pos }, facing: p.facing, ageMs: 0, kind: 'basic' });
         }
       }
     }
@@ -116,6 +133,10 @@ export class Game {
     // ----- 尸体老化 (供萨满复活的窗口期后消失) -----
     for (const c of this.corpses) c.ageMs += dt * 1000;
     this.corpses = this.corpses.filter((c) => c.ageMs < 12000);
+
+    // ----- 挥砍弧光老化 -----
+    for (const s of this.swings) s.ageMs += dt * 1000;
+    this.swings = this.swings.filter((s) => s.ageMs < 220);
 
     // ----- 磁吸拾金 -----
     for (const g of this.gold) {

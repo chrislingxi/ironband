@@ -39,9 +39,13 @@ async function main() {
   const sprites = new Map<number, Container>();
   const corpseLayer = new Container();
   const goldLayer = new Container();
+  const swingLayer = new Container();
   scene.entityLayer.addChild(corpseLayer);
   scene.entityLayer.addChild(goldLayer);
+  scene.entityLayer.addChild(swingLayer);
   const damageTexts: { t: Text; life: number }[] = [];
+  let shakeMag = 0; // 屏震强度(衰减)
+  let hitstop = 0; // 顿帧(秒), >0 时冻结模拟
 
   function makeSprite(e: Entity): Container {
     const c = new Container();
@@ -115,6 +119,31 @@ async function main() {
     }
   }
 
+  function syncSwings(): void {
+    swingLayer.removeChildren();
+    for (const sw of game.swings) {
+      const s = gridToScreen(sw.pos);
+      const prog = sw.ageMs / 220; // 0→1
+      const alpha = (1 - prog) * 0.8;
+      const reach = sw.kind === 'skill' ? 52 : 38;
+      // 沿朝向画一道扫击弧 (用多边形近似)
+      const g = new Graphics();
+      const half = sw.kind === 'skill' ? 1.1 : 0.8; // 弧张角(rad)
+      const a0 = sw.facing - half, a1 = sw.facing + half;
+      g.moveTo(0, 0);
+      const steps = 8;
+      for (let i = 0; i <= steps; i++) {
+        const a = a0 + ((a1 - a0) * i) / steps;
+        // 等距压扁 y
+        g.lineTo(Math.cos(a) * reach, Math.sin(a) * reach * 0.5);
+      }
+      g.closePath().fill({ color: sw.kind === 'skill' ? 0xffe08a : 0xffffff, alpha: alpha * 0.5 });
+      g.position.set(s.x, s.y - 6);
+      g.zIndex = depthKey(sw.pos) + 0.5;
+      swingLayer.addChild(g);
+    }
+  }
+
   function syncGold(): void {
     goldLayer.removeChildren();
     for (const gd of game.gold) {
@@ -130,6 +159,8 @@ async function main() {
 
   const loop = new GameLoop(
     (dt) => {
+      // 顿帧: 击杀瞬间冻结模拟 (打击重量感)
+      if (hitstop > 0) { hitstop -= dt; return; }
       // 摇杆屏幕方向 → 世界格子方向
       let move = { x: 0, y: 0 };
       if (joy.active && joy.strength > 0.05) {
@@ -137,6 +168,12 @@ async function main() {
         move = { x: g.x * joy.strength, y: g.y * joy.strength };
       }
       game.update(dt, { move });
+      // 事件驱动: 击杀→顿帧+强屏震; 玩家受击→屏震
+      for (const ev of game.events) {
+        if (ev.killed) { hitstop = Math.max(hitstop, 0.05); shakeMag = Math.max(shakeMag, 7); }
+        else if (ev.toPlayer) shakeMag = Math.max(shakeMag, 6);
+        else shakeMag = Math.max(shakeMag, 2.5);
+      }
     },
     (_alpha) => {
       // 同步实体精灵 (清理已死/已移除)
@@ -148,6 +185,7 @@ async function main() {
       for (const m of game.monsters) syncEntity(m);
       syncCorpses();
       syncGold();
+      syncSwings();
       spawnDamageText();
       // 伤害数字漂浮淡出
       for (const d of damageTexts) {
@@ -159,6 +197,12 @@ async function main() {
         if (damageTexts[i].life <= 0) { damageTexts[i].t.destroy(); damageTexts.splice(i, 1); }
       }
       scene.centerOn(game.player.pos);
+      // 屏震: 在相机居中后叠加随机偏移并衰减
+      if (shakeMag > 0.1) {
+        scene.world.position.x += (Math.random() - 0.5) * shakeMag * 2;
+        scene.world.position.y += (Math.random() - 0.5) * shakeMag * 2;
+        shakeMag *= 0.85;
+      }
     },
   );
   loop.start();
