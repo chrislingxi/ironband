@@ -81,6 +81,13 @@ function makeName(base: ItemBase, rarity: Rarity, affixes: RolledAffix[], rng: R
   return `${w1}${w2} ${base.name}`;
 }
 
+// 生成一件普通(白色)指定基础物品 (起手装备/商店用)
+export function makeNormalItem(baseId: string): ItemInstance {
+  const base = ITEM_BASES.find((b) => b.id === baseId);
+  if (!base) throw new Error(`no base ${baseId}`);
+  return { uid: uidSeq++, base, rarity: 'normal', ilvl: base.reqLevel, affixes: [], name: base.name };
+}
+
 // 主入口: 按怪物等级 mlvl 生成一件掉落
 export function generateItem(mlvl: number, rng: RNG): ItemInstance {
   const ilvl = Math.max(1, mlvl);

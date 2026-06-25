@@ -1,2 +1,2 @@
 export * from './types.ts';
-export { generateItem } from './generate.ts';
+export { generateItem, makeNormalItem } from './generate.ts';

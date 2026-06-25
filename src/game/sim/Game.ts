@@ -4,7 +4,8 @@ import type { DamageInstance } from '@game/systems/combat/index.ts';
 import { resolveAttack } from '@game/systems/combat/index.ts';
 import { updateMonsterAI, type AIContext } from '@game/systems/ai/behaviors.ts';
 import { BARB_SKILLS } from '@game/classes/barbarian.ts';
-import { generateItem, type ItemInstance } from '@game/systems/items/index.ts';
+import { generateItem, type ItemInstance, type EquipSlot } from '@game/systems/items/index.ts';
+import { makeBarbarian, deriveCombat, type Character } from '@game/systems/stats/character.ts';
 import { dist, normalize, type Vec2 } from '@engine/math/vec.ts';
 import { mulberry32, randInt, type RNG } from '@engine/math/rng.ts';
 
@@ -53,9 +54,49 @@ export class Game {
   private rng: RNG;
   private nextGoldId = 1;
 
+  character: Character = makeBarbarian();
+
   constructor(seed = 1234) {
     this.rng = mulberry32(seed);
     this.player = makePlayer();
+    this.recompute(true); // 由角色+装备派生玩家战斗数值
+  }
+
+  // 由 character(基础属性+等级+装备) 重算玩家战斗数值. initial=true 时回满血.
+  recompute(initial = false): void {
+    const d = deriveCombat(this.character);
+    const p = this.player;
+    const ratio = !initial && p.combat.maxHp > 0 ? p.combat.hp / p.combat.maxHp : 1;
+    p.combat.maxHp = d.maxHp;
+    p.combat.hp = initial ? d.maxHp : Math.min(d.maxHp, Math.max(1, Math.round(d.maxHp * ratio)));
+    p.combat.attackRating = d.attackRating;
+    p.combat.defense = d.defense;
+    p.combat.resist = d.resist;
+    p.combat.level = this.character.level;
+    p.damage = d.damage;
+  }
+
+  // 装备背包中第 index 件 (旧装备退回背包), 重算战力
+  equip(index: number): boolean {
+    const it = this.inventory[index];
+    if (!it) return false;
+    const slot = it.base.slot;
+    const prev = this.character.equipment[slot];
+    this.character.equipment[slot] = it;
+    this.inventory.splice(index, 1);
+    if (prev) this.inventory.push(prev);
+    this.recompute();
+    return true;
+  }
+
+  // 卸下某槽位装备到背包
+  unequip(slot: EquipSlot): boolean {
+    const it = this.character.equipment[slot];
+    if (!it || this.inventory.length >= this.invCap) return false;
+    delete this.character.equipment[slot];
+    this.inventory.push(it);
+    this.recompute();
+    return true;
   }
 
   spawnMonster(defId: string, x: number, y: number): void {
