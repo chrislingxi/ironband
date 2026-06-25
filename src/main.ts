@@ -1,60 +1,169 @@
-import { Application, Graphics } from 'pixi.js';
+import { Application, Container, Graphics, Text } from 'pixi.js';
 import { IsoScene } from '@engine/render/IsoScene.ts';
 import { GameLoop } from '@engine/loop.ts';
 import { Joystick } from '@engine/input/joystick.ts';
 import { gridToScreen, screenToGrid, depthKey } from '@engine/math/iso.ts';
 import { normalize } from '@engine/math/vec.ts';
+import { Game } from '@game/sim/Game.ts';
+import type { Entity } from '@game/entities/entity.ts';
 
-// ── Phase 0 脊柱演示 ──
-// 验证三件事: 等距视角能立住 / 浮动摇杆能驱动移动 / 固定步长循环 + 相机跟随.
-// 占位英雄是个圆 (T1 等距渲染 / T9 美术管线 会替换为 FLARE/原版精灵).
+// ── M1 战斗沙盒 ──
+// Phase0 等距脊柱 + T3 战斗内核 + T4 怪物AI 的可玩集成.
+// 占位形状渲染 (T1 并行会替换为 FLARE 等距精灵 + 光照).
 
 async function main() {
   const app = new Application();
   await app.init({
-    background: '#0a0a0f',
-    resizeTo: window,
-    antialias: true,
-    resolution: Math.min(window.devicePixelRatio || 1, 2),
-    autoDensity: true,
+    background: '#0a0a0f', resizeTo: window, antialias: true,
+    resolution: Math.min(window.devicePixelRatio || 1, 2), autoDensity: true,
   });
   document.getElementById('app')!.appendChild(app.canvas);
 
   const scene = new IsoScene(app);
-  const COLS = 24;
-  const ROWS = 24;
+  const COLS = 40, ROWS = 40;
   scene.buildPlaceholderGround(COLS, ROWS);
 
-  // 占位英雄
-  const hero = new Graphics().circle(0, 0, 10).fill({ color: 0xffd76b }).stroke({ color: 0x000000, width: 2 });
-  scene.entityLayer.addChild(hero);
+  const game = new Game(0xC0FFEE);
+  game.player.pos = { x: COLS / 2, y: ROWS / 2 };
 
-  const player = { pos: { x: COLS / 2, y: ROWS / 2 }, speed: 4.5 };
+  // 布置一波怪 (血色荒野式): 骷髅 + 行尸 + 带萨满的堕落者群
+  const cx = COLS / 2, cy = ROWS / 2;
+  game.spawnMonster('skeleton', cx + 6, cy - 4);
+  game.spawnMonster('skeleton', cx + 7, cy + 3);
+  game.spawnMonster('zombie', cx - 5, cy + 6);
+  game.spawnMonster('zombie', cx + 4, cy + 7);
+  game.spawnMonster('shaman', cx - 8, cy - 7);
+  for (let i = 0; i < 4; i++) game.spawnMonster('fallen', cx - 7 + i, cy - 6 + (i % 2));
+
+  // ----- 渲染层 -----
+  const sprites = new Map<number, Container>();
+  const corpseLayer = new Container();
+  const goldLayer = new Container();
+  scene.entityLayer.addChild(corpseLayer);
+  scene.entityLayer.addChild(goldLayer);
+  const damageTexts: { t: Text; life: number }[] = [];
+
+  function makeSprite(e: Entity): Container {
+    const c = new Container();
+    const body = new Graphics().circle(0, 0, e.size).fill({ color: e.color }).stroke({ color: 0x000000, width: 2 });
+    body.label = 'body';
+    // 朝向指示 (传达打击方向, 强化近战手感)
+    const point = new Graphics().poly([e.size, 0, e.size + 7, -4, e.size + 7, 4]).fill({ color: 0x000000, alpha: 0.5 });
+    point.label = 'point';
+    // 血条 (受伤才显)
+    const hpbg = new Graphics().rect(-14, -e.size - 12, 28, 4).fill({ color: 0x000000, alpha: 0.6 });
+    const hp = new Graphics().rect(-13, -e.size - 11, 26, 2).fill({ color: 0x6ee08a });
+    hpbg.label = 'hpbg'; hp.label = 'hp';
+    hpbg.visible = false;
+    c.addChild(body, point, hpbg, hp);
+    scene.entityLayer.addChild(c);
+    return c;
+  }
+
+  function syncEntity(e: Entity): void {
+    let c = sprites.get(e.id);
+    if (!c) { c = makeSprite(e); sprites.set(e.id, c); }
+    const s = gridToScreen(e.pos);
+    c.position.set(s.x, s.y);
+    c.zIndex = depthKey(e.pos);
+    const body = c.getChildByLabel('body') as Graphics;
+    body.tint = e.hitFlash > 0 ? 0xffffff : 0xffffff; // 占位: 白闪用 alpha 叠加
+    body.alpha = 1;
+    const flash = c.getChildByLabel('point') as Graphics;
+    flash.rotation = e.facing;
+    const ratio = Math.max(0, e.combat.hp / e.combat.maxHp);
+    const hpbg = c.getChildByLabel('hpbg') as Graphics;
+    const hp = c.getChildByLabel('hp') as Graphics;
+    const damaged = ratio < 0.999;
+    hpbg.visible = hp.visible = damaged;
+    hp.scale.x = ratio;
+    hp.tint = ratio > 0.5 ? 0x6ee08a : ratio > 0.25 ? 0xe0c020 : 0xe23a3a;
+    // 受击白闪覆盖
+    if (e.hitFlash > 0) { body.tint = 0xffd0d0; }
+  }
+
+  function spawnDamageText(): void {
+    for (const ev of game.events) {
+      const s = gridToScreen(ev.pos);
+      const t = new Text({
+        text: ev.killed ? `${ev.amount}!` : `${ev.amount}`,
+        style: {
+          fontFamily: 'Georgia, serif',
+          fontSize: ev.killed ? 22 : 16,
+          fill: ev.toPlayer ? 0xff5e4a : ev.killed ? 0xffd76b : 0xffffff,
+          stroke: { color: 0x000000, width: 3 },
+          fontWeight: '700',
+        },
+      });
+      t.anchor.set(0.5);
+      t.position.set(s.x, s.y - 18);
+      t.zIndex = 1e9;
+      scene.entityLayer.addChild(t);
+      damageTexts.push({ t, life: 0.8 });
+    }
+    game.events.length = 0;
+  }
+
+  function syncCorpses(): void {
+    corpseLayer.removeChildren();
+    for (const c of game.corpses) {
+      const s = gridToScreen(c.pos);
+      const g = new Graphics().ellipse(0, 0, c.size, c.size * 0.5).fill({ color: c.color, alpha: Math.max(0.1, 1 - c.ageMs / 12000) * 0.7 });
+      g.position.set(s.x, s.y + c.size * 0.4);
+      g.zIndex = depthKey(c.pos) - 0.5;
+      corpseLayer.addChild(g);
+    }
+  }
+
+  function syncGold(): void {
+    goldLayer.removeChildren();
+    for (const gd of game.gold) {
+      const s = gridToScreen(gd.pos);
+      const g = new Graphics().circle(0, 0, 4).fill({ color: 0xffd24a }).stroke({ color: 0x8a5a10, width: 1 });
+      g.position.set(s.x, s.y);
+      g.zIndex = depthKey(gd.pos);
+      goldLayer.addChild(g);
+    }
+  }
 
   const joy = new Joystick(document.body);
 
   const loop = new GameLoop(
     (dt) => {
-      // 摇杆屏幕方向 → 世界格子方向 (反等距投影), 让"上"对应屏幕上方移动.
+      // 摇杆屏幕方向 → 世界格子方向
+      let move = { x: 0, y: 0 };
       if (joy.active && joy.strength > 0.05) {
-        const gdir = normalize(screenToGrid(joy.vector));
-        player.pos.x += gdir.x * player.speed * joy.strength * dt;
-        player.pos.y += gdir.y * player.speed * joy.strength * dt;
-        player.pos.x = Math.max(0, Math.min(COLS - 1, player.pos.x));
-        player.pos.y = Math.max(0, Math.min(ROWS - 1, player.pos.y));
+        const g = normalize(screenToGrid(joy.vector));
+        move = { x: g.x * joy.strength, y: g.y * joy.strength };
       }
+      game.update(dt, { move });
     },
-    () => {
-      const s = gridToScreen(player.pos);
-      hero.position.set(s.x, s.y);
-      hero.zIndex = depthKey(player.pos);
-      scene.centerOn(player.pos);
+    (_alpha) => {
+      // 同步实体精灵 (清理已死/已移除)
+      const live = new Set<number>([game.player.id, ...game.monsters.map((m) => m.id)]);
+      for (const [id, c] of sprites) {
+        if (!live.has(id)) { c.destroy({ children: true }); sprites.delete(id); }
+      }
+      syncEntity(game.player);
+      for (const m of game.monsters) syncEntity(m);
+      syncCorpses();
+      syncGold();
+      spawnDamageText();
+      // 伤害数字漂浮淡出
+      for (const d of damageTexts) {
+        d.life -= 1 / 60;
+        d.t.position.y -= 0.6;
+        d.t.alpha = Math.max(0, d.life / 0.8);
+      }
+      for (let i = damageTexts.length - 1; i >= 0; i--) {
+        if (damageTexts[i].life <= 0) { damageTexts[i].t.destroy(); damageTexts.splice(i, 1); }
+      }
+      scene.centerOn(game.player.pos);
     },
   );
   loop.start();
 
-  // 暴露给调试
-  (window as unknown as { __iron: unknown }).__iron = { app, scene, player, joy };
+  (window as unknown as { __iron: unknown }).__iron = { app, game, scene, joy };
 }
 
 main().catch((e) => console.error(e));
