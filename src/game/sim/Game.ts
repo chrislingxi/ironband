@@ -38,6 +38,8 @@ export class Game {
   events: CombatEvent[] = []; // 每帧渲染后清空
   goldTotal = 0;
   timeMs = 0;
+  wave = 1;
+  state: 'playing' | 'dead' | 'cleared' = 'playing';
   skillCd = [0, 0, 0]; // 三技能键冷却(秒)
   private rng: RNG;
   private nextGoldId = 1;
@@ -118,7 +120,8 @@ export class Game {
     };
     for (const e of this.monsters) {
       e.hitFlash = Math.max(0, e.hitFlash - dt * 4);
-      updateMonsterAI(e, ctx);
+      if (!p.dead) updateMonsterAI(e, ctx);
+      else e.moving = false;
     }
     this.separate();
 
@@ -146,6 +149,49 @@ export class Game {
       if (dist(g.pos, p.pos) < 1.2) { this.goldTotal += g.amount; g.amount = 0; }
     }
     this.gold = this.gold.filter((g) => g.amount > 0);
+
+    // ----- 状态机: 阵亡 / 清场 -----
+    if (this.state === 'playing') {
+      if (p.dead) this.state = 'dead';
+      else if (this.monsters.length === 0) this.state = 'cleared';
+    }
+  }
+
+  // 阵亡重生: 回满血, 清场, 刷新当前波 (金币保留)
+  respawn(): void {
+    const p = this.player;
+    p.combat.hp = p.combat.maxHp;
+    p.dead = false;
+    p.combat.stunUntilMs = 0;
+    this.monsters = [];
+    this.corpses = [];
+    this.gold = [];
+    this.swings = [];
+    this.state = 'playing';
+    this.spawnWaveAroundPlayer();
+  }
+
+  // 迎战下一波 (递增数量)
+  nextWave(): void {
+    this.wave++;
+    this.corpses = [];
+    this.state = 'playing';
+    this.spawnWaveAroundPlayer();
+  }
+
+  spawnWaveAroundPlayer(): void {
+    const p = this.player;
+    const r = this.rng;
+    const count = 4 + this.wave * 2;
+    for (let i = 0; i < count; i++) {
+      const ang = r() * Math.PI * 2;
+      const rad = 7 + r() * 4;
+      const x = p.pos.x + Math.cos(ang) * rad;
+      const y = p.pos.y + Math.sin(ang) * rad * 0.75;
+      const pick = r();
+      const def = pick < 0.4 ? 'skeleton' : pick < 0.65 ? 'zombie' : pick < 0.9 ? 'fallen' : 'shaman';
+      this.spawnMonster(def, x, y);
+    }
   }
 
   // 使用技能键 (0=猛击 1=双挥 2=战嚎). 返回是否成功释放.

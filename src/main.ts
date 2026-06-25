@@ -159,6 +159,20 @@ async function main() {
   const joy = new Joystick(document.body);
   const hud = new HUD(game, (slot) => game.useSkill(slot));
 
+  // 阵亡/清场横幅 (点击重生/续战)
+  const banner = document.createElement('div');
+  banner.style.cssText =
+    'position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;' +
+    'background:#000a;color:#ffd76b;font-family:Georgia,serif;font-size:30px;font-weight:800;text-align:center;' +
+    'text-shadow:0 2px 8px #000;pointer-events:auto;z-index:50;gap:8px;';
+  banner.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (game.state === 'dead') game.respawn();
+    else if (game.state === 'cleared') game.nextWave();
+  });
+  document.body.appendChild(banner);
+
   const loop = new GameLoop(
     (dt) => {
       // 顿帧: 击杀瞬间冻结模拟 (打击重量感)
@@ -199,6 +213,15 @@ async function main() {
         if (damageTexts[i].life <= 0) { damageTexts[i].t.destroy(); damageTexts.splice(i, 1); }
       }
       hud.update();
+      if (game.state === 'dead') {
+        banner.style.display = 'flex';
+        banner.innerHTML = '☠ 你已阵亡<div style="font-size:15px;opacity:.85">点击重生</div>';
+      } else if (game.state === 'cleared') {
+        banner.style.display = 'flex';
+        banner.innerHTML = `⚔ 第 ${game.wave} 波 · 区域肃清!<div style="font-size:15px;opacity:.85">点击迎战下一波</div>`;
+      } else {
+        banner.style.display = 'none';
+      }
       scene.centerOn(game.player.pos);
       // 屏震: 在相机居中后叠加随机偏移并衰减
       if (shakeMag > 0.1) {
