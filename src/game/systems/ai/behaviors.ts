@@ -1,7 +1,8 @@
 import type { Entity, Corpse } from '@game/entities/entity.ts';
 import type { DamageInstance } from '@game/systems/combat/index.ts';
-import { dist, normalize } from '@engine/math/vec.ts';
+import { dist, normalize, type Vec2 } from '@engine/math/vec.ts';
 import type { RNG } from '@engine/math/rng.ts';
+import { andarielPhase, ANDARIEL_PHASES, bossPoisonDamage } from '@game/systems/boss/andariel.ts';
 
 // AI 上下文 — Game 注入. 行为只通过此面与世界交互 (便于测试/并行).
 export interface AIContext {
@@ -14,6 +15,7 @@ export interface AIContext {
   attack: (attacker: Entity, defender: Entity, dmg: DamageInstance[]) => void;
   spawn: (defId: string, x: number, y: number) => void;
   shoot: (from: Entity, dmg: DamageInstance[], kind: 'arrow' | 'fireball' | 'bolt', color: number) => void;
+  shootDir: (from: Entity, dir: Vec2, dmg: DamageInstance[], kind: 'arrow' | 'fireball' | 'bolt', color: number) => void;
 }
 
 function faceAndStep(e: Entity, tx: number, ty: number, dt: number, sign = 1): void {
@@ -97,6 +99,45 @@ function aiArcher(e: Entity, ctx: AIContext): void {
   }
 }
 
+// 安达莉尔 Boss: 三阶段(追击近战毒爪 + 阶段性环形毒弹 + 召唤随从).
+function aiBoss(e: Entity, ctx: AIContext): void {
+  const phase = andarielPhase(e.combat.hp, e.combat.maxHp);
+  const cfg = ANDARIEL_PHASES[phase];
+  e.bossNovaCd = Math.max(0, (e.bossNovaCd ?? 0) - ctx.dt);
+  e.bossSummonCd = Math.max(0, (e.bossSummonCd ?? 0) - ctx.dt);
+  const d = dist(e.pos, ctx.player.pos);
+  const reach = e.attackRange + ctx.player.radius + e.radius;
+  if (d <= reach) {
+    e.moving = false;
+    e.facing = Math.atan2(ctx.player.pos.y - e.pos.y, ctx.player.pos.x - e.pos.x);
+    if (e.attackCd <= 0) { ctx.attack(e, ctx.player, e.damage); e.attackCd = e.attackInterval * cfg.atkIntervalMult; }
+  } else {
+    const dir = normalize({ x: ctx.player.pos.x - e.pos.x, y: ctx.player.pos.y - e.pos.y });
+    e.facing = Math.atan2(dir.y, dir.x);
+    e.pos.x += dir.x * e.speed * cfg.speedMult * ctx.dt;
+    e.pos.y += dir.y * e.speed * cfg.speedMult * ctx.dt;
+    e.moving = true;
+  }
+  // 环形毒弹
+  if (cfg.poisonNova && (e.bossNovaCd ?? 0) <= 0) {
+    const n = 16;
+    const dmg = bossPoisonDamage();
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      ctx.shootDir(e, { x: Math.cos(a), y: Math.sin(a) }, dmg, 'bolt', 0x9be04a);
+    }
+    e.bossNovaCd = cfg.novaCooldown;
+  }
+  // 召唤随从
+  if (cfg.summon && (e.bossSummonCd ?? 0) <= 0) {
+    for (let i = 0; i < cfg.summonCount; i++) {
+      const a = (i / cfg.summonCount) * Math.PI * 2;
+      ctx.spawn(cfg.summonDefId, e.pos.x + Math.cos(a) * 2.5, e.pos.y + Math.sin(a) * 2.5);
+    }
+    e.bossSummonCd = 8;
+  }
+}
+
 export function updateMonsterAI(e: Entity, ctx: AIContext): void {
   if (e.dead) return;
   if (ctx.nowMs < e.combat.stunUntilMs) { e.moving = false; return; } // 受身中不动
@@ -115,6 +156,9 @@ export function updateMonsterAI(e: Entity, ctx: AIContext): void {
       break;
     case 'archer':
       aiArcher(e, ctx);
+      break;
+    case 'boss':
+      aiBoss(e, ctx);
       break;
     default:
       e.moving = false;

@@ -2,8 +2,10 @@ import type { Entity } from './entity.ts';
 import { freshId, makeCombatant, noResist } from './entity.ts';
 import { MONSTERS } from '@game/data/monsters.ts';
 import { MONSTERS_EXT } from '@game/data/monsters2.ts';
+import { ANDARIEL } from '@game/systems/boss/andariel.ts';
+import type { MonStat } from '@game/data/schema.ts';
 
-const ALL_MONSTERS = { ...MONSTERS, ...MONSTERS_EXT };
+const ALL_MONSTERS: Record<string, MonStat> = { ...MONSTERS, ...MONSTERS_EXT, andariel: ANDARIEL };
 import type { Difficulty, DamageType } from '@game/data/schema.ts';
 import type { DamageInstance } from '@game/systems/combat/index.ts';
 import { randInt, type RNG } from '@engine/math/rng.ts';
@@ -17,6 +19,7 @@ const PLACEHOLDER: Record<string, { color: number; size: number }> = {
   brute: { color: 0x8a4a3a, size: 18 },
   spitter: { color: 0x7ac04a, size: 10 },
   hound: { color: 0x9a6a3a, size: 10 },
+  andariel: { color: 0xb01818, size: 30 },
 };
 
 export function makePlayer(): Entity {

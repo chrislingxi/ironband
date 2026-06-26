@@ -8,6 +8,8 @@ import { generateItem, type ItemInstance, type EquipSlot } from '@game/systems/i
 import { deriveCombat, type Character } from '@game/systems/stats/character.ts';
 import { createMissile, updateMissiles, type Missile } from '@game/systems/missiles/index.ts';
 import { rollEliteAffixes, applyElite } from '@game/systems/elites/index.ts';
+import { QUESTS } from '@game/world/quests.ts';
+import { initQuests, completeQuest, onAreaCleared, type QuestProgress } from '@game/systems/quests/state.ts';
 import type { CharClass, DamageType } from '@game/data/schema.ts';
 import { buildArea, type AreaInstance } from '@game/world/zone.ts';
 import { playerResistPenalty } from '@game/systems/difficulty.ts';
@@ -68,6 +70,10 @@ export class Game {
   character: Character;
   skillTree: SkillTreeState = {}; // 已投技能点 (skillId→点数)
   missiles: Missile[] = []; // 投射物(箭/法术)
+  questProgress: QuestProgress = initQuests(QUESTS); // 任务状态
+  bonusSkillPoints = 0; // 任务奖励的额外技能点
+  mercUnlocked = false; // 任务奖励: 雇佣兵解锁(Phase D)
+  act1Complete = false;
 
   constructor(seed = 1234, cls: CharClass = 'barbarian') {
     this.rng = mulberry32(seed);
@@ -86,9 +92,14 @@ export class Game {
     this.groundItems = [];
     this.swings = [];
     this.missiles = [];
-    for (const sp of this.currentArea.monsterSpawns) this.spawnMonster(sp.defId, sp.x, sp.y);
+    if (this.currentArea.id === 'andariel_lair') {
+      // Boss 区: 只放安达莉尔
+      this.spawnMonster('andariel', this.currentArea.size[0] / 2, this.currentArea.size[1] / 2 - 6);
+    } else {
+      for (const sp of this.currentArea.monsterSpawns) this.spawnMonster(sp.defId, sp.x, sp.y);
+    }
     // 精英怪群: 随机把 1-2 只提升为带词缀的精英队长
-    if (!this.currentArea.isTown && this.monsters.length > 3) {
+    if (!this.currentArea.isTown && this.currentArea.id !== 'andariel_lair' && this.monsters.length > 3) {
       const nElite = 1 + (this.rng() < 0.5 ? 1 : 0);
       for (let i = 0; i < nElite; i++) {
         const cap = this.monsters[randInt(this.rng, 0, this.monsters.length - 1)];
@@ -155,9 +166,18 @@ export class Game {
     this.monsters.push(makeMonster(defId, x, y, this.rng, this.difficulty));
   }
 
-  // 可用技能点 = 等级-1 - 已投 (D2: 每级1点)
+  // 可用技能点 = 等级-1 + 任务奖励 - 已投 (D2: 每级1点)
   skillPointsAvailable(): number {
-    return Math.max(0, this.character.level - 1 - totalPointsSpent(this.skillTree));
+    return Math.max(0, this.character.level - 1 + this.bonusSkillPoints - totalPointsSpent(this.skillTree));
+  }
+
+  // 完成任务并发奖励
+  private completeAndReward(questId: string): void {
+    this.questProgress = completeQuest(this.questProgress, questId);
+    if (questId === 'den_of_evil') { this.bonusSkillPoints += 1; this.notices.push('任务完成: 净化邪恶巢穴 (+1 技能点)'); }
+    else if (questId === 'sisters_burial') { this.mercUnlocked = true; this.notices.push('任务完成: 姐妹的安息之地 (雇佣兵已解锁)'); }
+    else if (questId === 'andariel') { this.act1Complete = true; this.notices.push('★ 第一幕通关! 安达莉尔已伏诛 ★'); }
+    else this.notices.push('任务完成');
   }
 
   // 给某技能投1点 (校验点数/等级/前置)
@@ -243,6 +263,15 @@ export class Game {
     }));
   };
 
+  // 敌方定向投射 (Boss 毒环用)
+  private shootDir = (from: Entity, dir: Vec2, dmg: DamageInstance[], kind: 'arrow' | 'fireball' | 'bolt', color: number): void => {
+    const d = Math.hypot(dir.x, dir.y) || 1;
+    this.missiles.push(createMissile({
+      pos: from.pos, dir: { x: dir.x / d, y: dir.y / d }, speed: kind === 'fireball' ? 8 : 11,
+      dmg, kind, fromPlayer: false, range: 11, pierce: 0, radius: 0.4, color,
+    }));
+  };
+
   update(dt: number, input: PlayerInput): void {
     this.timeMs += dt * 1000;
     const now = this.timeMs;
@@ -281,7 +310,7 @@ export class Game {
     // ----- 怪物 AI -----
     const ctx: AIContext = {
       player: p, entities: this.monsters, corpses: this.corpses,
-      nowMs: now, dt, rng: this.rng, attack: this.attack, spawn: this.spawn, shoot: this.shoot,
+      nowMs: now, dt, rng: this.rng, attack: this.attack, spawn: this.spawn, shoot: this.shoot, shootDir: this.shootDir,
     };
     for (const e of this.monsters) {
       e.hitFlash = Math.max(0, e.hitFlash - dt * 4);
@@ -309,12 +338,13 @@ export class Game {
           if (p.combat.hp <= 0) p.dead = true;
         }
         this.corpses.push({ pos: { ...e.pos }, defId: e.defId, color: e.color, size: e.size, ageMs: 0 });
-        const isElite = !!e.elite;
+        const isBoss = e.defId === 'andariel';
+        const isElite = !!e.elite || isBoss;
         if (this.rng() < (isElite ? 1 : 0.6)) {
-          this.gold.push({ id: this.nextGoldId++, pos: { ...e.pos }, amount: randInt(this.rng, isElite ? 8 : 1, isElite ? 24 : 6) });
+          this.gold.push({ id: this.nextGoldId++, pos: { ...e.pos }, amount: randInt(this.rng, isBoss ? 40 : isElite ? 8 : 1, isBoss ? 90 : isElite ? 24 : 6) });
         }
-        // 物品掉落 (TreasureClass-lite): 精英必掉且更多
-        const drops = isElite ? 2 : this.rng() < 0.32 ? 1 : 0;
+        // 物品掉落 (TreasureClass-lite): 精英必掉且更多, Boss 暴掉
+        const drops = isBoss ? 4 : isElite ? 2 : this.rng() < 0.32 ? 1 : 0;
         for (let k = 0; k < drops; k++) {
           const off = () => (this.rng() - 0.5) * 0.9;
           this.groundItems.push({
@@ -355,7 +385,11 @@ export class Game {
     // ----- 状态机: 阵亡 / 清场 -----
     if (this.state === 'playing') {
       if (p.dead) this.state = 'dead';
-      else if (this.monsters.length === 0) this.state = 'cleared';
+      else if (this.monsters.length === 0) {
+        this.state = 'cleared';
+        const r = onAreaCleared(this.currentArea.id, this.questProgress, QUESTS);
+        if (r.completed) this.completeAndReward(r.completed);
+      }
     }
 
     // ----- 出口传送 (营地或区域已清, 且过冷却) -----
