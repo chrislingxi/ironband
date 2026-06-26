@@ -83,7 +83,12 @@ export class HUD {
     this.goldEl.textContent = `⦿ ${this.game.goldTotal}`;
     this.lvlEl.textContent = `Lv ${this.game.character.level}`;
     this.xpFill.style.width = `${Math.min(100, (this.game.character.xp / this.game.xpForNext()) * 100)}%`;
-    this.infoEl.textContent = p.dead ? '☠ 已阵亡' : `第${this.game.wave}波 · 剩余怪物 ${this.game.monsters.length}`;
+    const area = this.game.currentArea?.name ?? '';
+    this.infoEl.textContent = p.dead
+      ? '☠ 已阵亡'
+      : this.game.currentArea?.isTown
+        ? `${area} · 安全区`
+        : `${area} · 剩余怪物 ${this.game.monsters.length}`;
     this.skills.forEach((s, i) => {
       const cd = this.game.skillCd[i];
       if (cd > 0.05) { s.cd.style.opacity = '1'; s.cd.textContent = cd.toFixed(1); }

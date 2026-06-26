@@ -4,10 +4,20 @@ import { GameLoop } from '@engine/loop.ts';
 import { Joystick } from '@engine/input/joystick.ts';
 import { gridToScreen, screenToGrid, depthKey } from '@engine/math/iso.ts';
 import { normalize } from '@engine/math/vec.ts';
+import { mulberry32 } from '@engine/math/rng.ts';
+import { buildGround } from '@engine/render/groundTiles.ts';
+import { createActorSprite, type ActorSprite, type ActorKind } from '@engine/render/actorSprite.ts';
+import { Lighting } from '@engine/render/lighting.ts';
 import { Game } from '@game/sim/Game.ts';
 import type { Entity } from '@game/entities/entity.ts';
 import { HUD } from '@game/ui/hud.ts';
 import { InventoryPanel } from '@game/ui/inventory.ts';
+import { SkillTreePanel } from '@game/ui/skilltree.ts';
+import { NPCS } from '@game/world/npcs.ts';
+import { AREAS } from '@game/world/act1.ts';
+import { dist } from '@engine/math/vec.ts';
+
+const areaName = (id: string): string => AREAS[id]?.name ?? id;
 
 // ── M1 战斗沙盒 ──
 // Phase0 等距脊柱 + T3 战斗内核 + T4 怪物AI 的可玩集成.
@@ -22,48 +32,89 @@ async function main() {
   document.getElementById('app')!.appendChild(app.canvas);
 
   const scene = new IsoScene(app);
-  const COLS = 40, ROWS = 40;
-  scene.buildPlaceholderGround(COLS, ROWS);
+  const lighting = new Lighting(app); // 哥特暗角光照(玩家居中)
+  window.addEventListener('resize', () => lighting.resize());
+  // 地砖由 syncArea() 按当前区域尺寸/主题构建
 
-  const game = new Game(0xC0FFEE);
-  game.player.pos = { x: COLS / 2, y: ROWS / 2 };
-
-  // 布置一波怪 (血色荒野式): 骷髅 + 行尸 + 带萨满的堕落者群
-  const cx = COLS / 2, cy = ROWS / 2;
-  game.spawnMonster('skeleton', cx + 6, cy - 4);
-  game.spawnMonster('skeleton', cx + 7, cy + 3);
-  game.spawnMonster('zombie', cx - 5, cy + 6);
-  game.spawnMonster('zombie', cx + 4, cy + 7);
-  game.spawnMonster('shaman', cx - 8, cy - 7);
-  for (let i = 0; i < 4; i++) game.spawnMonster('fallen', cx - 7 + i, cy - 6 + (i % 2));
+  const game = new Game(0xC0FFEE); // 构造时自动加载罗格营地
 
   // ----- 渲染层 -----
   const sprites = new Map<number, Container>();
+  const actors = new Map<number, ActorSprite>();
   const corpseLayer = new Container();
   const goldLayer = new Container();
   const itemLayer = new Container();
   const swingLayer = new Container();
+  const exitLayer = new Container();
+  const npcLayer = new Container();
+  scene.entityLayer.addChild(exitLayer);
+  scene.entityLayer.addChild(npcLayer);
   scene.entityLayer.addChild(corpseLayer);
   scene.entityLayer.addChild(goldLayer);
   scene.entityLayer.addChild(itemLayer);
   scene.entityLayer.addChild(swingLayer);
+  // 区域切换时重建的静态内容
+  let lastAreaId = '';
+  let npcMarkers: { name: string; greeting: string; x: number; y: number }[] = [];
+  function syncArea(): void {
+    const a = game.currentArea;
+    if (a.id === lastAreaId) return;
+    lastAreaId = a.id;
+    // 重建地砖 (区域尺寸+主题)
+    let h = 2166136261;
+    for (let i = 0; i < a.id.length; i++) h = (Math.imul(h ^ a.id.charCodeAt(i), 16777619)) >>> 0;
+    scene.ground.removeChildren();
+    buildGround(scene.ground, a.size[0], a.size[1], mulberry32(h), a.isTown ? 'town' : 'wilderness');
+    // 出口标记
+    exitLayer.removeChildren();
+    for (const ex of a.exits) {
+      const s = gridToScreen(ex.pos);
+      const g = new Graphics().circle(0, 0, 11).fill({ color: 0x3ad6ff, alpha: 0.32 }).stroke({ color: 0x9af0ff, width: 2 });
+      g.position.set(s.x, s.y); g.zIndex = depthKey(ex.pos);
+      const t = new Text({ text: '▸ ' + areaName(ex.toId), style: { fontFamily: 'Georgia,serif', fontSize: 12, fill: 0x9af0ff, stroke: { color: 0x000000, width: 3 } } });
+      t.anchor.set(0.5, 1); t.position.set(s.x, s.y - 14); t.zIndex = depthKey(ex.pos);
+      exitLayer.addChild(g, t);
+    }
+    // 营地 NPC (围绕中心环形排布)
+    npcLayer.removeChildren();
+    npcMarkers = [];
+    if (a.isTown) {
+      const cx = a.size[0] / 2, cy = a.size[1] / 2;
+      NPCS.forEach((npc, i) => {
+        const ang = (i / NPCS.length) * Math.PI * 2;
+        const nx = cx + Math.cos(ang) * 6, ny = cy + Math.sin(ang) * 6;
+        npcMarkers.push({ name: npc.name, greeting: npc.greeting, x: nx, y: ny });
+        const s = gridToScreen({ x: nx, y: ny });
+        const g = new Graphics().circle(0, 0, 8).fill({ color: 0xe8d27a }).stroke({ color: 0x000000, width: 2 });
+        const t = new Text({ text: npc.name, style: { fontFamily: 'Georgia,serif', fontSize: 11, fill: 0xffe08a, stroke: { color: 0x000000, width: 3 } } });
+        t.anchor.set(0.5, 1); t.position.set(s.x, s.y - 12);
+        g.position.set(s.x, s.y); g.zIndex = depthKey({ x: nx, y: ny }); t.zIndex = depthKey({ x: nx, y: ny });
+        npcLayer.addChild(g, t);
+      });
+    }
+  }
   const damageTexts: { t: Text; life: number }[] = [];
   let shakeMag = 0; // 屏震强度(衰减)
   let hitstop = 0; // 顿帧(秒), >0 时冻结模拟
 
+  function actorKind(e: Entity): ActorKind {
+    if (e.kind === 'player') return 'humanoid';
+    if (e.ai === 'shaman') return 'caster';
+    if (e.ai === 'zombie' || e.ai === 'fallen') return 'beast';
+    return 'humanoid';
+  }
+
   function makeSprite(e: Entity): Container {
     const c = new Container();
-    const body = new Graphics().circle(0, 0, e.size).fill({ color: e.color }).stroke({ color: 0x000000, width: 2 });
-    body.label = 'body';
-    // 朝向指示 (传达打击方向, 强化近战手感)
-    const point = new Graphics().poly([e.size, 0, e.size + 7, -4, e.size + 7, 4]).fill({ color: 0x000000, alpha: 0.5 });
-    point.label = 'point';
+    const actor = createActorSprite({ kind: actorKind(e), color: e.color, size: e.size });
+    actors.set(e.id, actor);
+    c.addChild(actor.container);
     // 血条 (受伤才显)
-    const hpbg = new Graphics().rect(-14, -e.size - 12, 28, 4).fill({ color: 0x000000, alpha: 0.6 });
-    const hp = new Graphics().rect(-13, -e.size - 11, 26, 2).fill({ color: 0x6ee08a });
+    const hpbg = new Graphics().rect(-14, -e.size - 16, 28, 4).fill({ color: 0x000000, alpha: 0.6 });
+    const hp = new Graphics().rect(-13, -e.size - 15, 26, 2).fill({ color: 0x6ee08a });
     hpbg.label = 'hpbg'; hp.label = 'hp';
     hpbg.visible = false;
-    c.addChild(body, point, hpbg, hp);
+    c.addChild(hpbg, hp);
     scene.entityLayer.addChild(c);
     return c;
   }
@@ -74,11 +125,16 @@ async function main() {
     const s = gridToScreen(e.pos);
     c.position.set(s.x, s.y);
     c.zIndex = depthKey(e.pos);
-    const body = c.getChildByLabel('body') as Graphics;
-    body.tint = e.hitFlash > 0 ? 0xffffff : 0xffffff; // 占位: 白闪用 alpha 叠加
-    body.alpha = 1;
-    const flash = c.getChildByLabel('point') as Graphics;
-    flash.rotation = e.facing;
+    const actor = actors.get(e.id);
+    if (actor) {
+      actor.update({
+        facing: e.facing,
+        moving: e.moving,
+        attacking: e.attackInterval > 0 && e.attackCd > e.attackInterval - 0.18,
+        flash: e.hitFlash > 0 ? Math.min(1, e.hitFlash) : 0,
+        timeMs: performance.now(),
+      });
+    }
     const ratio = Math.max(0, e.combat.hp / e.combat.maxHp);
     const hpbg = c.getChildByLabel('hpbg') as Graphics;
     const hp = c.getChildByLabel('hp') as Graphics;
@@ -86,8 +142,6 @@ async function main() {
     hpbg.visible = hp.visible = damaged;
     hp.scale.x = ratio;
     hp.tint = ratio > 0.5 ? 0x6ee08a : ratio > 0.25 ? 0xe0c020 : 0xe23a3a;
-    // 受击白闪覆盖
-    if (e.hitFlash > 0) { body.tint = 0xffd0d0; }
   }
 
   function spawnDamageText(): void {
@@ -187,12 +241,28 @@ async function main() {
     'position:absolute;left:calc(14px + env(safe-area-inset-left));bottom:calc(30px + env(safe-area-inset-bottom));' +
     'width:54px;height:54px;border-radius:12px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
     'align-items:center;justify-content:center;font-size:26px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
+  const skillPanel = new SkillTreePanel(game, () => { skillPanel.hide(); paused = false; });
+  function closePanels(): void { panel.hide(); skillPanel.hide(); paused = false; }
   bagBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();
-    if (panel.open) { panel.hide(); paused = false; }
-    else { panel.show(); paused = true; }
+    if (panel.open) closePanels();
+    else { skillPanel.hide(); panel.show(); paused = true; }
   });
   document.body.appendChild(bagBtn);
+
+  // 技能树按钮
+  const skillBtn = document.createElement('div');
+  skillBtn.textContent = '📖';
+  skillBtn.style.cssText =
+    'position:absolute;left:calc(78px + env(safe-area-inset-left));bottom:calc(30px + env(safe-area-inset-bottom));' +
+    'width:54px;height:54px;border-radius:12px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
+    'align-items:center;justify-content:center;font-size:26px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
+  skillBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (skillPanel.open) closePanels();
+    else { panel.hide(); skillPanel.show(); paused = true; }
+  });
+  document.body.appendChild(skillBtn);
 
   // 升级等提示
   const noticeEl = document.createElement('div');
@@ -201,6 +271,14 @@ async function main() {
     'font-weight:800;color:#ffe08a;text-shadow:0 2px 10px #000;pointer-events:none;opacity:0;transition:opacity .4s;z-index:60;';
   document.body.appendChild(noticeEl);
   let noticeUntil = 0;
+
+  // NPC 问候 (营地靠近时显示)
+  const npcEl = document.createElement('div');
+  npcEl.style.cssText =
+    'position:absolute;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));max-width:80%;' +
+    'padding:8px 14px;border-radius:10px;background:#0c0c12d8;border:1px solid #6a5a3a;color:#e8e0d0;font-size:13px;' +
+    'text-align:center;pointer-events:none;display:none;z-index:45;';
+  document.body.appendChild(npcEl);
 
   // 阵亡/清场横幅 (点击重生/续战)
   const banner = document.createElement('div');
@@ -212,7 +290,6 @@ async function main() {
     e.preventDefault();
     e.stopPropagation();
     if (game.state === 'dead') game.respawn();
-    else if (game.state === 'cleared') game.nextWave();
   });
   document.body.appendChild(banner);
 
@@ -236,10 +313,11 @@ async function main() {
       }
     },
     (_alpha) => {
+      syncArea(); // 区域切换 → 重建地砖/出口/NPC
       // 同步实体精灵 (清理已死/已移除)
       const live = new Set<number>([game.player.id, ...game.monsters.map((m) => m.id)]);
       for (const [id, c] of sprites) {
-        if (!live.has(id)) { c.destroy({ children: true }); sprites.delete(id); }
+        if (!live.has(id)) { c.destroy({ children: true }); sprites.delete(id); actors.delete(id); }
       }
       syncEntity(game.player);
       for (const m of game.monsters) syncEntity(m);
@@ -265,16 +343,28 @@ async function main() {
         game.notices.length = 0;
       }
       if (noticeUntil && performance.now() > noticeUntil) { noticeEl.style.opacity = '0'; noticeUntil = 0; }
+      // 营地 NPC 邻近问候
+      if (game.currentArea.isTown && npcMarkers.length) {
+        let near: typeof npcMarkers[number] | null = null;
+        let nd = 2.4;
+        for (const m of npcMarkers) {
+          const d = dist(game.player.pos, { x: m.x, y: m.y });
+          if (d < nd) { nd = d; near = m; }
+        }
+        if (near) { npcEl.style.display = 'block'; npcEl.innerHTML = `<b style="color:#ffe08a">${near.name}</b>：${near.greeting}`; }
+        else npcEl.style.display = 'none';
+      } else npcEl.style.display = 'none';
       if (game.state === 'dead') {
         banner.style.display = 'flex';
         banner.innerHTML = '☠ 你已阵亡<div style="font-size:15px;opacity:.85">点击重生</div>';
-      } else if (game.state === 'cleared') {
+      } else if (game.state === 'cleared' && !game.currentArea.isTown) {
         banner.style.display = 'flex';
-        banner.innerHTML = `⚔ 第 ${game.wave} 波 · 区域肃清!<div style="font-size:15px;opacity:.85">点击迎战下一波</div>`;
+        banner.innerHTML = '⚔ 区域肃清!<div style="font-size:15px;opacity:.85">走到发光出口前往相邻区域</div>';
       } else {
         banner.style.display = 'none';
       }
       scene.centerOn(game.player.pos);
+      lighting.update(app.renderer.width / 2, app.renderer.height / 2, 340); // 玩家居中→光照中心
       // 屏震: 在相机居中后叠加随机偏移并衰减
       if (shakeMag > 0.1) {
         scene.world.position.x += (Math.random() - 0.5) * shakeMag * 2;
