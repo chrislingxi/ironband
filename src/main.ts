@@ -17,7 +17,10 @@ import { NPCS } from '@game/world/npcs.ts';
 import { AREAS } from '@game/world/act1.ts';
 import { TitleScreen } from '@game/ui/titlescreen.ts';
 import { QuestLogPanel } from '@game/ui/questlog.ts';
+import { TownPanel, type TownData } from '@game/ui/town.ts';
 import { QUESTS } from '@game/world/quests.ts';
+import { buyPrice, sellPrice, gambleCost } from '@game/systems/town/economy.ts';
+import { hireCost, reviveCost } from '@game/systems/merc/merc.ts';
 import type { CharClass } from '@game/data/schema.ts';
 import { dist } from '@engine/math/vec.ts';
 
@@ -81,6 +84,7 @@ async function main() {
   const itemLayer = new Container();
   const swingLayer = new Container();
   const missileLayer = new Container();
+  const mercLayer = new Container();
   const exitLayer = new Container();
   const npcLayer = new Container();
   scene.entityLayer.addChild(exitLayer);
@@ -90,6 +94,7 @@ async function main() {
   scene.entityLayer.addChild(itemLayer);
   scene.entityLayer.addChild(swingLayer);
   scene.entityLayer.addChild(missileLayer);
+  scene.entityLayer.addChild(mercLayer);
   // 区域切换时重建的静态内容
   let lastAreaId = '';
   let npcMarkers: { name: string; greeting: string; x: number; y: number }[] = [];
@@ -264,6 +269,20 @@ async function main() {
     }
   }
 
+  function syncMerc(): void {
+    mercLayer.removeChildren();
+    const m = game.merc;
+    if (!m || m.dead) return;
+    const s = gridToScreen(m.pos);
+    const g = new Graphics().circle(0, 0, 9).fill({ color: 0x4ad06a }).stroke({ color: 0x0a3a18, width: 2 });
+    const ratio = Math.max(0, m.hp / m.maxHp);
+    g.rect(-12, -22, 24, 3).fill({ color: 0x000000, alpha: 0.6 });
+    g.rect(-11, -21.5, 22 * ratio, 2).fill({ color: 0x6ee08a });
+    g.position.set(s.x, s.y);
+    g.zIndex = depthKey(m.pos);
+    mercLayer.addChild(g);
+  }
+
   function syncMissiles(): void {
     missileLayer.removeChildren();
     for (const m of game.missiles) {
@@ -302,7 +321,7 @@ async function main() {
     'width:54px;height:54px;border-radius:12px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
     'align-items:center;justify-content:center;font-size:26px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
   const skillPanel = new SkillTreePanel(game, () => { skillPanel.hide(); paused = false; });
-  function closePanels(): void { panel.hide(); skillPanel.hide(); paused = false; }
+  function closePanels(): void { panel.hide(); skillPanel.hide(); questLog.hide(); town.hide(); paused = false; }
   bagBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();
     if (panel.open) closePanels();
@@ -338,6 +357,42 @@ async function main() {
     else { panel.hide(); skillPanel.hide(); questLog.show(QUESTS, game.questProgress); paused = true; }
   });
   document.body.appendChild(questBtn);
+
+  // 营地服务面板 (商店/赌博/雇佣兵/鉴定)
+  function buildTownData(): TownData {
+    return {
+      gold: game.goldTotal,
+      shop: game.shopStock.map((i) => ({ uid: i.uid, name: i.name, rarity: i.rarity, price: buyPrice(i) })),
+      inventory: game.inventory.map((i) => ({
+        uid: i.uid, name: i.identified ? i.name : i.base.name,
+        rarity: i.identified ? i.rarity : 'normal', sellPrice: sellPrice(i), identified: i.identified,
+      })),
+      gambleCost: gambleCost(game.character.level),
+      merc: { hired: !!game.merc, dead: !!game.merc?.dead, hireCost: hireCost(), reviveCost: reviveCost(game.merc?.level ?? game.character.level) },
+    };
+  }
+  const town = new TownPanel({
+    onBuy: (uid) => { game.buyItem(uid); town.refresh(buildTownData()); },
+    onSell: (uid) => { game.sellItem(uid); town.refresh(buildTownData()); },
+    onGamble: () => { game.gamble(); town.refresh(buildTownData()); },
+    onIdentify: (uid) => { game.identifyItem(uid); town.refresh(buildTownData()); },
+    onHireMerc: () => { game.hireMerc(); town.refresh(buildTownData()); },
+    onReviveMerc: () => { game.reviveMerc(); town.refresh(buildTownData()); },
+    onClose: () => { town.hide(); paused = false; },
+  });
+  const townBtn = document.createElement('div');
+  townBtn.textContent = '🏛';
+  townBtn.style.cssText =
+    'position:absolute;left:calc(206px + env(safe-area-inset-left));bottom:calc(30px + env(safe-area-inset-bottom));' +
+    'width:54px;height:54px;border-radius:12px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
+    'align-items:center;justify-content:center;font-size:24px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
+  townBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (!game.currentArea.isTown) { game.notices.push('营地服务仅在罗格营地可用'); return; }
+    if (town.open) { town.hide(); paused = false; }
+    else { panel.hide(); skillPanel.hide(); questLog.hide(); town.show(buildTownData()); paused = true; }
+  });
+  document.body.appendChild(townBtn);
 
   // 升级等提示
   const noticeEl = document.createElement('div');
@@ -401,6 +456,7 @@ async function main() {
       syncGroundItems();
       syncSwings();
       syncMissiles();
+      syncMerc();
       spawnDamageText();
       // 伤害数字漂浮淡出
       for (const d of damageTexts) {

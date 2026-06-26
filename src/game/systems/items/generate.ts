@@ -85,7 +85,7 @@ function makeName(base: ItemBase, rarity: Rarity, affixes: RolledAffix[], rng: R
 export function makeNormalItem(baseId: string): ItemInstance {
   const base = ITEM_BASES.find((b) => b.id === baseId);
   if (!base) throw new Error(`no base ${baseId}`);
-  return { uid: uidSeq++, base, rarity: 'normal', ilvl: base.reqLevel, affixes: [], name: base.name };
+  return { uid: uidSeq++, base, rarity: 'normal', ilvl: base.reqLevel, affixes: [], name: base.name, identified: true };
 }
 
 // 主入口: 按怪物等级 mlvl 生成一件掉落
@@ -95,5 +95,6 @@ export function generateItem(mlvl: number, rng: RNG): ItemInstance {
   const base = (eligible.length ? eligible : ITEM_BASES)[randInt(rng, 0, (eligible.length ? eligible : ITEM_BASES).length - 1)];
   const rarity = rollRarity(rng, ilvl);
   const affixes = rollAffixes(base, ilvl, rarity, rng);
-  return { uid: uidSeq++, base, rarity, ilvl, affixes, name: makeName(base, rarity, affixes, rng) };
+  const identified = rarity === 'normal' || rarity === 'magic'; // 稀有/套装/暗金需鉴定
+  return { uid: uidSeq++, base, rarity, ilvl, affixes, name: makeName(base, rarity, affixes, rng), identified };
 }
