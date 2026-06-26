@@ -109,7 +109,7 @@ async function main() {
   function actorKind(e: Entity): ActorKind {
     if (e.kind === 'player') return 'humanoid';
     if (e.ai === 'shaman') return 'caster';
-    if (e.ai === 'zombie' || e.ai === 'fallen') return 'beast';
+    if (e.ai === 'zombie' || e.ai === 'fallen' || e.defId === 'brute' || e.defId === 'hound' || e.defId === 'spitter') return 'beast';
     return 'humanoid';
   }
 
@@ -118,6 +118,14 @@ async function main() {
     const actor = createActorSprite({ kind: actorKind(e), color: e.color, size: e.size });
     actors.set(e.id, actor);
     c.addChild(actor.container);
+    // 精英描边光环 + 名牌
+    if (e.elite) {
+      const ring = new Graphics().ellipse(0, e.size * 0.5, e.size * 1.35, e.size * 0.72).stroke({ color: e.elite.color, width: 3, alpha: 0.9 });
+      c.addChild(ring);
+      const nm = new Text({ text: e.elite.name, style: { fontFamily: 'Georgia,serif', fontSize: 11, fill: e.elite.color, stroke: { color: 0x000000, width: 3 } } });
+      nm.anchor.set(0.5, 1); nm.position.set(0, -e.size - 20);
+      c.addChild(nm);
+    }
     // 血条 (受伤才显)
     const hpbg = new Graphics().rect(-14, -e.size - 16, 28, 4).fill({ color: 0x000000, alpha: 0.6 });
     const hp = new Graphics().rect(-13, -e.size - 15, 26, 2).fill({ color: 0x6ee08a });

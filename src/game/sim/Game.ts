@@ -7,6 +7,7 @@ import { CLASS_KEYS, makeCharacterFor, type ClassSkillKey } from '@game/classes/
 import { generateItem, type ItemInstance, type EquipSlot } from '@game/systems/items/index.ts';
 import { deriveCombat, type Character } from '@game/systems/stats/character.ts';
 import { createMissile, updateMissiles, type Missile } from '@game/systems/missiles/index.ts';
+import { rollEliteAffixes, applyElite } from '@game/systems/elites/index.ts';
 import type { CharClass, DamageType } from '@game/data/schema.ts';
 import { buildArea, type AreaInstance } from '@game/world/zone.ts';
 import { playerResistPenalty } from '@game/systems/difficulty.ts';
@@ -86,6 +87,17 @@ export class Game {
     this.swings = [];
     this.missiles = [];
     for (const sp of this.currentArea.monsterSpawns) this.spawnMonster(sp.defId, sp.x, sp.y);
+    // 精英怪群: 随机把 1-2 只提升为带词缀的精英队长
+    if (!this.currentArea.isTown && this.monsters.length > 3) {
+      const nElite = 1 + (this.rng() < 0.5 ? 1 : 0);
+      for (let i = 0; i < nElite; i++) {
+        const cap = this.monsters[randInt(this.rng, 0, this.monsters.length - 1)];
+        if (cap.elite) continue;
+        const meta = applyElite(cap, rollEliteAffixes(this.rng, randInt(this.rng, 1, 2)));
+        cap.elite = meta;
+        cap.size = Math.round(cap.size * 1.3);
+      }
+    }
     this.player.pos = { x: this.currentArea.size[0] / 2, y: this.currentArea.size[1] / 2 };
     this.player.combat.stunUntilMs = 0;
     this.state = this.currentArea.isTown || this.monsters.length === 0 ? 'cleared' : 'playing';
@@ -220,6 +232,17 @@ export class Game {
     this.spawnMonster(defId, x, y);
   };
 
+  // 敌方远程: 从 from 朝玩家放飞射物
+  private shoot = (from: Entity, dmg: DamageInstance[], kind: 'arrow' | 'fireball' | 'bolt', color: number): void => {
+    const p = this.player;
+    const dx = p.pos.x - from.pos.x, dy = p.pos.y - from.pos.y;
+    const d = Math.hypot(dx, dy) || 1;
+    this.missiles.push(createMissile({
+      pos: from.pos, dir: { x: dx / d, y: dy / d }, speed: kind === 'fireball' ? 8 : 12,
+      dmg, kind, fromPlayer: false, range: 12, pierce: 0, radius: 0.4, color,
+    }));
+  };
+
   update(dt: number, input: PlayerInput): void {
     this.timeMs += dt * 1000;
     const now = this.timeMs;
@@ -258,7 +281,7 @@ export class Game {
     // ----- 怪物 AI -----
     const ctx: AIContext = {
       player: p, entities: this.monsters, corpses: this.corpses,
-      nowMs: now, dt, rng: this.rng, attack: this.attack, spawn: this.spawn,
+      nowMs: now, dt, rng: this.rng, attack: this.attack, spawn: this.spawn, shoot: this.shoot,
     };
     for (const e of this.monsters) {
       e.hitFlash = Math.max(0, e.hitFlash - dt * 4);
@@ -267,25 +290,37 @@ export class Game {
     }
     this.separate();
 
-    // ----- 投射物 (玩家弹 vs 怪) -----
-    this.missiles = updateMissiles(this.missiles, dt, this.monsters, (m, t) => {
-      this.dealMissileDamage(t as Entity, m);
-    });
+    // ----- 投射物 (玩家弹 vs 怪; 敌弹 vs 玩家) -----
+    const playerM = this.missiles.filter((m) => m.fromPlayer);
+    const enemyM = this.missiles.filter((m) => !m.fromPlayer);
+    const sp = updateMissiles(playerM, dt, this.monsters, (m, t) => this.dealMissileDamage(t as Entity, m));
+    const se = updateMissiles(enemyM, dt, p.dead ? [] : [p], (m, t) => this.dealMissileDamage(t as Entity, m));
+    this.missiles = [...sp, ...se];
 
     // ----- 死亡 → 尸体 + 掉金 -----
     for (const e of this.monsters) {
       if (e.dead) {
-        this.corpses.push({ pos: { ...e.pos }, defId: e.defId, color: e.color, size: e.size, ageMs: 0 });
-        if (this.rng() < 0.6) {
-          this.gold.push({ id: this.nextGoldId++, pos: { ...e.pos }, amount: randInt(this.rng, 1, 6) });
+        // 火焰附魔精英: 死亡爆炸灼烧附近玩家
+        if (e.onDeathExplode && !p.dead && dist(e.pos, p.pos) < 3) {
+          const { total } = rollDamage([{ type: 'fire', min: 6, max: 14 }], p.combat.resist, this.rng);
+          p.combat.hp = Math.max(0, p.combat.hp - total);
+          p.hitFlash = 1;
+          this.events.push({ pos: { ...p.pos }, amount: total, killed: p.combat.hp <= 0, toPlayer: true });
+          if (p.combat.hp <= 0) p.dead = true;
         }
-        // 物品掉落 (TreasureClass-lite): 按怪等级生成
-        if (this.rng() < 0.32) {
-          const off = () => (this.rng() - 0.5) * 0.8;
+        this.corpses.push({ pos: { ...e.pos }, defId: e.defId, color: e.color, size: e.size, ageMs: 0 });
+        const isElite = !!e.elite;
+        if (this.rng() < (isElite ? 1 : 0.6)) {
+          this.gold.push({ id: this.nextGoldId++, pos: { ...e.pos }, amount: randInt(this.rng, isElite ? 8 : 1, isElite ? 24 : 6) });
+        }
+        // 物品掉落 (TreasureClass-lite): 精英必掉且更多
+        const drops = isElite ? 2 : this.rng() < 0.32 ? 1 : 0;
+        for (let k = 0; k < drops; k++) {
+          const off = () => (this.rng() - 0.5) * 0.9;
           this.groundItems.push({
             id: this.nextGoldId++,
             pos: { x: e.pos.x + off(), y: e.pos.y + off() },
-            item: generateItem(e.combat.level, this.rng),
+            item: generateItem(e.combat.level + (isElite ? 3 : 0), this.rng),
           });
         }
       }
