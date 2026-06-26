@@ -27,6 +27,7 @@ export interface ItemInstance {
   ilvl: number;
   affixes: RolledAffix[];
   name: string; // 生成名
+  identified: boolean; // 稀有/暗金掉落初始未鉴定
 }
 
 // 各属性合计 (装备贡献 + 基础)

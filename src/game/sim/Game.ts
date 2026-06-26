@@ -10,6 +10,8 @@ import { createMissile, updateMissiles, type Missile } from '@game/systems/missi
 import { rollEliteAffixes, applyElite } from '@game/systems/elites/index.ts';
 import { QUESTS } from '@game/world/quests.ts';
 import { initQuests, completeQuest, onAreaCleared, type QuestProgress } from '@game/systems/quests/state.ts';
+import { generateShopStock, buyPrice, sellPrice, gambleCost, gambleItem, identifyCost } from '@game/systems/town/economy.ts';
+import { makeMerc, updateMerc, hireCost, reviveCost, type Merc } from '@game/systems/merc/merc.ts';
 import type { CharClass, DamageType } from '@game/data/schema.ts';
 import { buildArea, type AreaInstance } from '@game/world/zone.ts';
 import { playerResistPenalty } from '@game/systems/difficulty.ts';
@@ -74,6 +76,8 @@ export class Game {
   bonusSkillPoints = 0; // 任务奖励的额外技能点
   mercUnlocked = false; // 任务奖励: 雇佣兵解锁(Phase D)
   act1Complete = false;
+  shopStock: ItemInstance[] = []; // 商店库存
+  merc?: Merc; // 雇佣兵(罗格弓手)
 
   constructor(seed = 1234, cls: CharClass = 'barbarian') {
     this.rng = mulberry32(seed);
@@ -113,6 +117,8 @@ export class Game {
     this.player.combat.stunUntilMs = 0;
     this.state = this.currentArea.isTown || this.monsters.length === 0 ? 'cleared' : 'playing';
     this.travelCd = 1.0;
+    if (this.currentArea.isTown) this.refreshShop(); // 进城刷新商店
+    if (this.merc) this.merc.pos = { x: this.player.pos.x - 1, y: this.player.pos.y - 1 }; // 雇佣兵随主归队
     this.notices.push(`进入 ${this.currentArea.name}`);
   }
 
@@ -178,6 +184,56 @@ export class Game {
     else if (questId === 'sisters_burial') { this.mercUnlocked = true; this.notices.push('任务完成: 姐妹的安息之地 (雇佣兵已解锁)'); }
     else if (questId === 'andariel') { this.act1Complete = true; this.notices.push('★ 第一幕通关! 安达莉尔已伏诛 ★'); }
     else this.notices.push('任务完成');
+  }
+
+  // ----- 营地服务 -----
+  refreshShop(): void {
+    this.shopStock = generateShopStock(Math.max(1, this.character.level), this.rng);
+  }
+  buyItem(uid: number): boolean {
+    const idx = this.shopStock.findIndex((i) => i.uid === uid);
+    if (idx < 0 || this.inventory.length >= this.invCap) return false;
+    const price = buyPrice(this.shopStock[idx]);
+    if (this.goldTotal < price) return false;
+    this.goldTotal -= price;
+    this.inventory.push(this.shopStock.splice(idx, 1)[0]);
+    return true;
+  }
+  sellItem(uid: number): boolean {
+    const idx = this.inventory.findIndex((i) => i.uid === uid);
+    if (idx < 0) return false;
+    this.goldTotal += sellPrice(this.inventory[idx]);
+    this.inventory.splice(idx, 1);
+    return true;
+  }
+  gamble(): boolean {
+    const cost = gambleCost(this.character.level);
+    if (this.goldTotal < cost || this.inventory.length >= this.invCap) return false;
+    this.goldTotal -= cost;
+    this.inventory.push(gambleItem(this.character.level, this.rng));
+    return true;
+  }
+  identifyItem(uid: number): boolean {
+    const it = this.inventory.find((i) => i.uid === uid);
+    if (!it || it.identified || this.goldTotal < identifyCost()) return false;
+    this.goldTotal -= identifyCost();
+    it.identified = true;
+    return true;
+  }
+  hireMerc(): boolean {
+    if (this.merc || this.goldTotal < hireCost()) return false;
+    this.goldTotal -= hireCost();
+    this.merc = makeMerc(this.character.level);
+    this.merc.pos = { x: this.player.pos.x - 1, y: this.player.pos.y - 1 };
+    return true;
+  }
+  reviveMerc(): boolean {
+    if (!this.merc || !this.merc.dead || this.goldTotal < reviveCost(this.merc.level)) return false;
+    this.goldTotal -= reviveCost(this.merc.level);
+    this.merc.hp = this.merc.maxHp;
+    this.merc.dead = false;
+    this.merc.pos = { x: this.player.pos.x - 1, y: this.player.pos.y - 1 };
+    return true;
   }
 
   // 给某技能投1点 (校验点数/等级/前置)
@@ -325,6 +381,26 @@ export class Game {
     const sp = updateMissiles(playerM, dt, this.monsters, (m, t) => this.dealMissileDamage(t as Entity, m));
     const se = updateMissiles(enemyM, dt, p.dead ? [] : [p], (m, t) => this.dealMissileDamage(t as Entity, m));
     this.missiles = [...sp, ...se];
+
+    // ----- 雇佣兵 (跟随 + 放箭; 邻近怪消耗其生命可阵亡) -----
+    if (this.merc && !this.merc.dead && !p.dead) {
+      updateMerc(this.merc, {
+        playerPos: p.pos, monsters: this.monsters, dt, nowMs: now,
+        shootArrow: (from, dir, dmg) => {
+          const d = Math.hypot(dir.x, dir.y) || 1;
+          this.missiles.push(createMissile({
+            pos: from, dir: { x: dir.x / d, y: dir.y / d }, speed: 15, dmg, kind: 'arrow',
+            fromPlayer: true, range: 14, pierce: 0, radius: 0.35, color: 0xc8b88a,
+          }));
+        },
+      });
+      let nearby = 0;
+      for (const e of this.monsters) if (!e.dead && dist(e.pos, this.merc.pos) < e.radius + 0.9) nearby++;
+      if (nearby > 0) {
+        this.merc.hp -= nearby * dt * 5;
+        if (this.merc.hp <= 0) { this.merc.hp = 0; this.merc.dead = true; this.notices.push('雇佣弓手倒下了 (营地可复活)'); }
+      }
+    }
 
     // ----- 死亡 → 尸体 + 掉金 -----
     for (const e of this.monsters) {
