@@ -43,8 +43,8 @@ export class Lighting {
       colorStops: [
         { offset: 0, color: 'rgba(0,0,0,0)' },                  // 玩家脚下: 全亮
         { offset: clamp01(this.radius / outer), color: 'rgba(0,0,0,0)' }, // 亮圈边界
-        { offset: clamp01((this.radius * 1.6) / outer), color: 'rgba(12,8,18,0.55)' }, // 过渡
-        { offset: 1, color: 'rgba(4,2,8,0.92)' },               // 屏幕边缘: 近全黑
+        { offset: clamp01((this.radius * 2.2) / outer), color: 'rgba(10,8,16,0.22)' }, // 柔和过渡
+        { offset: 1, color: 'rgba(5,4,10,0.45)' },              // 屏幕边缘: 仅压暗, 场景仍清晰
       ],
     });
 
