@@ -21,16 +21,42 @@ import { dist } from '@engine/math/vec.ts';
 
 const areaName = (id: string): string => AREAS[id]?.name ?? id;
 
+function errText(e: unknown): string {
+  if (e instanceof Error) return (e.message || '') + '\n' + (e.stack || '');
+  return String(e);
+}
+// 可见错误浮层: 任何启动失败都显示文字而非纯黑屏 (便于真机定位)
+function showError(msg: string): void {
+  let d = document.getElementById('booterr');
+  if (!d) {
+    d = document.createElement('div');
+    d.id = 'booterr';
+    d.style.cssText =
+      'position:fixed;inset:0;padding:18px;color:#ffd27a;background:#120a0a;font:12px/1.5 monospace;' +
+      'white-space:pre-wrap;overflow:auto;z-index:99999;-webkit-user-select:text;user-select:text;';
+    document.body.appendChild(d);
+  }
+  d.textContent = 'Ironband 启动信息:\n' + msg;
+}
+
 // ── M1 战斗沙盒 ──
 // Phase0 等距脊柱 + T3 战斗内核 + T4 怪物AI 的可玩集成.
 // 占位形状渲染 (T1 并行会替换为 FLARE 等距精灵 + 光照).
 
 async function main() {
   const app = new Application();
-  await app.init({
+  // iOS Safari 的 WebGPU 不稳定 → 强制 WebGL; 失败再退默认(自动选择)
+  const initOpts = {
     background: '#0a0a0f', resizeTo: window, antialias: true,
     resolution: Math.min(window.devicePixelRatio || 1, 2), autoDensity: true,
-  });
+  };
+  try {
+    await app.init({ ...initOpts, preference: 'webgl' as const });
+  } catch (err) {
+    showError('WebGL 初始化失败, 尝试默认渲染器…\n' + errText(err));
+    await app.init(initOpts); // 回退: 让 Pixi 自动选 (可能 WebGPU)
+  }
+  document.getElementById('boot')?.remove(); // 移除"加载中"指示
   document.getElementById('app')!.appendChild(app.canvas);
 
   const scene = new IsoScene(app);
@@ -410,4 +436,7 @@ async function main() {
   (window as unknown as { __iron: unknown }).__iron = { app, game, scene, joy };
 }
 
-main().catch((e) => console.error(e));
+main().catch((e) => {
+  console.error(e);
+  showError('运行出错:\n' + errText(e));
+});
