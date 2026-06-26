@@ -4,6 +4,10 @@ import { GameLoop } from '@engine/loop.ts';
 import { Joystick } from '@engine/input/joystick.ts';
 import { gridToScreen, screenToGrid, depthKey } from '@engine/math/iso.ts';
 import { normalize } from '@engine/math/vec.ts';
+import { mulberry32 } from '@engine/math/rng.ts';
+import { buildGround } from '@engine/render/groundTiles.ts';
+import { createActorSprite, type ActorSprite, type ActorKind } from '@engine/render/actorSprite.ts';
+import { Lighting } from '@engine/render/lighting.ts';
 import { Game } from '@game/sim/Game.ts';
 import type { Entity } from '@game/entities/entity.ts';
 import { HUD } from '@game/ui/hud.ts';
@@ -22,8 +26,10 @@ async function main() {
   document.getElementById('app')!.appendChild(app.canvas);
 
   const scene = new IsoScene(app);
+  const lighting = new Lighting(app); // 哥特暗角光照(玩家居中)
+  window.addEventListener('resize', () => lighting.resize());
   const COLS = 40, ROWS = 40;
-  scene.buildPlaceholderGround(COLS, ROWS);
+  buildGround(scene.ground, COLS, ROWS, mulberry32(0xBEEF), 'wilderness');
 
   const game = new Game(0xC0FFEE);
   game.player.pos = { x: COLS / 2, y: ROWS / 2 };
@@ -39,6 +45,7 @@ async function main() {
 
   // ----- 渲染层 -----
   const sprites = new Map<number, Container>();
+  const actors = new Map<number, ActorSprite>();
   const corpseLayer = new Container();
   const goldLayer = new Container();
   const itemLayer = new Container();
@@ -51,19 +58,24 @@ async function main() {
   let shakeMag = 0; // 屏震强度(衰减)
   let hitstop = 0; // 顿帧(秒), >0 时冻结模拟
 
+  function actorKind(e: Entity): ActorKind {
+    if (e.kind === 'player') return 'humanoid';
+    if (e.ai === 'shaman') return 'caster';
+    if (e.ai === 'zombie' || e.ai === 'fallen') return 'beast';
+    return 'humanoid';
+  }
+
   function makeSprite(e: Entity): Container {
     const c = new Container();
-    const body = new Graphics().circle(0, 0, e.size).fill({ color: e.color }).stroke({ color: 0x000000, width: 2 });
-    body.label = 'body';
-    // 朝向指示 (传达打击方向, 强化近战手感)
-    const point = new Graphics().poly([e.size, 0, e.size + 7, -4, e.size + 7, 4]).fill({ color: 0x000000, alpha: 0.5 });
-    point.label = 'point';
+    const actor = createActorSprite({ kind: actorKind(e), color: e.color, size: e.size });
+    actors.set(e.id, actor);
+    c.addChild(actor.container);
     // 血条 (受伤才显)
-    const hpbg = new Graphics().rect(-14, -e.size - 12, 28, 4).fill({ color: 0x000000, alpha: 0.6 });
-    const hp = new Graphics().rect(-13, -e.size - 11, 26, 2).fill({ color: 0x6ee08a });
+    const hpbg = new Graphics().rect(-14, -e.size - 16, 28, 4).fill({ color: 0x000000, alpha: 0.6 });
+    const hp = new Graphics().rect(-13, -e.size - 15, 26, 2).fill({ color: 0x6ee08a });
     hpbg.label = 'hpbg'; hp.label = 'hp';
     hpbg.visible = false;
-    c.addChild(body, point, hpbg, hp);
+    c.addChild(hpbg, hp);
     scene.entityLayer.addChild(c);
     return c;
   }
@@ -74,11 +86,16 @@ async function main() {
     const s = gridToScreen(e.pos);
     c.position.set(s.x, s.y);
     c.zIndex = depthKey(e.pos);
-    const body = c.getChildByLabel('body') as Graphics;
-    body.tint = e.hitFlash > 0 ? 0xffffff : 0xffffff; // 占位: 白闪用 alpha 叠加
-    body.alpha = 1;
-    const flash = c.getChildByLabel('point') as Graphics;
-    flash.rotation = e.facing;
+    const actor = actors.get(e.id);
+    if (actor) {
+      actor.update({
+        facing: e.facing,
+        moving: e.moving,
+        attacking: e.attackInterval > 0 && e.attackCd > e.attackInterval - 0.18,
+        flash: e.hitFlash > 0 ? Math.min(1, e.hitFlash) : 0,
+        timeMs: performance.now(),
+      });
+    }
     const ratio = Math.max(0, e.combat.hp / e.combat.maxHp);
     const hpbg = c.getChildByLabel('hpbg') as Graphics;
     const hp = c.getChildByLabel('hp') as Graphics;
@@ -86,8 +103,6 @@ async function main() {
     hpbg.visible = hp.visible = damaged;
     hp.scale.x = ratio;
     hp.tint = ratio > 0.5 ? 0x6ee08a : ratio > 0.25 ? 0xe0c020 : 0xe23a3a;
-    // 受击白闪覆盖
-    if (e.hitFlash > 0) { body.tint = 0xffd0d0; }
   }
 
   function spawnDamageText(): void {
@@ -239,7 +254,7 @@ async function main() {
       // 同步实体精灵 (清理已死/已移除)
       const live = new Set<number>([game.player.id, ...game.monsters.map((m) => m.id)]);
       for (const [id, c] of sprites) {
-        if (!live.has(id)) { c.destroy({ children: true }); sprites.delete(id); }
+        if (!live.has(id)) { c.destroy({ children: true }); sprites.delete(id); actors.delete(id); }
       }
       syncEntity(game.player);
       for (const m of game.monsters) syncEntity(m);
@@ -275,6 +290,7 @@ async function main() {
         banner.style.display = 'none';
       }
       scene.centerOn(game.player.pos);
+      lighting.update(app.renderer.width / 2, app.renderer.height / 2, 340); // 玩家居中→光照中心
       // 屏震: 在相机居中后叠加随机偏移并衰减
       if (shakeMag > 0.1) {
         scene.world.position.x += (Math.random() - 0.5) * shakeMag * 2;
