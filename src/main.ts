@@ -16,6 +16,8 @@ import { SkillTreePanel } from '@game/ui/skilltree.ts';
 import { NPCS } from '@game/world/npcs.ts';
 import { AREAS } from '@game/world/act1.ts';
 import { TitleScreen } from '@game/ui/titlescreen.ts';
+import { QuestLogPanel } from '@game/ui/questlog.ts';
+import { QUESTS } from '@game/world/quests.ts';
 import type { CharClass } from '@game/data/schema.ts';
 import { dist } from '@engine/math/vec.ts';
 
@@ -134,6 +136,7 @@ async function main() {
 
   function actorKind(e: Entity): ActorKind {
     if (e.kind === 'player') return 'humanoid';
+    if (e.defId === 'andariel') return 'caster';
     if (e.ai === 'shaman') return 'caster';
     if (e.ai === 'zombie' || e.ai === 'fallen' || e.defId === 'brute' || e.defId === 'hound' || e.defId === 'spitter') return 'beast';
     return 'humanoid';
@@ -320,6 +323,21 @@ async function main() {
     else { panel.hide(); skillPanel.show(); paused = true; }
   });
   document.body.appendChild(skillBtn);
+
+  // 任务日志按钮
+  const questLog = new QuestLogPanel(() => { questLog.hide(); paused = false; });
+  const questBtn = document.createElement('div');
+  questBtn.textContent = '📜';
+  questBtn.style.cssText =
+    'position:absolute;left:calc(142px + env(safe-area-inset-left));bottom:calc(30px + env(safe-area-inset-bottom));' +
+    'width:54px;height:54px;border-radius:12px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
+    'align-items:center;justify-content:center;font-size:26px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
+  questBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (questLog.open) { questLog.hide(); paused = false; }
+    else { panel.hide(); skillPanel.hide(); questLog.show(QUESTS, game.questProgress); paused = true; }
+  });
+  document.body.appendChild(questBtn);
 
   // 升级等提示
   const noticeEl = document.createElement('div');

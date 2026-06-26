@@ -2,7 +2,7 @@ import type { Vec2 } from '@engine/math/vec.ts';
 import type { Combatant, DamageInstance } from '@game/systems/combat/index.ts';
 import type { DamageType } from '@game/data/schema.ts';
 
-export type AIKind = 'skeleton' | 'zombie' | 'fallen' | 'shaman' | 'archer' | 'brute' | 'none';
+export type AIKind = 'skeleton' | 'zombie' | 'fallen' | 'shaman' | 'archer' | 'brute' | 'boss' | 'none';
 
 // 游戏实体 (玩家/怪物). 组合 Transform + Combatant 契约, 战斗逻辑与渲染解耦.
 export interface Entity {
@@ -32,6 +32,9 @@ export interface Entity {
   onDeathExplode?: boolean; // 火焰附魔: 死亡爆炸
   onHitChill?: boolean; // 寒冷附魔: 命中减速
   aura?: boolean; // 增益光环
+  // Boss 阶段计时
+  bossNovaCd?: number; // 毒环冷却(秒)
+  bossSummonCd?: number; // 召唤冷却(秒)
 }
 
 export interface Corpse {
