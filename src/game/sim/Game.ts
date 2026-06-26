@@ -6,6 +6,9 @@ import { updateMonsterAI, type AIContext } from '@game/systems/ai/behaviors.ts';
 import { BARB_SKILLS } from '@game/classes/barbarian.ts';
 import { generateItem, type ItemInstance, type EquipSlot } from '@game/systems/items/index.ts';
 import { makeBarbarian, deriveCombat, type Character } from '@game/systems/stats/character.ts';
+import { buildArea, type AreaInstance } from '@game/world/zone.ts';
+import { playerResistPenalty } from '@game/systems/difficulty.ts';
+import type { Difficulty } from '@game/data/schema.ts';
 import { dist, normalize, type Vec2 } from '@engine/math/vec.ts';
 import { mulberry32, randInt, type RNG } from '@engine/math/rng.ts';
 
@@ -49,7 +52,9 @@ export class Game {
   notices: string[] = []; // UI 提示(升级等), 渲染后清空
   goldTotal = 0;
   timeMs = 0;
-  wave = 1;
+  difficulty: Difficulty = 'normal';
+  currentArea!: AreaInstance; // 当前区域 (构造时 loadArea 注入)
+  private travelCd = 0; // 进入区域后短暂禁用出口, 防瞬间回弹
   state: 'playing' | 'dead' | 'cleared' = 'playing';
   skillCd = [0, 0, 0]; // 三技能键冷却(秒)
   private rng: RNG;
@@ -61,6 +66,23 @@ export class Game {
     this.rng = mulberry32(seed);
     this.player = makePlayer();
     this.recompute(true); // 由角色+装备派生玩家战斗数值
+    this.loadArea('rogue_encampment'); // 从罗格营地起步
+  }
+
+  // 加载一个区域: 实例化→清场→按出生点刷怪→玩家置于中心
+  loadArea(id: string): void {
+    this.currentArea = buildArea(id, this.rng, this.difficulty);
+    this.monsters = [];
+    this.corpses = [];
+    this.gold = [];
+    this.groundItems = [];
+    this.swings = [];
+    for (const sp of this.currentArea.monsterSpawns) this.spawnMonster(sp.defId, sp.x, sp.y);
+    this.player.pos = { x: this.currentArea.size[0] / 2, y: this.currentArea.size[1] / 2 };
+    this.player.combat.stunUntilMs = 0;
+    this.state = this.currentArea.isTown || this.monsters.length === 0 ? 'cleared' : 'playing';
+    this.travelCd = 1.0;
+    this.notices.push(`进入 ${this.currentArea.name}`);
   }
 
   // 由 character(基础属性+等级+装备) 重算玩家战斗数值. initial=true 时回满血.
@@ -72,7 +94,16 @@ export class Game {
     p.combat.hp = initial ? d.maxHp : Math.min(d.maxHp, Math.max(1, Math.round(d.maxHp * ratio)));
     p.combat.attackRating = d.attackRating;
     p.combat.defense = d.defense;
-    p.combat.resist = d.resist;
+    // 难度抗性惩罚 (噩梦-40/地狱-100)
+    const pen = playerResistPenalty(this.difficulty);
+    p.combat.resist = {
+      physical: d.resist.physical,
+      fire: Math.max(-100, d.resist.fire + pen),
+      cold: Math.max(-100, d.resist.cold + pen),
+      lightning: Math.max(-100, d.resist.lightning + pen),
+      poison: Math.max(-100, d.resist.poison + pen),
+      magic: d.resist.magic,
+    };
     p.combat.level = this.character.level;
     p.damage = d.damage;
   }
@@ -101,7 +132,7 @@ export class Game {
   }
 
   spawnMonster(defId: string, x: number, y: number): void {
-    this.monsters.push(makeMonster(defId, x, y, this.rng));
+    this.monsters.push(makeMonster(defId, x, y, this.rng, this.difficulty));
   }
 
   private attack = (attacker: Entity, defender: Entity, dmg: DamageInstance[]): void => {
@@ -165,6 +196,7 @@ export class Game {
 
     // ----- 玩家 -----
     p.attackCd = Math.max(0, p.attackCd - dt);
+    this.travelCd = Math.max(0, this.travelCd - dt);
     for (let i = 0; i < 3; i++) this.skillCd[i] = Math.max(0, this.skillCd[i] - dt);
     p.hitFlash = Math.max(0, p.hitFlash - dt * 4);
     const stunned = now < p.combat.stunUntilMs;
@@ -254,44 +286,21 @@ export class Game {
       if (p.dead) this.state = 'dead';
       else if (this.monsters.length === 0) this.state = 'cleared';
     }
+
+    // ----- 出口传送 (营地或区域已清, 且过冷却) -----
+    if (!p.dead && this.travelCd === 0 && (this.currentArea.isTown || this.monsters.length === 0)) {
+      for (const ex of this.currentArea.exits) {
+        if (dist(p.pos, ex.pos) < 1.6) { this.loadArea(ex.toId); break; }
+      }
+    }
   }
 
-  // 阵亡重生: 回满血, 清场, 刷新当前波 (金币保留)
+  // 阵亡重生: 回满血并重载当前区域 (金币保留)
   respawn(): void {
     const p = this.player;
     p.combat.hp = p.combat.maxHp;
     p.dead = false;
-    p.combat.stunUntilMs = 0;
-    this.monsters = [];
-    this.corpses = [];
-    this.gold = [];
-    this.groundItems = [];
-    this.swings = [];
-    this.state = 'playing';
-    this.spawnWaveAroundPlayer();
-  }
-
-  // 迎战下一波 (递增数量)
-  nextWave(): void {
-    this.wave++;
-    this.corpses = [];
-    this.state = 'playing';
-    this.spawnWaveAroundPlayer();
-  }
-
-  spawnWaveAroundPlayer(): void {
-    const p = this.player;
-    const r = this.rng;
-    const count = 4 + this.wave * 2;
-    for (let i = 0; i < count; i++) {
-      const ang = r() * Math.PI * 2;
-      const rad = 7 + r() * 4;
-      const x = p.pos.x + Math.cos(ang) * rad;
-      const y = p.pos.y + Math.sin(ang) * rad * 0.75;
-      const pick = r();
-      const def = pick < 0.4 ? 'skeleton' : pick < 0.65 ? 'zombie' : pick < 0.9 ? 'fallen' : 'shaman';
-      this.spawnMonster(def, x, y);
-    }
+    this.loadArea(this.currentArea.id);
   }
 
   // 使用技能键 (0=猛击 1=双挥 2=战嚎). 返回是否成功释放.

@@ -12,6 +12,11 @@ import { Game } from '@game/sim/Game.ts';
 import type { Entity } from '@game/entities/entity.ts';
 import { HUD } from '@game/ui/hud.ts';
 import { InventoryPanel } from '@game/ui/inventory.ts';
+import { NPCS } from '@game/world/npcs.ts';
+import { AREAS } from '@game/world/act1.ts';
+import { dist } from '@engine/math/vec.ts';
+
+const areaName = (id: string): string => AREAS[id]?.name ?? id;
 
 // ── M1 战斗沙盒 ──
 // Phase0 等距脊柱 + T3 战斗内核 + T4 怪物AI 的可玩集成.
@@ -28,20 +33,9 @@ async function main() {
   const scene = new IsoScene(app);
   const lighting = new Lighting(app); // 哥特暗角光照(玩家居中)
   window.addEventListener('resize', () => lighting.resize());
-  const COLS = 40, ROWS = 40;
-  buildGround(scene.ground, COLS, ROWS, mulberry32(0xBEEF), 'wilderness');
+  // 地砖由 syncArea() 按当前区域尺寸/主题构建
 
-  const game = new Game(0xC0FFEE);
-  game.player.pos = { x: COLS / 2, y: ROWS / 2 };
-
-  // 布置一波怪 (血色荒野式): 骷髅 + 行尸 + 带萨满的堕落者群
-  const cx = COLS / 2, cy = ROWS / 2;
-  game.spawnMonster('skeleton', cx + 6, cy - 4);
-  game.spawnMonster('skeleton', cx + 7, cy + 3);
-  game.spawnMonster('zombie', cx - 5, cy + 6);
-  game.spawnMonster('zombie', cx + 4, cy + 7);
-  game.spawnMonster('shaman', cx - 8, cy - 7);
-  for (let i = 0; i < 4; i++) game.spawnMonster('fallen', cx - 7 + i, cy - 6 + (i % 2));
+  const game = new Game(0xC0FFEE); // 构造时自动加载罗格营地
 
   // ----- 渲染层 -----
   const sprites = new Map<number, Container>();
@@ -50,10 +44,54 @@ async function main() {
   const goldLayer = new Container();
   const itemLayer = new Container();
   const swingLayer = new Container();
+  const exitLayer = new Container();
+  const npcLayer = new Container();
+  scene.entityLayer.addChild(exitLayer);
+  scene.entityLayer.addChild(npcLayer);
   scene.entityLayer.addChild(corpseLayer);
   scene.entityLayer.addChild(goldLayer);
   scene.entityLayer.addChild(itemLayer);
   scene.entityLayer.addChild(swingLayer);
+  // 区域切换时重建的静态内容
+  let lastAreaId = '';
+  let npcMarkers: { name: string; greeting: string; x: number; y: number }[] = [];
+  function syncArea(): void {
+    const a = game.currentArea;
+    if (a.id === lastAreaId) return;
+    lastAreaId = a.id;
+    // 重建地砖 (区域尺寸+主题)
+    let h = 2166136261;
+    for (let i = 0; i < a.id.length; i++) h = (Math.imul(h ^ a.id.charCodeAt(i), 16777619)) >>> 0;
+    scene.ground.removeChildren();
+    buildGround(scene.ground, a.size[0], a.size[1], mulberry32(h), a.isTown ? 'town' : 'wilderness');
+    // 出口标记
+    exitLayer.removeChildren();
+    for (const ex of a.exits) {
+      const s = gridToScreen(ex.pos);
+      const g = new Graphics().circle(0, 0, 11).fill({ color: 0x3ad6ff, alpha: 0.32 }).stroke({ color: 0x9af0ff, width: 2 });
+      g.position.set(s.x, s.y); g.zIndex = depthKey(ex.pos);
+      const t = new Text({ text: '▸ ' + areaName(ex.toId), style: { fontFamily: 'Georgia,serif', fontSize: 12, fill: 0x9af0ff, stroke: { color: 0x000000, width: 3 } } });
+      t.anchor.set(0.5, 1); t.position.set(s.x, s.y - 14); t.zIndex = depthKey(ex.pos);
+      exitLayer.addChild(g, t);
+    }
+    // 营地 NPC (围绕中心环形排布)
+    npcLayer.removeChildren();
+    npcMarkers = [];
+    if (a.isTown) {
+      const cx = a.size[0] / 2, cy = a.size[1] / 2;
+      NPCS.forEach((npc, i) => {
+        const ang = (i / NPCS.length) * Math.PI * 2;
+        const nx = cx + Math.cos(ang) * 6, ny = cy + Math.sin(ang) * 6;
+        npcMarkers.push({ name: npc.name, greeting: npc.greeting, x: nx, y: ny });
+        const s = gridToScreen({ x: nx, y: ny });
+        const g = new Graphics().circle(0, 0, 8).fill({ color: 0xe8d27a }).stroke({ color: 0x000000, width: 2 });
+        const t = new Text({ text: npc.name, style: { fontFamily: 'Georgia,serif', fontSize: 11, fill: 0xffe08a, stroke: { color: 0x000000, width: 3 } } });
+        t.anchor.set(0.5, 1); t.position.set(s.x, s.y - 12);
+        g.position.set(s.x, s.y); g.zIndex = depthKey({ x: nx, y: ny }); t.zIndex = depthKey({ x: nx, y: ny });
+        npcLayer.addChild(g, t);
+      });
+    }
+  }
   const damageTexts: { t: Text; life: number }[] = [];
   let shakeMag = 0; // 屏震强度(衰减)
   let hitstop = 0; // 顿帧(秒), >0 时冻结模拟
@@ -217,6 +255,14 @@ async function main() {
   document.body.appendChild(noticeEl);
   let noticeUntil = 0;
 
+  // NPC 问候 (营地靠近时显示)
+  const npcEl = document.createElement('div');
+  npcEl.style.cssText =
+    'position:absolute;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));max-width:80%;' +
+    'padding:8px 14px;border-radius:10px;background:#0c0c12d8;border:1px solid #6a5a3a;color:#e8e0d0;font-size:13px;' +
+    'text-align:center;pointer-events:none;display:none;z-index:45;';
+  document.body.appendChild(npcEl);
+
   // 阵亡/清场横幅 (点击重生/续战)
   const banner = document.createElement('div');
   banner.style.cssText =
@@ -227,7 +273,6 @@ async function main() {
     e.preventDefault();
     e.stopPropagation();
     if (game.state === 'dead') game.respawn();
-    else if (game.state === 'cleared') game.nextWave();
   });
   document.body.appendChild(banner);
 
@@ -251,6 +296,7 @@ async function main() {
       }
     },
     (_alpha) => {
+      syncArea(); // 区域切换 → 重建地砖/出口/NPC
       // 同步实体精灵 (清理已死/已移除)
       const live = new Set<number>([game.player.id, ...game.monsters.map((m) => m.id)]);
       for (const [id, c] of sprites) {
@@ -280,12 +326,23 @@ async function main() {
         game.notices.length = 0;
       }
       if (noticeUntil && performance.now() > noticeUntil) { noticeEl.style.opacity = '0'; noticeUntil = 0; }
+      // 营地 NPC 邻近问候
+      if (game.currentArea.isTown && npcMarkers.length) {
+        let near: typeof npcMarkers[number] | null = null;
+        let nd = 2.4;
+        for (const m of npcMarkers) {
+          const d = dist(game.player.pos, { x: m.x, y: m.y });
+          if (d < nd) { nd = d; near = m; }
+        }
+        if (near) { npcEl.style.display = 'block'; npcEl.innerHTML = `<b style="color:#ffe08a">${near.name}</b>：${near.greeting}`; }
+        else npcEl.style.display = 'none';
+      } else npcEl.style.display = 'none';
       if (game.state === 'dead') {
         banner.style.display = 'flex';
         banner.innerHTML = '☠ 你已阵亡<div style="font-size:15px;opacity:.85">点击重生</div>';
-      } else if (game.state === 'cleared') {
+      } else if (game.state === 'cleared' && !game.currentArea.isTown) {
         banner.style.display = 'flex';
-        banner.innerHTML = `⚔ 第 ${game.wave} 波 · 区域肃清!<div style="font-size:15px;opacity:.85">点击迎战下一波</div>`;
+        banner.innerHTML = '⚔ 区域肃清!<div style="font-size:15px;opacity:.85">走到发光出口前往相邻区域</div>';
       } else {
         banner.style.display = 'none';
       }
