@@ -426,6 +426,30 @@ async function main() {
   topBtn('📂', 170, () => {
     loadFromDB().then((d) => { if (d) { applySave(game, d); game.notices.push('已读取存档'); } else game.notices.push('暂无存档'); });
   });
+  let audioOn = true;
+  topBtn('🔊', 220, () => { audioOn = !audioOn; audio.setEnabled(audioOn); game.notices.push(audioOn ? '音效开' : '音效关'); });
+
+  // 小地图 (区域俯瞰: 玩家/怪/出口/雇佣兵)
+  const mm = document.createElement('canvas');
+  mm.width = 140; mm.height = 104;
+  mm.style.cssText =
+    'position:absolute;left:50%;transform:translateX(-50%);top:calc(8px + env(safe-area-inset-top));' +
+    'width:140px;height:104px;border:1px solid #6a5a3a99;background:#0009;border-radius:6px;pointer-events:none;z-index:35;';
+  document.body.appendChild(mm);
+  const mmctx = mm.getContext('2d');
+  function syncMinimap(): void {
+    if (!mmctx) return;
+    mmctx.clearRect(0, 0, 140, 104);
+    const [aw, ah] = game.currentArea.size;
+    const sx = 140 / aw, sy = 104 / ah;
+    mmctx.fillStyle = '#3ad6ff';
+    for (const ex of game.currentArea.exits) mmctx.fillRect(ex.pos.x * sx - 2, ex.pos.y * sy - 2, 4, 4);
+    mmctx.fillStyle = '#e23a3a';
+    for (const e of game.monsters) mmctx.fillRect(e.pos.x * sx - 1, e.pos.y * sy - 1, 2, 2);
+    if (game.merc && !game.merc.dead) { mmctx.fillStyle = '#4ad06a'; mmctx.fillRect(game.merc.pos.x * sx - 1, game.merc.pos.y * sy - 1, 3, 3); }
+    mmctx.fillStyle = '#ffd76b';
+    mmctx.fillRect(game.player.pos.x * sx - 2, game.player.pos.y * sy - 2, 4, 4);
+  }
 
   // 升级等提示
   const noticeEl = document.createElement('div');
@@ -511,6 +535,7 @@ async function main() {
         if (damageTexts[i].life <= 0) { damageTexts[i].t.destroy(); damageTexts.splice(i, 1); }
       }
       hud.update();
+      syncMinimap();
       if (game.notices.length) {
         noticeEl.textContent = game.notices[game.notices.length - 1];
         noticeEl.style.opacity = '1';
