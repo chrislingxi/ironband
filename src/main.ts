@@ -396,7 +396,7 @@ async function main() {
         banner.style.display = 'none';
       }
       scene.centerOn(game.player.pos);
-      lighting.update(app.renderer.width / 2, app.renderer.height / 2, 340); // 玩家居中→光照中心
+      lighting.update(app.renderer.width / 2, app.renderer.height / 2, Math.max(app.renderer.width, app.renderer.height) * 0.5); // 亮圈随屏幕
       // 屏震: 在相机居中后叠加随机偏移并衰减
       if (shakeMag > 0.1) {
         scene.world.position.x += (Math.random() - 0.5) * shakeMag * 2;
