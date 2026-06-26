@@ -1,11 +1,13 @@
 import type { Entity, Corpse } from '@game/entities/entity.ts';
 import { makePlayer, makeMonster } from '@game/entities/factory.ts';
 import type { DamageInstance } from '@game/systems/combat/index.ts';
-import { resolveAttack } from '@game/systems/combat/index.ts';
+import { resolveAttack, rollDamage } from '@game/systems/combat/index.ts';
 import { updateMonsterAI, type AIContext } from '@game/systems/ai/behaviors.ts';
-import { BARB_SKILLS } from '@game/classes/barbarian.ts';
+import { CLASS_KEYS, makeCharacterFor, type ClassSkillKey } from '@game/classes/profiles.ts';
 import { generateItem, type ItemInstance, type EquipSlot } from '@game/systems/items/index.ts';
-import { makeBarbarian, deriveCombat, type Character } from '@game/systems/stats/character.ts';
+import { deriveCombat, type Character } from '@game/systems/stats/character.ts';
+import { createMissile, updateMissiles, type Missile } from '@game/systems/missiles/index.ts';
+import type { CharClass, DamageType } from '@game/data/schema.ts';
 import { buildArea, type AreaInstance } from '@game/world/zone.ts';
 import { playerResistPenalty } from '@game/systems/difficulty.ts';
 import { CLASS_SKILLS } from '@game/classes/registry.ts';
@@ -62,11 +64,13 @@ export class Game {
   private rng: RNG;
   private nextGoldId = 1;
 
-  character: Character = makeBarbarian();
+  character: Character;
   skillTree: SkillTreeState = {}; // 已投技能点 (skillId→点数)
+  missiles: Missile[] = []; // 投射物(箭/法术)
 
-  constructor(seed = 1234) {
+  constructor(seed = 1234, cls: CharClass = 'barbarian') {
     this.rng = mulberry32(seed);
+    this.character = makeCharacterFor(cls);
     this.player = makePlayer();
     this.recompute(true); // 由角色+装备派生玩家战斗数值
     this.loadArea('rogue_encampment'); // 从罗格营地起步
@@ -80,6 +84,7 @@ export class Game {
     this.gold = [];
     this.groundItems = [];
     this.swings = [];
+    this.missiles = [];
     for (const sp of this.currentArea.monsterSpawns) this.spawnMonster(sp.defId, sp.x, sp.y);
     this.player.pos = { x: this.currentArea.size[0] / 2, y: this.currentArea.size[1] / 2 };
     this.player.combat.stunUntilMs = 0;
@@ -262,6 +267,11 @@ export class Game {
     }
     this.separate();
 
+    // ----- 投射物 (玩家弹 vs 怪) -----
+    this.missiles = updateMissiles(this.missiles, dt, this.monsters, (m, t) => {
+      this.dealMissileDamage(t as Entity, m);
+    });
+
     // ----- 死亡 → 尸体 + 掉金 -----
     for (const e of this.monsters) {
       if (e.dead) {
@@ -329,23 +339,30 @@ export class Game {
     this.loadArea(this.currentArea.id);
   }
 
-  // 使用技能键 (0=猛击 1=双挥 2=战嚎). 返回是否成功释放.
+  // 使用技能键 (0/1/2). 按职业从 CLASS_KEYS 取行为, 泛化执行近战/投射.
   useSkill(slot: number): boolean {
     if (slot < 0 || slot > 2) return false;
     const p = this.player;
     if (p.dead || this.timeMs < p.combat.stunUntilMs || this.skillCd[slot] > 0) return false;
-    const aim = this.nearestMonster(p.pos, 12);
+    const key = CLASS_KEYS[this.character.cls][slot];
+    const aim = this.nearestMonster(p.pos, 16);
     if (aim) p.facing = Math.atan2(aim.pos.y - p.pos.y, aim.pos.x - p.pos.x);
-    if (slot === 0) this.skBash();
-    else if (slot === 1) this.skDoubleSwing();
-    else this.skWarCry();
-    this.skillCd[slot] = BARB_SKILLS[slot].cooldown;
+    const dmg = this.scaleDamage(key.damageMult, key.damageType);
+    switch (key.kind) {
+      case 'melee': this.execMelee(key, dmg); break;
+      case 'arc': this.execArc(key, dmg); break;
+      case 'aoe': this.execAoe(key, dmg); break;
+      case 'projectile': this.execProjectiles(key, dmg, 1); break;
+      case 'spread': this.execProjectiles(key, dmg, key.count ?? 3); break;
+      case 'nova': this.execNova(key, dmg); break;
+    }
+    this.skillCd[slot] = key.cooldown;
     return true;
   }
 
-  private scaleDamage(mult: number): DamageInstance[] {
+  private scaleDamage(mult: number, type?: DamageType): DamageInstance[] {
     return this.player.damage.map((d) => ({
-      type: d.type, min: Math.round(d.min * mult), max: Math.round(d.max * mult),
+      type: type ?? d.type, min: Math.max(1, Math.round(d.min * mult)), max: Math.max(1, Math.round(d.max * mult)),
     }));
   }
 
@@ -357,37 +374,92 @@ export class Game {
     return Math.abs(da) <= halfAngle;
   }
 
-  private skBash(): void {
+  private execMelee(key: ClassSkillKey, dmg: DamageInstance[]): void {
     const p = this.player;
     const t = this.nearestMonster(p.pos, p.attackRange + 0.6);
     if (t) {
-      this.attack(p, t, this.scaleDamage(2.6));
-      if (!t.dead) { // 强击退
+      this.attack(p, t, dmg);
+      if (!t.dead) {
         const dx = t.pos.x - p.pos.x, dy = t.pos.y - p.pos.y, d = Math.hypot(dx, dy) || 1;
         t.pos.x += (dx / d) * 0.45; t.pos.y += (dy / d) * 0.45;
+        if (key.stun) t.combat.stunUntilMs = Math.max(t.combat.stunUntilMs, this.timeMs + key.stun * 1000);
       }
     }
     this.swings.push({ pos: { ...p.pos }, facing: p.facing, ageMs: 0, kind: 'skill' });
   }
 
-  private skDoubleSwing(): void {
+  private execArc(key: ClassSkillKey, dmg: DamageInstance[]): void {
     const p = this.player;
-    const dmg = this.scaleDamage(1.25);
-    for (const e of this.monsters) if (!e.dead && this.inArc(e, p.facing, 2.2, 1.2)) this.attack(p, e, dmg);
+    for (const e of this.monsters) if (!e.dead && this.inArc(e, p.facing, key.radius ?? 2.2, 1.2)) this.attack(p, e, dmg);
     this.swings.push({ pos: { ...p.pos }, facing: p.facing, ageMs: 0, kind: 'skill' });
   }
 
-  private skWarCry(): void {
+  private execAoe(key: ClassSkillKey, dmg: DamageInstance[]): void {
     const p = this.player;
-    const dmg = this.scaleDamage(1.0);
+    const r = key.radius ?? 3.2;
     for (const e of this.monsters) {
       if (e.dead) continue;
-      if (dist(e.pos, p.pos) - e.radius <= 3.2) {
+      if (dist(e.pos, p.pos) - e.radius <= r) {
         this.attack(p, e, dmg);
-        if (!e.dead) e.combat.stunUntilMs = Math.max(e.combat.stunUntilMs, this.timeMs + 800);
+        if (!e.dead && key.stun) e.combat.stunUntilMs = Math.max(e.combat.stunUntilMs, this.timeMs + key.stun * 1000);
       }
     }
     this.swings.push({ pos: { ...p.pos }, facing: p.facing, ageMs: 0, kind: 'skill' });
+  }
+
+  private missileSpeed(kind: NonNullable<ClassSkillKey['missileKind']>): number {
+    switch (kind) {
+      case 'arrow': return 15; case 'bolt': return 13; case 'iceball': return 11;
+      case 'fireball': return 10; case 'nova': return 9; default: return 12;
+    }
+  }
+  private missileColor(type?: DamageType): number {
+    switch (type) {
+      case 'fire': return 0xff7a3a; case 'cold': return 0x8fd6ff; case 'lightning': return 0xfff060;
+      case 'poison': return 0x9be04a; case 'magic': return 0xd58cff; default: return 0xf0e0c0;
+    }
+  }
+
+  private spawnMissile(dir: Vec2, key: ClassSkillKey, dmg: DamageInstance[]): void {
+    const kind = key.missileKind ?? 'arrow';
+    this.missiles.push(createMissile({
+      pos: this.player.pos, dir, speed: this.missileSpeed(kind), dmg, kind, fromPlayer: true,
+      range: 14, pierce: kind === 'bolt' ? 1 : 0,
+      radius: kind === 'fireball' || kind === 'nova' ? 0.6 : 0.35, color: this.missileColor(key.damageType),
+    }));
+  }
+
+  private execProjectiles(key: ClassSkillKey, dmg: DamageInstance[], count: number): void {
+    const p = this.player;
+    const spread = 0.22;
+    for (let i = 0; i < count; i++) {
+      const a = p.facing + (count > 1 ? (i - (count - 1) / 2) * spread : 0);
+      this.spawnMissile({ x: Math.cos(a), y: Math.sin(a) }, key, dmg);
+    }
+    this.swings.push({ pos: { ...p.pos }, facing: p.facing, ageMs: 0, kind: 'skill' });
+  }
+
+  private execNova(key: ClassSkillKey, dmg: DamageInstance[]): void {
+    const n = 12;
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2;
+      this.spawnMissile({ x: Math.cos(a), y: Math.sin(a) }, key, dmg);
+    }
+    this.swings.push({ pos: { ...this.player.pos }, facing: this.player.facing, ageMs: 0, kind: 'skill' });
+  }
+
+  // 投射物命中结算 (法术必中, 走抗性; 冰系附带减速)
+  private dealMissileDamage(target: Entity, m: Missile): void {
+    const { total } = rollDamage(m.dmg, target.combat.resist, this.rng);
+    target.combat.hp = Math.max(0, target.combat.hp - total);
+    target.hitFlash = 1;
+    const killed = target.combat.hp <= 0;
+    this.events.push({ pos: { ...target.pos }, amount: total, killed, toPlayer: target.kind === 'player' });
+    if (!killed && m.kind === 'iceball') target.combat.stunUntilMs = Math.max(target.combat.stunUntilMs, this.timeMs + 1000);
+    if (killed) {
+      target.dead = true;
+      if (m.fromPlayer && target.kind === 'monster') this.grantXp(target.xpReward);
+    }
   }
 
   private nearestMonster(from: Vec2, range: number): Entity | null {

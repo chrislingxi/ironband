@@ -1,5 +1,5 @@
 import type { Game } from '@game/sim/Game.ts';
-import { BARB_SKILLS } from '@game/classes/barbarian.ts';
+import { CLASS_KEYS, type ClassSkillKey } from '@game/classes/profiles.ts';
 
 // 轻量 DOM HUD: 血条 / 金币 / 怪物数 / 3 技能键(含冷却). 触屏友好, 适配安全区.
 let styleInjected = false;
@@ -41,7 +41,7 @@ export class HUD {
   private infoEl: HTMLElement;
   private lvlEl: HTMLElement;
   private xpFill: HTMLElement;
-  private skills: { cd: HTMLElement; meta: (typeof BARB_SKILLS)[number] }[] = [];
+  private skills: { cd: HTMLElement; meta: ClassSkillKey }[] = [];
 
   constructor(private game: Game, onSkill: (slot: number) => void) {
     injectStyle();
@@ -64,7 +64,7 @@ export class HUD {
     this.xpFill = root.querySelector('.xpbar > i') as HTMLElement;
     const skillsEl = root.querySelector('.skills') as HTMLElement;
 
-    BARB_SKILLS.forEach((meta, i) => {
+    CLASS_KEYS[this.game.character.cls].forEach((meta, i) => {
       const btn = document.createElement('div');
       btn.className = 'skill';
       btn.innerHTML = `${meta.icon}<div class="cd"></div><div class="nm">${meta.name}</div>`;
