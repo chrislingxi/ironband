@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <title>Ironband — 暗黑式刷宝 ARPG</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body { width: 100%; height: 100%; overflow: hidden; background: #0a0a0f;
+      font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; color: #e8e0d0;
+      user-select: none; -webkit-user-select: none; touch-action: none; }
+    #app { position: absolute; inset: 0; }
+    canvas { display: block; }
+    #boot { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      color: #8a8276; font-size: 14px; font-family: Georgia, serif; letter-spacing: 1px; }
+    #booterr { -webkit-user-select: text; user-select: text; }
+  </style>
+</head>
+<body>
+  <div id="app"><div id="boot">Ironband 加载中…</div></div>
+  <!-- 全局错误捕获: 即使模块解析/加载失败也显示文字, 避免纯黑屏 (真机定位用) -->
+  <script>
+    (function () {
+      function show(msg) {
+        var d = document.getElementById('booterr');
+        if (!d) { d = document.createElement('div'); d.id = 'booterr';
+          d.style.cssText = 'position:fixed;inset:0;padding:18px;color:#ffd27a;background:#120a0a;font:12px/1.5 monospace;white-space:pre-wrap;overflow:auto;z-index:99999';
+          document.body.appendChild(d); }
+        d.textContent = 'Ironband 启动信息:\n' + msg;
+      }
+      // capture=true 以捕获资源(脚本/样式)加载失败 (不冒泡)
+      window.addEventListener('error', function (e) {
+        var t = e.target;
+        if (t && (t.src || t.href)) { show('资源加载失败 (可能是缓存/路径):\n' + (t.src || t.href)); return; }
+        show((e.message || 'error') + '\n' + (e.filename || '') + ':' + (e.lineno || '') + '\n' + ((e.error && e.error.stack) || ''));
+      }, true);
+      window.addEventListener('unhandledrejection', function (e) {
+        var r = e.reason; show('unhandledrejection:\n' + ((r && (r.stack || r.message)) || String(r)));
+      });
+    })();
+  </script>
+  <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:site": "npm run build && cp dist/web/index.html index.html",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -19,6 +20,7 @@
     "playwright-core": "^1.61.1",
     "typescript": "^5.7.2",
     "vite": "^6.0.5",
+    "vite-plugin-singlefile": "^2.3.3",
     "vitest": "^2.1.8"
   }
 }

@@ -1,0 +1,40 @@
+name: Build single-file site
+
+# Pages 走「从分支根目录」发布 → 每次推送自动重建根目录的自包含 index.html。
+# paths-ignore index.html 防止自提交触发死循环。
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['index.html']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-site
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: cp dist/web/index.html index.html
+      - name: Commit rebuilt single-file index.html
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet -- index.html; then
+            git add index.html
+            git commit -m "chore: rebuild single-file index.html [skip ci]"
+            git push
+          else
+            echo "index.html unchanged"
+          fi
