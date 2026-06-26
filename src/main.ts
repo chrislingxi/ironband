@@ -21,6 +21,10 @@ import { TownPanel, type TownData } from '@game/ui/town.ts';
 import { QUESTS } from '@game/world/quests.ts';
 import { buyPrice, sellPrice, gambleCost } from '@game/systems/town/economy.ts';
 import { hireCost, reviveCost } from '@game/systems/merc/merc.ts';
+import { GameAudio } from '@engine/audio/index.ts';
+import { serializeGame, applySave, saveToDB, loadFromDB } from '@game/systems/save/index.ts';
+import { WaypointPanel } from '@game/ui/waypoint.ts';
+import { listWaypoints } from '@game/systems/waypoint/waypoint.ts';
 import type { CharClass } from '@game/data/schema.ts';
 import { dist } from '@engine/math/vec.ts';
 
@@ -138,6 +142,8 @@ async function main() {
   const damageTexts: { t: Text; life: number }[] = [];
   let shakeMag = 0; // 屏震强度(衰减)
   let hitstop = 0; // 顿帧(秒), >0 时冻结模拟
+  let prevGold = 0; // 上帧金币(检测拾取播币音)
+  let prevInv = 0; // 上帧背包数(检测拾物)
 
   function actorKind(e: Entity): ActorKind {
     if (e.kind === 'player') return 'humanoid';
@@ -321,7 +327,7 @@ async function main() {
     'width:54px;height:54px;border-radius:12px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
     'align-items:center;justify-content:center;font-size:26px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
   const skillPanel = new SkillTreePanel(game, () => { skillPanel.hide(); paused = false; });
-  function closePanels(): void { panel.hide(); skillPanel.hide(); questLog.hide(); town.hide(); paused = false; }
+  function closePanels(): void { panel.hide(); skillPanel.hide(); questLog.hide(); town.hide(); wp.hide(); paused = false; }
   bagBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();
     if (panel.open) closePanels();
@@ -394,6 +400,33 @@ async function main() {
   });
   document.body.appendChild(townBtn);
 
+  // 程序化音频: 首个手势解锁 + 起氛围 BGM
+  const audio = new GameAudio();
+  window.addEventListener('pointerdown', () => { audio.unlock(); audio.startBgm(); }, { once: true });
+
+  // 顶部右侧功能按钮 (航点/存档/读档)
+  function topBtn(emoji: string, topPx: number, onTap: () => void): void {
+    const b = document.createElement('div');
+    b.textContent = emoji;
+    b.style.cssText =
+      `position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(${topPx}px + env(safe-area-inset-top));` +
+      'width:42px;height:42px;border-radius:10px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
+      'align-items:center;justify-content:center;font-size:20px;pointer-events:auto;z-index:40;box-shadow:0 2px 6px #000a;';
+    b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); audio.sfx('select'); onTap(); });
+    document.body.appendChild(b);
+  }
+  // 航点
+  const wp = new WaypointPanel((id) => { game.loadArea(id); wp.hide(); paused = false; }, () => { wp.hide(); paused = false; });
+  topBtn('🗺', 70, () => {
+    if (wp.open) { wp.hide(); paused = false; }
+    else { closePanels(); wp.show(listWaypoints(game.discoveredWaypoints, AREAS)); paused = true; }
+  });
+  // 存档 / 读档
+  topBtn('💾', 120, () => { saveToDB(serializeGame(game)).then(() => game.notices.push('已保存进度')); });
+  topBtn('📂', 170, () => {
+    loadFromDB().then((d) => { if (d) { applySave(game, d); game.notices.push('已读取存档'); } else game.notices.push('暂无存档'); });
+  });
+
   // 升级等提示
   const noticeEl = document.createElement('div');
   noticeEl.style.cssText =
@@ -457,6 +490,16 @@ async function main() {
       syncSwings();
       syncMissiles();
       syncMerc();
+      // 音效: 命中/受击/升级/拾取
+      if (game.events.length) {
+        if (game.events.some((e) => e.toPlayer)) audio.sfx('hurt');
+        else audio.sfx('hit');
+      }
+      if (game.notices.some((n) => n.includes('升级'))) audio.sfx('levelup');
+      if (game.goldTotal > prevGold) audio.sfx('coin');
+      if (game.inventory.length > prevInv) audio.sfx('pickup');
+      prevGold = game.goldTotal;
+      prevInv = game.inventory.length;
       spawnDamageText();
       // 伤害数字漂浮淡出
       for (const d of damageTexts) {
