@@ -15,6 +15,8 @@ import { InventoryPanel } from '@game/ui/inventory.ts';
 import { SkillTreePanel } from '@game/ui/skilltree.ts';
 import { NPCS } from '@game/world/npcs.ts';
 import { AREAS } from '@game/world/act1.ts';
+import { TitleScreen } from '@game/ui/titlescreen.ts';
+import type { CharClass } from '@game/data/schema.ts';
 import { dist } from '@engine/math/vec.ts';
 
 const areaName = (id: string): string => AREAS[id]?.name ?? id;
@@ -36,7 +38,12 @@ async function main() {
   window.addEventListener('resize', () => lighting.resize());
   // 地砖由 syncArea() 按当前区域尺寸/主题构建
 
-  const game = new Game(0xC0FFEE); // 构造时自动加载罗格营地
+  // 选职界面 (Promise 化: 选定后再开局)
+  const cls = await new Promise<CharClass>((res) => {
+    const title = new TitleScreen((c) => res(c));
+    title.show();
+  });
+  const game = new Game(0xC0FFEE, cls); // 构造时自动加载罗格营地
 
   // ----- 渲染层 -----
   const sprites = new Map<number, Container>();
@@ -45,6 +52,7 @@ async function main() {
   const goldLayer = new Container();
   const itemLayer = new Container();
   const swingLayer = new Container();
+  const missileLayer = new Container();
   const exitLayer = new Container();
   const npcLayer = new Container();
   scene.entityLayer.addChild(exitLayer);
@@ -53,6 +61,7 @@ async function main() {
   scene.entityLayer.addChild(goldLayer);
   scene.entityLayer.addChild(itemLayer);
   scene.entityLayer.addChild(swingLayer);
+  scene.entityLayer.addChild(missileLayer);
   // 区域切换时重建的静态内容
   let lastAreaId = '';
   let npcMarkers: { name: string; greeting: string; x: number; y: number }[] = [];
@@ -218,6 +227,20 @@ async function main() {
     }
   }
 
+  function syncMissiles(): void {
+    missileLayer.removeChildren();
+    for (const m of game.missiles) {
+      const s = gridToScreen(m.pos);
+      const rad = m.kind === 'fireball' || m.kind === 'nova' ? 8 : 5;
+      const g = new Graphics().circle(0, 0, rad).fill({ color: m.color }).stroke({ color: 0x000000, width: 1 });
+      // 拖尾
+      g.circle(-m.vel.x * 6, -m.vel.y * 3, rad * 0.6).fill({ color: m.color, alpha: 0.4 });
+      g.position.set(s.x, s.y - 8);
+      g.zIndex = 1e8;
+      missileLayer.addChild(g);
+    }
+  }
+
   function syncGold(): void {
     goldLayer.removeChildren();
     for (const gd of game.gold) {
@@ -325,6 +348,7 @@ async function main() {
       syncGold();
       syncGroundItems();
       syncSwings();
+      syncMissiles();
       spawnDamageText();
       // 伤害数字漂浮淡出
       for (const d of damageTexts) {
