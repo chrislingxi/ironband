@@ -2,7 +2,7 @@ import type { Vec2 } from '@engine/math/vec.ts';
 import type { Combatant, DamageInstance } from '@game/systems/combat/index.ts';
 import type { DamageType } from '@game/data/schema.ts';
 
-export type AIKind = 'skeleton' | 'zombie' | 'fallen' | 'shaman' | 'none';
+export type AIKind = 'skeleton' | 'zombie' | 'fallen' | 'shaman' | 'archer' | 'brute' | 'none';
 
 // 游戏实体 (玩家/怪物). 组合 Transform + Combatant 契约, 战斗逻辑与渲染解耦.
 export interface Entity {
@@ -27,6 +27,11 @@ export interface Entity {
   // 占位渲染 (T1 将替换为 FLARE 精灵)
   color: number;
   size: number; // 占位半径(px)
+  // 精英怪 (champion/unique 词缀)
+  elite?: { name: string; color: number };
+  onDeathExplode?: boolean; // 火焰附魔: 死亡爆炸
+  onHitChill?: boolean; // 寒冷附魔: 命中减速
+  aura?: boolean; // 增益光环
 }
 
 export interface Corpse {

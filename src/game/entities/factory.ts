@@ -1,6 +1,9 @@
 import type { Entity } from './entity.ts';
 import { freshId, makeCombatant, noResist } from './entity.ts';
 import { MONSTERS } from '@game/data/monsters.ts';
+import { MONSTERS_EXT } from '@game/data/monsters2.ts';
+
+const ALL_MONSTERS = { ...MONSTERS, ...MONSTERS_EXT };
 import type { Difficulty, DamageType } from '@game/data/schema.ts';
 import type { DamageInstance } from '@game/systems/combat/index.ts';
 import { randInt, type RNG } from '@engine/math/rng.ts';
@@ -10,6 +13,10 @@ const PLACEHOLDER: Record<string, { color: number; size: number }> = {
   zombie: { color: 0x6a8a4a, size: 14 },
   fallen: { color: 0xc0503a, size: 9 },
   shaman: { color: 0xa050c0, size: 12 },
+  archer: { color: 0xc8b88a, size: 12 },
+  brute: { color: 0x8a4a3a, size: 18 },
+  spitter: { color: 0x7ac04a, size: 10 },
+  hound: { color: 0x9a6a3a, size: 10 },
 };
 
 export function makePlayer(): Entity {
@@ -26,7 +33,7 @@ export function makePlayer(): Entity {
 }
 
 export function makeMonster(defId: string, x: number, y: number, rng: RNG, diff: Difficulty = 'normal'): Entity {
-  const m = MONSTERS[defId];
+  const m = ALL_MONSTERS[defId];
   if (!m) throw new Error(`unknown monster: ${defId}`);
   const [hpMin, hpMax] = m.hp[diff];
   const hp = randInt(rng, hpMin, hpMax);

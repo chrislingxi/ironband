@@ -13,6 +13,7 @@ export interface AIContext {
   rng: RNG;
   attack: (attacker: Entity, defender: Entity, dmg: DamageInstance[]) => void;
   spawn: (defId: string, x: number, y: number) => void;
+  shoot: (from: Entity, dmg: DamageInstance[], kind: 'arrow' | 'fireball' | 'bolt', color: number) => void;
 }
 
 function faceAndStep(e: Entity, tx: number, ty: number, dt: number, sign = 1): void {
@@ -69,9 +70,9 @@ function aiShaman(e: Entity, ctx: AIContext): void {
   else if (d > 7) faceAndStep(e, ctx.player.pos.x, ctx.player.pos.y, ctx.dt);
   else { e.moving = false; e.facing = Math.atan2(ctx.player.pos.y - e.pos.y, ctx.player.pos.x - e.pos.x); }
 
-  // 远程攻击 (射程内)
+  // 远程攻击: 放火球飞射物 (射程内)
   if (d <= 9 && e.attackCd <= 0) {
-    ctx.attack(e, ctx.player, e.damage);
+    ctx.shoot(e, e.damage, 'fireball', 0xff7a3a);
     e.attackCd = e.attackInterval;
   }
   // 复活: 找附近堕落者尸体, 移除并召唤一只 (复活冷却复用 attackCd 之外的简单节流由 Game 控制)
@@ -83,6 +84,19 @@ function aiShaman(e: Entity, ctx: AIContext): void {
   }
 }
 
+// 远程射手(弓手/吐毒虫): 拉开距离放飞射物.
+function aiArcher(e: Entity, ctx: AIContext): void {
+  const d = dist(e.pos, ctx.player.pos);
+  if (d < 4) faceAndStep(e, ctx.player.pos.x, ctx.player.pos.y, ctx.dt, -1); // 太近后撤
+  else if (d > 9) faceAndStep(e, ctx.player.pos.x, ctx.player.pos.y, ctx.dt); // 太远靠近
+  else { e.moving = false; e.facing = Math.atan2(ctx.player.pos.y - e.pos.y, ctx.player.pos.x - e.pos.x); }
+  if (d <= 10 && e.attackCd <= 0) {
+    const poison = e.defId === 'spitter';
+    ctx.shoot(e, e.damage, poison ? 'bolt' : 'arrow', poison ? 0x9be04a : 0xc8b88a);
+    e.attackCd = e.attackInterval;
+  }
+}
+
 export function updateMonsterAI(e: Entity, ctx: AIContext): void {
   if (e.dead) return;
   if (ctx.nowMs < e.combat.stunUntilMs) { e.moving = false; return; } // 受身中不动
@@ -90,6 +104,7 @@ export function updateMonsterAI(e: Entity, ctx: AIContext): void {
   switch (e.ai) {
     case 'skeleton':
     case 'zombie':
+    case 'brute':
       aiChaser(e, ctx);
       break;
     case 'fallen':
@@ -97,6 +112,9 @@ export function updateMonsterAI(e: Entity, ctx: AIContext): void {
       break;
     case 'shaman':
       aiShaman(e, ctx);
+      break;
+    case 'archer':
+      aiArcher(e, ctx);
       break;
     default:
       e.moving = false;
