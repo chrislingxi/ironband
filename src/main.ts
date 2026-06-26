@@ -13,15 +13,29 @@ import type { Entity } from '@game/entities/entity.ts';
 import { HUD } from '@game/ui/hud.ts';
 import { InventoryPanel } from '@game/ui/inventory.ts';
 import { SkillTreePanel } from '@game/ui/skilltree.ts';
-import { NPCS } from '@game/world/npcs.ts';
+import { NPCS, type NpcRole } from '@game/world/npcs.ts';
 import { AREAS } from '@game/world/act1.ts';
 import { TitleScreen } from '@game/ui/titlescreen.ts';
 import { QuestLogPanel } from '@game/ui/questlog.ts';
+import { TownPanel, type TownMode } from '@game/ui/townservices.ts';
 import { QUESTS } from '@game/world/quests.ts';
 import type { CharClass } from '@game/data/schema.ts';
 import { dist } from '@engine/math/vec.ts';
 
 const areaName = (id: string): string => AREAS[id]?.name ?? id;
+
+// NPC 角色 → 营地服务面板模式 (heal 为即时治疗, travel 留待 E 阶段)
+type NpcAction = TownMode | 'heal' | null;
+function roleToAction(role: NpcRole): NpcAction {
+  switch (role) {
+    case 'vendor': return 'shop';
+    case 'gamble': return 'gamble';
+    case 'mercenary': return 'mercenary';
+    case 'quest': return 'identify'; // 凯恩兼鉴定
+    case 'heal': return 'heal';
+    default: return null; // travel 等
+  }
+}
 
 function errText(e: unknown): string {
   if (e instanceof Error) return (e.message || '') + '\n' + (e.stack || '');
@@ -92,7 +106,8 @@ async function main() {
   scene.entityLayer.addChild(missileLayer);
   // 区域切换时重建的静态内容
   let lastAreaId = '';
-  let npcMarkers: { name: string; greeting: string; x: number; y: number }[] = [];
+  interface NpcMarker { name: string; greeting: string; x: number; y: number; action: NpcAction; }
+  let npcMarkers: NpcMarker[] = [];
   function syncArea(): void {
     const a = game.currentArea;
     if (a.id === lastAreaId) return;
@@ -120,7 +135,7 @@ async function main() {
       NPCS.forEach((npc, i) => {
         const ang = (i / NPCS.length) * Math.PI * 2;
         const nx = cx + Math.cos(ang) * 6, ny = cy + Math.sin(ang) * 6;
-        npcMarkers.push({ name: npc.name, greeting: npc.greeting, x: nx, y: ny });
+        npcMarkers.push({ name: npc.name, greeting: npc.greeting, x: nx, y: ny, action: roleToAction(npc.role) });
         const s = gridToScreen({ x: nx, y: ny });
         const g = new Graphics().circle(0, 0, 8).fill({ color: 0xe8d27a }).stroke({ color: 0x000000, width: 2 });
         const t = new Text({ text: npc.name, style: { fontFamily: 'Georgia,serif', fontSize: 11, fill: 0xffe08a, stroke: { color: 0x000000, width: 3 } } });
@@ -128,6 +143,14 @@ async function main() {
         g.position.set(s.x, s.y); g.zIndex = depthKey({ x: nx, y: ny }); t.zIndex = depthKey({ x: nx, y: ny });
         npcLayer.addChild(g, t);
       });
+      // 共享仓库箱 (营地中心, 点击存取)
+      npcMarkers.push({ name: '仓库', greeting: '一只结实的箱子, 营地的安身之物都存在这里。', x: cx, y: cy, action: 'stash' });
+      const cs = gridToScreen({ x: cx, y: cy });
+      const chest = new Graphics().rect(-7, -6, 14, 11).fill({ color: 0x8a6a3a }).stroke({ color: 0x000000, width: 2 });
+      const ct = new Text({ text: '仓库', style: { fontFamily: 'Georgia,serif', fontSize: 11, fill: 0xffe08a, stroke: { color: 0x000000, width: 3 } } });
+      ct.anchor.set(0.5, 1); ct.position.set(cs.x, cs.y - 10);
+      chest.position.set(cs.x, cs.y); chest.zIndex = depthKey({ x: cx, y: cy }); ct.zIndex = depthKey({ x: cx, y: cy });
+      npcLayer.addChild(chest, ct);
     }
   }
   const damageTexts: { t: Text; life: number }[] = [];
@@ -302,11 +325,13 @@ async function main() {
     'width:54px;height:54px;border-radius:12px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
     'align-items:center;justify-content:center;font-size:26px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
   const skillPanel = new SkillTreePanel(game, () => { skillPanel.hide(); paused = false; });
-  function closePanels(): void { panel.hide(); skillPanel.hide(); paused = false; }
+  // 营地服务面板 (商店/赌博/雇佣/鉴定/仓库)
+  const townPanel = new TownPanel(game, () => { townPanel.hide(); paused = false; });
+  function closePanels(): void { panel.hide(); skillPanel.hide(); townPanel.hide(); paused = false; }
   bagBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();
     if (panel.open) closePanels();
-    else { skillPanel.hide(); panel.show(); paused = true; }
+    else { skillPanel.hide(); townPanel.hide(); panel.show(); paused = true; }
   });
   document.body.appendChild(bagBtn);
 
@@ -320,7 +345,7 @@ async function main() {
   skillBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();
     if (skillPanel.open) closePanels();
-    else { panel.hide(); skillPanel.show(); paused = true; }
+    else { panel.hide(); townPanel.hide(); skillPanel.show(); paused = true; }
   });
   document.body.appendChild(skillBtn);
 
@@ -335,7 +360,7 @@ async function main() {
   questBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();
     if (questLog.open) { questLog.hide(); paused = false; }
-    else { panel.hide(); skillPanel.hide(); questLog.show(QUESTS, game.questProgress); paused = true; }
+    else { panel.hide(); skillPanel.hide(); townPanel.hide(); questLog.show(QUESTS, game.questProgress); paused = true; }
   });
   document.body.appendChild(questBtn);
 
@@ -347,13 +372,27 @@ async function main() {
   document.body.appendChild(noticeEl);
   let noticeUntil = 0;
 
-  // NPC 问候 (营地靠近时显示)
+  // NPC 问候 (营地靠近时显示; 有服务的 NPC 可点击交互)
   const npcEl = document.createElement('div');
   npcEl.style.cssText =
     'position:absolute;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));max-width:80%;' +
     'padding:8px 14px;border-radius:10px;background:#0c0c12d8;border:1px solid #6a5a3a;color:#e8e0d0;font-size:13px;' +
-    'text-align:center;pointer-events:none;display:none;z-index:45;';
+    'text-align:center;pointer-events:auto;display:none;z-index:45;';
   document.body.appendChild(npcEl);
+  let nearMarker: NpcMarker | null = null;
+  npcEl.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    const m = nearMarker;
+    if (!m || !m.action) return;
+    if (m.action === 'heal') {
+      game.player.combat.hp = game.player.combat.maxHp;
+      game.notices.push('阿卡拉治愈了你的伤');
+      return;
+    }
+    panel.hide(); skillPanel.hide(); questLog.hide();
+    townPanel.show(m.action as TownMode, m.name);
+    paused = true;
+  });
 
   // 阵亡/清场横幅 (点击重生/续战)
   const banner = document.createElement('div');
@@ -390,12 +429,15 @@ async function main() {
     (_alpha) => {
       syncArea(); // 区域切换 → 重建地砖/出口/NPC
       // 同步实体精灵 (清理已死/已移除)
+      const merc = game.merc && !game.merc.dead ? game.merc : null;
       const live = new Set<number>([game.player.id, ...game.monsters.map((m) => m.id)]);
+      if (merc) live.add(merc.id);
       for (const [id, c] of sprites) {
         if (!live.has(id)) { c.destroy({ children: true }); sprites.delete(id); actors.delete(id); }
       }
       syncEntity(game.player);
       for (const m of game.monsters) syncEntity(m);
+      if (merc) syncEntity(merc);
       syncCorpses();
       syncGold();
       syncGroundItems();
@@ -419,17 +461,21 @@ async function main() {
         game.notices.length = 0;
       }
       if (noticeUntil && performance.now() > noticeUntil) { noticeEl.style.opacity = '0'; noticeUntil = 0; }
-      // 营地 NPC 邻近问候
-      if (game.currentArea.isTown && npcMarkers.length) {
-        let near: typeof npcMarkers[number] | null = null;
+      // 营地 NPC 邻近问候 + 交互提示
+      if (game.currentArea.isTown && npcMarkers.length && !paused) {
+        let near: NpcMarker | null = null;
         let nd = 2.4;
         for (const m of npcMarkers) {
           const d = dist(game.player.pos, { x: m.x, y: m.y });
           if (d < nd) { nd = d; near = m; }
         }
-        if (near) { npcEl.style.display = 'block'; npcEl.innerHTML = `<b style="color:#ffe08a">${near.name}</b>：${near.greeting}`; }
-        else npcEl.style.display = 'none';
-      } else npcEl.style.display = 'none';
+        nearMarker = near;
+        if (near) {
+          npcEl.style.display = 'block';
+          const hint = near.action ? `<div style="margin-top:4px;color:#ffd76b;font-size:12px">▸ 点击此处${near.action === 'heal' ? '治疗' : '交谈'}</div>` : '';
+          npcEl.innerHTML = `<b style="color:#ffe08a">${near.name}</b>：${near.greeting}${hint}`;
+        } else npcEl.style.display = 'none';
+      } else { npcEl.style.display = 'none'; nearMarker = null; }
       if (game.state === 'dead') {
         banner.style.display = 'flex';
         banner.innerHTML = '☠ 你已阵亡<div style="font-size:15px;opacity:.85">点击重生</div>';

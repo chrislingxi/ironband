@@ -27,6 +27,7 @@ export interface ItemInstance {
   ilvl: number;
   affixes: RolledAffix[];
   name: string; // 生成名
+  identified: boolean; // 是否已鉴定 (稀有/暗金掉落未鉴定, 鉴定后才显词缀/可穿戴)
 }
 
 // 各属性合计 (装备贡献 + 基础)
@@ -40,7 +41,8 @@ export function addStat(bag: StatBag, key: StatKey, v: number): void {
   bag[key] = (bag[key] ?? 0) + v;
 }
 
-// 汇总一件装备的词缀到 bag
+// 汇总一件装备的词缀到 bag (未鉴定物品不提供词缀加成)
 export function accumulateItem(bag: StatBag, item: ItemInstance): void {
+  if (!item.identified) return;
   for (const a of item.affixes) addStat(bag, a.stat, a.value);
 }

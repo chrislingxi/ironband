@@ -2,7 +2,7 @@ import type { Game } from '@game/sim/Game.ts';
 import type { ItemInstance, RolledAffix, EquipSlot } from '@game/systems/items/index.ts';
 import { deriveCombat } from '@game/systems/stats/character.ts';
 
-const RARITY_HEX: Record<string, string> = {
+export const RARITY_HEX: Record<string, string> = {
   normal: '#c8c8c8', magic: '#7a9cff', rare: '#ffe85a', set: '#33cc33', unique: '#c8945a',
 };
 const SLOT_LABEL: Record<EquipSlot, string> = {
@@ -21,11 +21,20 @@ const STAT_TPL: Record<string, string> = {
 function affixText(a: RolledAffix): string {
   return (STAT_TPL[a.stat] ?? `+{v} ${a.stat}`).replace('{v}', String(a.value));
 }
-function itemTip(it: ItemInstance): string {
-  const lines = [`<b style="color:${RARITY_HEX[it.rarity]}">${it.name}</b>`, `<span style="opacity:.6">${it.base.name} (ilvl ${it.ilvl})</span>`];
+// 物品显示名: 未鉴定的稀有/暗金只露基础名 (悬念留到鉴定)
+export function itemDisplayName(it: ItemInstance): string {
+  return it.identified ? it.name : `未鉴定的${it.base.name}`;
+}
+
+export function itemTip(it: ItemInstance): string {
+  const lines = [`<b style="color:${RARITY_HEX[it.rarity]}">${itemDisplayName(it)}</b>`, `<span style="opacity:.6">${it.base.name} (ilvl ${it.ilvl})</span>`];
   if (it.base.baseDamage) lines.push(`<span style="opacity:.7">伤害 ${it.base.baseDamage[0]}-${it.base.baseDamage[1]}</span>`);
   if (it.base.baseDefense) lines.push(`<span style="opacity:.7">防御 ${it.base.baseDefense[0]}-${it.base.baseDefense[1]}</span>`);
-  for (const a of it.affixes) lines.push(`<span style="color:#7a9cff">${affixText(a)}</span>`);
+  if (it.identified) {
+    for (const a of it.affixes) lines.push(`<span style="color:#7a9cff">${affixText(a)}</span>`);
+  } else {
+    lines.push('<span style="color:#c89a4a">⚠ 未鉴定 — 需找凯恩鉴定后方可穿戴</span>');
+  }
   return lines.join('<br>');
 }
 
@@ -108,7 +117,7 @@ export class InventoryPanel {
       const cell = document.createElement('div');
       cell.className = 'cell';
       cell.innerHTML = `<div class="s">${SLOT_LABEL[slot]}</div>` +
-        (it ? `<span style="color:${RARITY_HEX[it.rarity]}">${it.name}</span>` : '<span style="opacity:.35">空</span>');
+        (it ? `<span style="color:${RARITY_HEX[it.rarity]}">${itemDisplayName(it)}</span>` : '<span style="opacity:.35">空</span>');
       if (it) {
         cell.addEventListener('pointerenter', () => this.showTip(it));
         cell.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.showTip(it); g.unequip(slot); this.refresh(); });
@@ -122,7 +131,8 @@ export class InventoryPanel {
     g.inventory.forEach((it, i) => {
       const el = document.createElement('div');
       el.className = 'item';
-      el.innerHTML = `<span style="color:${RARITY_HEX[it.rarity]}">${it.name}</span>`;
+      const tag = it.identified ? '' : ' <span style="color:#c89a4a">?</span>';
+      el.innerHTML = `<span style="color:${RARITY_HEX[it.rarity]}">${itemDisplayName(it)}</span>${tag}`;
       el.addEventListener('pointerenter', () => this.showTip(it));
       el.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.showTip(it); g.equip(i); this.refresh(); });
       this.bagEl.appendChild(el);

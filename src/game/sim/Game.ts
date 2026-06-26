@@ -4,9 +4,11 @@ import type { DamageInstance } from '@game/systems/combat/index.ts';
 import { resolveAttack, rollDamage } from '@game/systems/combat/index.ts';
 import { updateMonsterAI, type AIContext } from '@game/systems/ai/behaviors.ts';
 import { CLASS_KEYS, makeCharacterFor, type ClassSkillKey } from '@game/classes/profiles.ts';
-import { generateItem, type ItemInstance, type EquipSlot } from '@game/systems/items/index.ts';
+import { generateItem, generateGambleItem, type ItemInstance, type EquipSlot } from '@game/systems/items/index.ts';
 import { deriveCombat, type Character } from '@game/systems/stats/character.ts';
 import { createMissile, updateMissiles, type Missile } from '@game/systems/missiles/index.ts';
+import { buyPrice, sellPrice, gamblePrice, mercHirePrice, mercRevivePrice, generateShopStock } from '@game/systems/economy/index.ts';
+import { makeMerc, updateMercAI } from '@game/systems/merc/index.ts';
 import { rollEliteAffixes, applyElite } from '@game/systems/elites/index.ts';
 import { QUESTS } from '@game/world/quests.ts';
 import { initQuests, completeQuest, onAreaCleared, type QuestProgress } from '@game/systems/quests/state.ts';
@@ -65,6 +67,7 @@ export class Game {
   state: 'playing' | 'dead' | 'cleared' = 'playing';
   skillCd = [0, 0, 0]; // 三技能键冷却(秒)
   private rng: RNG;
+  private townRng: RNG; // 商店/赌博专用 RNG, 与战斗 RNG 分流以保证战斗可复现
   private nextGoldId = 1;
 
   character: Character;
@@ -75,8 +78,16 @@ export class Game {
   mercUnlocked = false; // 任务奖励: 雇佣兵解锁(Phase D)
   act1Complete = false;
 
+  // ----- Phase D: 营地服务 + 经济 -----
+  stash: ItemInstance[] = []; // 共享仓库 (营地存物)
+  stashCap = 48;
+  shopStock: ItemInstance[] = []; // 当前商店货架 (进城刷新)
+  merc: Entity | null = null; // 雇佣兵 (随行单位)
+  private mercDmgAccum = 0; // 雇佣兵接触伤害的小数累积
+
   constructor(seed = 1234, cls: CharClass = 'barbarian') {
     this.rng = mulberry32(seed);
+    this.townRng = mulberry32((seed ^ 0x9e3779b9) >>> 0);
     this.character = makeCharacterFor(cls);
     this.player = makePlayer();
     this.recompute(true); // 由角色+装备派生玩家战斗数值
@@ -111,9 +122,20 @@ export class Game {
     }
     this.player.pos = { x: this.currentArea.size[0] / 2, y: this.currentArea.size[1] / 2 };
     this.player.combat.stunUntilMs = 0;
+    // 进城: 刷新商店货架 + 治疗存活的雇佣兵 (营地为安全区)
+    if (this.currentArea.isTown) {
+      this.shopStock = generateShopStock(this.character.level + 2, this.townRng);
+      if (this.merc && !this.merc.dead) this.merc.combat.hp = this.merc.combat.maxHp;
+    }
+    if (this.merc && !this.merc.dead) this.placeMercNearPlayer();
     this.state = this.currentArea.isTown || this.monsters.length === 0 ? 'cleared' : 'playing';
     this.travelCd = 1.0;
     this.notices.push(`进入 ${this.currentArea.name}`);
+  }
+
+  private placeMercNearPlayer(): void {
+    if (!this.merc) return;
+    this.merc.pos = { x: this.player.pos.x - 1.2, y: this.player.pos.y - 1.2 };
   }
 
   // 由 character(基础属性+等级+装备) 重算玩家战斗数值. initial=true 时回满血.
@@ -143,6 +165,7 @@ export class Game {
   equip(index: number): boolean {
     const it = this.inventory[index];
     if (!it) return false;
+    if (!it.identified) { this.notices.push('未鉴定物品需先找凯恩鉴定'); return false; }
     const slot = it.base.slot;
     const prev = this.character.equipment[slot];
     this.character.equipment[slot] = it;
@@ -164,6 +187,134 @@ export class Game {
 
   spawnMonster(defId: string, x: number, y: number): void {
     this.monsters.push(makeMonster(defId, x, y, this.rng, this.difficulty));
+  }
+
+  // ===== Phase D: 营地服务 + 经济 =====
+
+  // 商店: 买下货架第 index 件 (扣金, 入背包)
+  buyFromShop(index: number): boolean {
+    const it = this.shopStock[index];
+    if (!it) return false;
+    if (this.inventory.length >= this.invCap) { this.notices.push('背包已满'); return false; }
+    const price = buyPrice(it);
+    if (this.goldTotal < price) { this.notices.push('金币不足'); return false; }
+    this.goldTotal -= price;
+    this.shopStock.splice(index, 1);
+    this.inventory.push(it);
+    return true;
+  }
+
+  // 商店: 卖出背包第 index 件 (得金 ≈ 买价 1/4)
+  sellToShop(index: number): boolean {
+    const it = this.inventory[index];
+    if (!it) return false;
+    this.goldTotal += sellPrice(it);
+    this.inventory.splice(index, 1);
+    return true;
+  }
+
+  // 赌博(吉德): 花金购未鉴定随机物 (可能暗金)
+  gamble(): boolean {
+    if (this.inventory.length >= this.invCap) { this.notices.push('背包已满'); return false; }
+    const mlvl = this.character.level + 2;
+    const cost = gamblePrice(mlvl);
+    if (this.goldTotal < cost) { this.notices.push('金币不足'); return false; }
+    this.goldTotal -= cost;
+    this.inventory.push(generateGambleItem(mlvl, this.townRng));
+    this.notices.push('赌出一件未鉴定物品');
+    return true;
+  }
+  gambleCost(): number { return gamblePrice(this.character.level + 2); }
+
+  // 鉴定(凯恩): 一次性鉴定背包+仓库所有未鉴定物, 返回鉴定数量
+  identifyAll(): number {
+    let n = 0;
+    for (const it of this.inventory) if (!it.identified) { it.identified = true; n++; }
+    for (const it of this.stash) if (!it.identified) { it.identified = true; n++; }
+    if (n) this.notices.push(`凯恩鉴定了 ${n} 件物品`);
+    else this.notices.push('没有需要鉴定的物品');
+    return n;
+  }
+
+  // 雇佣兵(卡夏): 雇佣 (需 Q2 解锁且未雇佣)
+  hireMerc(): boolean {
+    if (!this.mercUnlocked) { this.notices.push('需先完成"姐妹的安息之地"'); return false; }
+    if (this.merc) { this.notices.push('已有雇佣兵随行'); return false; }
+    const cost = mercHirePrice(this.character.level);
+    if (this.goldTotal < cost) { this.notices.push('金币不足'); return false; }
+    this.goldTotal -= cost;
+    this.merc = makeMerc(this.character.level);
+    this.placeMercNearPlayer();
+    this.notices.push('罗格弓手已加入');
+    return true;
+  }
+  hireCost(): number { return mercHirePrice(this.character.level); }
+
+  // 雇佣兵: 死亡后花金复活
+  reviveMerc(): boolean {
+    if (!this.merc || !this.merc.dead) return false;
+    const cost = mercRevivePrice(this.merc.combat.level);
+    if (this.goldTotal < cost) { this.notices.push('金币不足'); return false; }
+    this.goldTotal -= cost;
+    this.merc.dead = false;
+    this.merc.combat.hp = this.merc.combat.maxHp;
+    this.placeMercNearPlayer();
+    this.notices.push('雇佣兵已复活');
+    return true;
+  }
+  reviveCost(): number { return this.merc ? mercRevivePrice(this.merc.combat.level) : 0; }
+
+  // 仓库: 背包→仓库
+  stashDeposit(index: number): boolean {
+    const it = this.inventory[index];
+    if (!it || this.stash.length >= this.stashCap) return false;
+    this.inventory.splice(index, 1);
+    this.stash.push(it);
+    return true;
+  }
+
+  // 仓库: 仓库→背包
+  stashWithdraw(index: number): boolean {
+    const it = this.stash[index];
+    if (!it || this.inventory.length >= this.invCap) return false;
+    this.stash.splice(index, 1);
+    this.inventory.push(it);
+    return true;
+  }
+
+  // 雇佣兵射箭 (玩家阵营箭矢, 命中走既有投射物结算)
+  private mercShoot = (from: Entity, target: Entity): void => {
+    const dx = target.pos.x - from.pos.x, dy = target.pos.y - from.pos.y;
+    const d = Math.hypot(dx, dy) || 1;
+    this.missiles.push(createMissile({
+      pos: from.pos, dir: { x: dx / d, y: dy / d }, speed: 15,
+      dmg: from.damage, kind: 'arrow', fromPlayer: true, range: 12, pierce: 0, radius: 0.35, color: 0xffd0e0,
+    }));
+  };
+
+  // 近战怪贴身时对雇佣兵造成接触伤害 (连续 DoT 近似各怪按攻速命中)
+  private applyMercContactDamage(dt: number): void {
+    const merc = this.merc;
+    if (!merc || merc.dead) return;
+    let dps = 0;
+    for (const m of this.monsters) {
+      if (m.dead || m.attackRange > 2) continue; // 仅近战怪
+      if (dist(m.pos, merc.pos) <= m.attackRange + merc.radius + 0.3) {
+        const avg = (m.damage[0].min + m.damage[0].max) / 2;
+        dps += avg / Math.max(0.4, m.attackInterval);
+      }
+    }
+    if (dps <= 0) return;
+    this.mercDmgAccum += dps * dt;
+    if (this.mercDmgAccum >= 1) {
+      const dmg = Math.floor(this.mercDmgAccum);
+      this.mercDmgAccum -= dmg;
+      merc.combat.hp = Math.max(0, merc.combat.hp - dmg);
+      merc.hitFlash = 1;
+      const killed = merc.combat.hp <= 0;
+      this.events.push({ pos: { ...merc.pos }, amount: dmg, killed, toPlayer: false });
+      if (killed) { merc.dead = true; this.notices.push('雇佣兵倒下了 (营地可复活)'); }
+    }
   }
 
   // 可用技能点 = 等级-1 + 任务奖励 - 已投 (D2: 每级1点)
@@ -317,13 +468,21 @@ export class Game {
       if (!p.dead) updateMonsterAI(e, ctx);
       else e.moving = false;
     }
+    // ----- 雇佣兵: 随行/射箭 + 接触伤害 -----
+    if (this.merc && !this.merc.dead && !p.dead) {
+      updateMercAI(this.merc, { player: p, monsters: this.monsters, dt, nowMs: now, shoot: this.mercShoot });
+      this.applyMercContactDamage(dt);
+    }
     this.separate();
 
-    // ----- 投射物 (玩家弹 vs 怪; 敌弹 vs 玩家) -----
+    // ----- 投射物 (玩家弹 vs 怪; 敌弹 vs 玩家/雇佣兵) -----
     const playerM = this.missiles.filter((m) => m.fromPlayer);
     const enemyM = this.missiles.filter((m) => !m.fromPlayer);
+    const enemyTargets: Entity[] = [];
+    if (!p.dead) enemyTargets.push(p);
+    if (this.merc && !this.merc.dead) enemyTargets.push(this.merc);
     const sp = updateMissiles(playerM, dt, this.monsters, (m, t) => this.dealMissileDamage(t as Entity, m));
-    const se = updateMissiles(enemyM, dt, p.dead ? [] : [p], (m, t) => this.dealMissileDamage(t as Entity, m));
+    const se = updateMissiles(enemyM, dt, enemyTargets, (m, t) => this.dealMissileDamage(t as Entity, m));
     this.missiles = [...sp, ...se];
 
     // ----- 死亡 → 尸体 + 掉金 -----
@@ -528,6 +687,7 @@ export class Game {
     if (killed) {
       target.dead = true;
       if (m.fromPlayer && target.kind === 'monster') this.grantXp(target.xpReward);
+      if (target.kind === 'ally') this.notices.push('雇佣兵倒下了 (营地可复活)');
     }
   }
 
@@ -545,6 +705,7 @@ export class Game {
   // 简易分离: 防止怪物重叠成一团 (软推开)
   private separate(): void {
     const all = [this.player, ...this.monsters];
+    if (this.merc && !this.merc.dead) all.push(this.merc);
     for (let i = 0; i < all.length; i++) {
       for (let j = i + 1; j < all.length; j++) {
         const a = all[i], b = all[j];

@@ -7,7 +7,7 @@ export type AIKind = 'skeleton' | 'zombie' | 'fallen' | 'shaman' | 'archer' | 'b
 // 游戏实体 (玩家/怪物). 组合 Transform + Combatant 契约, 战斗逻辑与渲染解耦.
 export interface Entity {
   id: number;
-  kind: 'player' | 'monster';
+  kind: 'player' | 'monster' | 'ally'; // ally = 雇佣兵等随行单位
   defId: string;
   ai: AIKind;
   pos: Vec2;
