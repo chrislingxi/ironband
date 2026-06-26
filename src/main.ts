@@ -12,6 +12,7 @@ import { Game } from '@game/sim/Game.ts';
 import type { Entity } from '@game/entities/entity.ts';
 import { HUD } from '@game/ui/hud.ts';
 import { InventoryPanel } from '@game/ui/inventory.ts';
+import { SkillTreePanel } from '@game/ui/skilltree.ts';
 import { NPCS } from '@game/world/npcs.ts';
 import { AREAS } from '@game/world/act1.ts';
 import { dist } from '@engine/math/vec.ts';
@@ -240,12 +241,28 @@ async function main() {
     'position:absolute;left:calc(14px + env(safe-area-inset-left));bottom:calc(30px + env(safe-area-inset-bottom));' +
     'width:54px;height:54px;border-radius:12px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
     'align-items:center;justify-content:center;font-size:26px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
+  const skillPanel = new SkillTreePanel(game, () => { skillPanel.hide(); paused = false; });
+  function closePanels(): void { panel.hide(); skillPanel.hide(); paused = false; }
   bagBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();
-    if (panel.open) { panel.hide(); paused = false; }
-    else { panel.show(); paused = true; }
+    if (panel.open) closePanels();
+    else { skillPanel.hide(); panel.show(); paused = true; }
   });
   document.body.appendChild(bagBtn);
+
+  // 技能树按钮
+  const skillBtn = document.createElement('div');
+  skillBtn.textContent = '📖';
+  skillBtn.style.cssText =
+    'position:absolute;left:calc(78px + env(safe-area-inset-left));bottom:calc(30px + env(safe-area-inset-bottom));' +
+    'width:54px;height:54px;border-radius:12px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
+    'align-items:center;justify-content:center;font-size:26px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
+  skillBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (skillPanel.open) closePanels();
+    else { panel.hide(); skillPanel.show(); paused = true; }
+  });
+  document.body.appendChild(skillBtn);
 
   // 升级等提示
   const noticeEl = document.createElement('div');

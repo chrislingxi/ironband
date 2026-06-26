@@ -8,6 +8,8 @@ import { generateItem, type ItemInstance, type EquipSlot } from '@game/systems/i
 import { makeBarbarian, deriveCombat, type Character } from '@game/systems/stats/character.ts';
 import { buildArea, type AreaInstance } from '@game/world/zone.ts';
 import { playerResistPenalty } from '@game/systems/difficulty.ts';
+import { CLASS_SKILLS } from '@game/classes/registry.ts';
+import { canInvest, invest, totalPointsSpent, type SkillTreeState } from '@game/classes/skilltree.ts';
 import type { Difficulty } from '@game/data/schema.ts';
 import { dist, normalize, type Vec2 } from '@engine/math/vec.ts';
 import { mulberry32, randInt, type RNG } from '@engine/math/rng.ts';
@@ -61,6 +63,7 @@ export class Game {
   private nextGoldId = 1;
 
   character: Character = makeBarbarian();
+  skillTree: SkillTreeState = {}; // 已投技能点 (skillId→点数)
 
   constructor(seed = 1234) {
     this.rng = mulberry32(seed);
@@ -133,6 +136,29 @@ export class Game {
 
   spawnMonster(defId: string, x: number, y: number): void {
     this.monsters.push(makeMonster(defId, x, y, this.rng, this.difficulty));
+  }
+
+  // 可用技能点 = 等级-1 - 已投 (D2: 每级1点)
+  skillPointsAvailable(): number {
+    return Math.max(0, this.character.level - 1 - totalPointsSpent(this.skillTree));
+  }
+
+  // 给某技能投1点 (校验点数/等级/前置)
+  investSkill(id: string): boolean {
+    const defs = CLASS_SKILLS[this.character.cls];
+    const def = defs.find((d) => d.id === id);
+    if (!def || this.skillPointsAvailable() <= 0) return false;
+    if (!canInvest(def, this.character.level, this.skillTree, defs)) return false;
+    this.skillTree = invest(def, this.skillTree);
+    return true;
+  }
+
+  // 切换难度: 重算(抗性惩罚)并重载当前区域
+  setDifficulty(d: Difficulty): void {
+    if (d === this.difficulty) return;
+    this.difficulty = d;
+    this.recompute();
+    this.loadArea(this.currentArea.id);
   }
 
   private attack = (attacker: Entity, defender: Entity, dmg: DamageInstance[]): void => {
