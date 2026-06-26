@@ -12,6 +12,8 @@ import { QUESTS } from '@game/world/quests.ts';
 import { initQuests, completeQuest, onAreaCleared, type QuestProgress } from '@game/systems/quests/state.ts';
 import { generateShopStock, buyPrice, sellPrice, gambleCost, gambleItem, identifyCost } from '@game/systems/town/economy.ts';
 import { makeMerc, updateMerc, hireCost, reviveCost, type Merc } from '@game/systems/merc/merc.ts';
+import { discover, type WaypointState } from '@game/systems/waypoint/waypoint.ts';
+import { AREAS } from '@game/world/act1.ts';
 import type { CharClass, DamageType } from '@game/data/schema.ts';
 import { buildArea, type AreaInstance } from '@game/world/zone.ts';
 import { playerResistPenalty } from '@game/systems/difficulty.ts';
@@ -78,6 +80,7 @@ export class Game {
   act1Complete = false;
   shopStock: ItemInstance[] = []; // 商店库存
   merc?: Merc; // 雇佣兵(罗格弓手)
+  discoveredWaypoints: WaypointState = new Set(); // 已发现航点
 
   constructor(seed = 1234, cls: CharClass = 'barbarian') {
     this.rng = mulberry32(seed);
@@ -90,6 +93,7 @@ export class Game {
   // 加载一个区域: 实例化→清场→按出生点刷怪→玩家置于中心
   loadArea(id: string): void {
     this.currentArea = buildArea(id, this.rng, this.difficulty);
+    discover(this.discoveredWaypoints, id, AREAS); // 发现航点
     this.monsters = [];
     this.corpses = [];
     this.gold = [];
