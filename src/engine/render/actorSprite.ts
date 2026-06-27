@@ -41,15 +41,20 @@ export class ActorSprite {
   readonly container = new Container();
 
   private readonly shadow = new Graphics();   // 底部椭圆投影
-  private readonly bodyHolder = new Container(); // 承载躯干+头, 整体做 bob/前倾
+  private readonly bodyHolder = new Container(); // 承载躯干+头+四肢, 整体做 bob/前倾
+  private readonly legs = new Graphics();      // 双腿 (走动交替摆动)
   private readonly body = new Graphics();      // 躯干
+  private readonly arm = new Graphics();       // 持械臂 (攻击时挥摆)
   private readonly head = new Graphics();      // 头部
   private readonly pointer = new Graphics();   // 朝向尖角 (传达打击方向)
 
   constructor(private readonly opts: ActorSpriteOpts) {
     this.container.addChild(this.shadow);
     this.container.addChild(this.bodyHolder);
+    // z 序: 腿在躯干后, 躯干, 持械臂在躯干前
+    this.bodyHolder.addChild(this.legs);
     this.bodyHolder.addChild(this.body);
+    this.bodyHolder.addChild(this.arm);
     this.bodyHolder.addChild(this.head);
     this.container.addChild(this.pointer);
     this.drawStatic();
@@ -137,6 +142,54 @@ export class ActorSprite {
     }
   }
 
+  // 按 kind 画四肢: 人形=双腿+持械臂; beast=四足; caster=长袍下摆(腿被遮)+法杖臂.
+  // walkPhase: 走动相位 (sin, -1..1) 驱动腿/臂交替; atk: 攻击挥摆相位 (0..1).
+  private drawLimbs(main: number, dark: number, walkPhase: number, atk: number): void {
+    const s = this.opts.size;
+    this.legs.clear();
+    this.arm.clear();
+    const sw = walkPhase * s * 0.32; // 摆幅
+    switch (this.opts.kind) {
+      case 'beast': {
+        // 四足: 前后各一对, 对角交替 (sw 与 -sw)
+        const lw = s * 0.22;
+        for (const [bx, ph] of [[-s * 0.7, sw], [s * 0.55, -sw]] as const) {
+          this.legs.roundRect(bx - lw / 2 + ph, s * 0.35, lw, s * 0.5, lw * 0.4).fill({ color: dark });
+          this.legs.roundRect(bx - lw / 2 - ph, s * 0.35, lw, s * 0.5, lw * 0.4).fill({ color: dark });
+        }
+        break;
+      }
+      case 'caster': {
+        // 袍下摆露出的小脚 + 抬起的法杖臂 (攻击时前指)
+        this.legs.roundRect(-s * 0.32, s * 0.6, s * 0.28, s * 0.22, 3).fill({ color: dark });
+        this.legs.roundRect(s * 0.06, s * 0.6, s * 0.28, s * 0.22, 3).fill({ color: dark });
+        const reach = atk * s * 0.5;
+        this.arm.roundRect(s * 0.35 + reach, -s * 0.7, s * 0.22, s * 0.9, s * 0.1).fill({ color: main });
+        this.arm.circle(s * 0.46 + reach, -s * 0.75, s * 0.16).fill({ color: 0x66ccff, alpha: 0.8 }); // 法杖宝石光
+        break;
+      }
+      case 'humanoid':
+      default: {
+        // 双腿: 髋部出发, 走动前后交替
+        const lw = s * 0.3;
+        this.legs.roundRect(-s * 0.42 + sw, s * 0.5, lw, s * 0.7, lw * 0.4).fill({ color: dark });
+        this.legs.roundRect(s * 0.12 - sw, s * 0.5, lw, s * 0.7, lw * 0.4).fill({ color: shade(dark, 1.15) });
+        // 持械臂: 肩出发, 攻击时大幅前挥 (atk), 平时随步轻摆 (-walkPhase)
+        const swing = atk > 0 ? atk * 1.1 : 0;
+        const armAngle = -0.3 - swing * 1.4 - walkPhase * 0.15;
+        this.arm.position.set(s * 0.5, -s * 0.5);
+        this.arm.rotation = armAngle;
+        // 上臂
+        this.arm.roundRect(0, -s * 0.12, s * 0.85, s * 0.26, s * 0.12).fill({ color: main });
+        // 武器 (从手部伸出的刃)
+        this.arm.poly([s * 0.85, -s * 0.05, s * 1.7, -s * 0.16, s * 1.75, 0, s * 0.85, s * 0.12])
+          .fill({ color: 0xccd2dd })
+          .stroke({ color: 0x222222, width: 1.5 });
+        break;
+      }
+    }
+  }
+
   // 每帧调用: 更新朝向翻转、明暗、bob、攻击前倾、受击白闪.
   update(u: ActorUpdate): void {
     const { facing, moving, attacking, flash, timeMs } = u;
@@ -153,9 +206,14 @@ export class ActorSprite {
     const dark = shade(base, 0.6);
     this.drawBody(main, lit, dark);
 
+    // 走动相位 + 攻击挥摆相位, 驱动四肢
+    const walkPhase = moving ? Math.sin(timeMs / 90) : Math.sin(timeMs / 600) * 0.15;
+    const atk = attacking ? 0.5 + 0.5 * Math.sin(timeMs / 60) : 0; // 0..1 挥摆
+    this.drawLimbs(main, dark, walkPhase, atk);
+
     // 走动 bob: 上下小幅正弦; 静止则缓慢呼吸.
     const bob = moving
-      ? Math.sin(timeMs / 90) * this.opts.size * 0.12
+      ? Math.abs(Math.sin(timeMs / 90)) * this.opts.size * 0.1
       : Math.sin(timeMs / 600) * this.opts.size * 0.04;
     this.bodyHolder.position.y = bob;
 

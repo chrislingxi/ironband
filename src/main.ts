@@ -30,6 +30,9 @@ import { dist } from '@engine/math/vec.ts';
 
 const areaName = (id: string): string => AREAS[id]?.name ?? id;
 
+// 营地 NPC 长袍配色 (按身份循环, 让一排 NPC 不再千篇一律)
+const NPC_ROBE = [0x7a4a4a, 0x4a5a7a, 0x5a6a4a, 0x6a5a7a, 0x7a6a4a, 0x4a6a6a, 0x6a4a5a];
+
 function errText(e: unknown): string {
   if (e instanceof Error) return (e.message || '') + '\n' + (e.stack || '');
   return String(e);
@@ -131,7 +134,14 @@ async function main() {
         const nx = cx + Math.cos(ang) * 6, ny = cy + Math.sin(ang) * 6;
         npcMarkers.push({ name: npc.name, greeting: npc.greeting, x: nx, y: ny });
         const s = gridToScreen({ x: nx, y: ny });
-        const g = new Graphics().circle(0, 0, 8).fill({ color: 0xe8d27a }).stroke({ color: 0x000000, width: 2 });
+        // 站立小人形 (替代占位圆点): 阴影 + 长袍躯干 + 头, 按身份微调色相, 让营地更"有人气".
+        const robe = NPC_ROBE[i % NPC_ROBE.length];
+        const g = new Graphics();
+        g.ellipse(0, 6, 9, 4).fill({ color: 0x000000, alpha: 0.32 });           // 投影
+        g.moveTo(-6, -4).lineTo(6, -4).lineTo(8, 9).lineTo(-8, 9).closePath()    // 长袍
+          .fill({ color: robe }).stroke({ color: 0x14100a, width: 1.5 });
+        g.poly([0, -4, 6, -4, 8, 9, 0, 9]).fill({ color: 0xffffff, alpha: 0.12 }); // 受光侧
+        g.circle(0, -9, 4.5).fill({ color: 0xd8b48a }).stroke({ color: 0x14100a, width: 1.5 }); // 头
         const t = new Text({ text: npc.name, style: { fontFamily: 'Georgia,serif', fontSize: 11, fill: 0xffe08a, stroke: { color: 0x000000, width: 3 } } });
         t.anchor.set(0.5, 1); t.position.set(s.x, s.y - 12);
         g.position.set(s.x, s.y); g.zIndex = depthKey({ x: nx, y: ny }); t.zIndex = depthKey({ x: nx, y: ny });
