@@ -143,6 +143,7 @@ export class Game {
   private lifeLeechPct = 0; // 装备吸血% (recompute 汇总)
   runeBag: Record<string, number> = {}; // 符文背包 (runeId → 数量); 镶孔消耗
   private chillUntilMs = 0; // 被寒冷附魔精英命中后的减速截止 (玩家移速×0.5)
+  private bagFullWarned = false; // 背包满提示节流 (有空位时重置)
   get isChilled(): boolean { return this.timeMs < this.chillUntilMs; } // 玩家是否处于减速
 
   constructor(seed = 1234, cls: CharClass = 'barbarian') {
@@ -419,7 +420,19 @@ export class Game {
     if (idx < 0) return false;
     this.goldTotal += sellPrice(this.inventory[idx]);
     this.inventory.splice(idx, 1);
+    this.bagFullWarned = false;
     return true;
+  }
+
+  // 一键回收: 卖出全部普通(白)与魔法(蓝)装备, 保留稀有/套装/暗金。返回卖出件数。
+  sellJunk(): number {
+    let gold = 0, n = 0;
+    this.inventory = this.inventory.filter((it) => {
+      if (it.identified && (it.rarity === 'normal' || it.rarity === 'magic')) { gold += sellPrice(it); n++; return false; }
+      return true;
+    });
+    if (n > 0) { this.goldTotal += gold; this.bagFullWarned = false; this.notices.push(`回收 ${n} 件普通/魔法装备 (+⦿${gold})`); }
+    return n;
   }
   gamble(): boolean {
     const cost = gambleCost(this.character.level);
@@ -758,12 +771,12 @@ export class Game {
     }
     this.gold = this.gold.filter((g) => g.amount > 0);
 
-    // 磁吸拾取地面物品 (背包未满)
+    // 磁吸拾取地面物品 (背包未满); 满了给一次提示 (防止"踩着不捡"困惑)
     if (!p.dead) {
       this.groundItems = this.groundItems.filter((gi) => {
-        if (dist(gi.pos, p.pos) < 1.2 && this.inventory.length < this.invCap) {
-          this.inventory.push(gi.item);
-          return false;
+        if (dist(gi.pos, p.pos) < 1.2) {
+          if (this.inventory.length < this.invCap) { this.inventory.push(gi.item); this.bagFullWarned = false; return false; }
+          if (!this.bagFullWarned) { this.notices.push('⚠ 背包已满! 回营地出售或丢弃'); this.bagFullWarned = true; }
         }
         return true;
       });

@@ -570,6 +570,7 @@ async function main() {
   const town = new TownPanel({
     onBuy: (uid) => { game.buyItem(uid); town.refresh(buildTownData()); },
     onSell: (uid) => { game.sellItem(uid); town.refresh(buildTownData()); },
+    onSellJunk: () => { game.sellJunk(); town.refresh(buildTownData()); },
     onGamble: () => { game.gamble(); town.refresh(buildTownData()); },
     onIdentify: (uid) => { game.identifyItem(uid); town.refresh(buildTownData()); },
     onHireMerc: () => { game.hireMerc(); town.refresh(buildTownData()); },
