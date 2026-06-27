@@ -130,6 +130,7 @@ export interface SaveData {
   skillTree: SkillTreeState;
   gold: number;
   difficulty: Difficulty;
+  unlockedDifficulty: Difficulty; // 已解锁最高难度 (旧档无此字段时按 difficulty 兜底)
   areaId: string;
   questProgress: QuestProgress;
   bonusSkillPoints: number;
@@ -167,6 +168,7 @@ export function serializeGame(game: Game, name?: string): SaveData {
     skillTree: { ...game.skillTree },
     gold: game.goldTotal,
     difficulty: game.difficulty,
+    unlockedDifficulty: game.unlockedDifficulty,
     areaId: game.currentArea.id,
     questProgress: { ...game.questProgress },
     bonusSkillPoints: game.bonusSkillPoints,
@@ -207,6 +209,7 @@ export function applySave(game: Game, data: SaveData): void {
   game.skillTree = { ...data.skillTree };
   game.goldTotal = data.gold;
   game.difficulty = data.difficulty;
+  game.unlockedDifficulty = data.unlockedDifficulty ?? data.difficulty;
 
   // --- 任务与奖励标记 ---
   game.questProgress = { ...data.questProgress };

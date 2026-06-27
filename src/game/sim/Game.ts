@@ -16,7 +16,10 @@ import { discover, type WaypointState } from '@game/systems/waypoint/waypoint.ts
 import { AREAS } from '@game/world/act1.ts';
 import type { CharClass, DamageType } from '@game/data/schema.ts';
 import { buildArea, type AreaInstance } from '@game/world/zone.ts';
-import { playerResistPenalty } from '@game/systems/difficulty.ts';
+import { playerResistPenalty, DIFFICULTIES } from '@game/systems/difficulty.ts';
+
+// 难度中文标签 (通关解锁提示用)。
+const DIFF_LABEL: Record<Difficulty, string> = { normal: '普通', nightmare: '噩梦', hell: '地狱' };
 import { CLASS_SKILLS } from '@game/classes/registry.ts';
 import { canInvest, invest, totalPointsSpent, type SkillTreeState } from '@game/classes/skilltree.ts';
 import type { Difficulty } from '@game/data/schema.ts';
@@ -82,6 +85,7 @@ export class Game {
   bonusSkillPoints = 0; // 任务奖励的额外技能点
   mercUnlocked = false; // 任务奖励: 雇佣兵解锁(Phase D)
   act1Complete = false;
+  unlockedDifficulty: Difficulty = 'normal'; // 已解锁的最高难度 (通关解锁下一难度)
   shopStock: ItemInstance[] = []; // 商店库存
   merc?: Merc; // 雇佣兵(罗格弓手)
   discoveredWaypoints: WaypointState = new Set(); // 已发现航点
@@ -190,7 +194,17 @@ export class Game {
     this.questProgress = completeQuest(this.questProgress, questId);
     if (questId === 'den_of_evil') { this.bonusSkillPoints += 1; this.notices.push('任务完成: 净化邪恶巢穴 (+1 技能点)'); }
     else if (questId === 'sisters_burial') { this.mercUnlocked = true; this.notices.push('任务完成: 姐妹的安息之地 (雇佣兵已解锁)'); }
-    else if (questId === 'andariel') { this.act1Complete = true; this.notices.push('★ 第一幕通关! 安达莉尔已伏诛 ★'); }
+    else if (questId === 'andariel') {
+      this.act1Complete = true;
+      this.notices.push('★ 第一幕通关! 安达莉尔已伏诛 ★');
+      // 通关解锁下一难度 (D2 风格: 普通→噩梦→地狱)
+      const order = DIFFICULTIES;
+      const cur = order.indexOf(this.unlockedDifficulty);
+      if (this.difficulty === this.unlockedDifficulty && cur < order.length - 1) {
+        this.unlockedDifficulty = order[cur + 1];
+        this.notices.push(`✦ 已解锁难度: ${DIFF_LABEL[this.unlockedDifficulty]} ✦`);
+      }
+    }
     else this.notices.push('任务完成');
   }
 
@@ -268,9 +282,14 @@ export class Game {
     return true;
   }
 
-  // 切换难度: 重算(抗性惩罚)并重载当前区域
+  /** 难度是否已解锁 (≤ 已解锁的最高难度)。 */
+  isDifficultyUnlocked(d: Difficulty): boolean {
+    return DIFFICULTIES.indexOf(d) <= DIFFICULTIES.indexOf(this.unlockedDifficulty);
+  }
+
+  // 切换难度: 重算(抗性惩罚)并重载当前区域。未解锁的难度拒绝切换。
   setDifficulty(d: Difficulty): void {
-    if (d === this.difficulty) return;
+    if (d === this.difficulty || !this.isDifficultyUnlocked(d)) return;
     this.difficulty = d;
     this.recompute();
     this.loadArea(this.currentArea.id);

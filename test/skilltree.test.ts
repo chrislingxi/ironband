@@ -20,6 +20,7 @@ describe('技能树投点与难度', () => {
 
   it('切换难度施加抗性惩罚并重载区域', () => {
     const g = new Game(1);
+    g.unlockedDifficulty = 'nightmare'; // 解锁后方可切换 (D2 通关门控)
     const fire0 = g.player.combat.resist.fire;
     g.setDifficulty('nightmare');
     expect(g.difficulty).toBe('nightmare');
