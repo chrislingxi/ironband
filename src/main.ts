@@ -547,7 +547,7 @@ async function main() {
   function topBtn(emoji: string, slot: number, onTap: () => void): HTMLElement {
     const b = document.createElement('div');
     b.textContent = emoji;
-    const topPx = 120 + slot * 50; // 菜单按钮之下依次排列
+    const topPx = 156 + slot * 48; // ☰ 菜单按钮之下依次排列 (小地图在右上角)
     b.style.cssText =
       `position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(${topPx}px + env(safe-area-inset-top));` +
       'width:42px;height:42px;border-radius:10px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:none;' +
@@ -580,7 +580,7 @@ async function main() {
   const menuBtn = document.createElement('div');
   menuBtn.textContent = '☰';
   menuBtn.style.cssText =
-    'position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(70px + env(safe-area-inset-top));' +
+    'position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(108px + env(safe-area-inset-top));' +
     'width:42px;height:42px;border-radius:10px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
     'align-items:center;justify-content:center;font-size:20px;color:#e8d8a8;pointer-events:auto;z-index:41;box-shadow:0 4px 10px #000b,inset 0 1px 4px #ffffff16,inset 0 -3px 7px #00000050;';
   menuBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); audio.sfx('select'); menuToggle(); });
@@ -591,15 +591,14 @@ async function main() {
   mm.width = 124; mm.height = 88;
   mm.className = 'hud-mini';
   mm.style.cssText =
-    'position:absolute;left:50%;transform:translateX(-50%);top:calc(58px + env(safe-area-inset-top));' +
-    'width:124px;height:88px;border:1px solid #6a5a3a99;background:#0009;border-radius:6px;pointer-events:none;z-index:35;';
+    'position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(14px + env(safe-area-inset-top));' +
+    'width:118px;height:84px;border:1.5px solid #6a5a3a;background:#0009;border-radius:8px;pointer-events:none;z-index:35;box-shadow:0 3px 8px #000a;';
   document.body.appendChild(mm);
 
-  // 竖屏适配: 窄宽下居中小地图会压住左上血条 → 下移到血条行之下; 技能簇上抬避开底部功能栏。
+  // 竖屏适配: 小地图已在右上角(不再压血条); 技能簇上抬避开底部功能栏。
   const respStyle = document.createElement('style');
   respStyle.textContent = `
     @media (orientation: portrait) {
-      .hud-mini { top: calc(64px + env(safe-area-inset-top)) !important; }
       #hud .skills { bottom: calc(104px + env(safe-area-inset-bottom)) !important; }
     }`;
   document.head.appendChild(respStyle);

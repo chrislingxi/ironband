@@ -30,8 +30,8 @@ function injectStyle(): void {
   #hud .xpbar { position:absolute; left:16px; right:16px; bottom:6px; height:6px; border-radius:3px;
     background:#000a; overflow:hidden; box-shadow:inset 0 1px 2px #000a, 0 0 0 1px #6a5a3a55; }
   #hud .xpbar > i { display:block; height:100%; width:0; background:linear-gradient(90deg,#e0a020,#ffe9b0); transition:width .2s ease; }
-  #hud .info { position:absolute; right:16px; top:16px; padding:3px 10px; border-radius:10px;
-    background:#0c0c12bb; border:1px solid #4a3f2a; font-size:12px; color:#e8e0d0; text-align:right;
+  #hud .info { position:absolute; left:50%; transform:translateX(-50%); top:14px; padding:3px 12px; border-radius:10px;
+    background:#0c0c12bb; border:1px solid #4a3f2a; font-size:12px; color:#e8e0d0; text-align:center;
     text-shadow:0 1px 2px #000; }
   /* 技能键: 金环圆钮 + 内渐变 + 第4技能紫调 */
   #hud .skills { position:absolute; right:calc(18px + env(safe-area-inset-right)); bottom:calc(30px + env(safe-area-inset-bottom));
