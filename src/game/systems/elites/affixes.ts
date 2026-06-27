@@ -131,6 +131,10 @@ export interface EliteResult {
 // - 名字: "<词缀名 词缀名...>" 形式拼接 (空格分隔).
 // - 描边色: 取首个有效词缀色; 无词缀则回退实体原色.
 export function applyElite(e: Entity, affixIds: string[]): EliteResult {
+  // 精英固有强度: D2 中精英/首领自带血量与伤害倍率 (不靠词缀)。给 ×3 血、×1.4 伤。
+  e.combat.maxHp = Math.round(e.combat.maxHp * 3);
+  e.combat.hp = e.combat.maxHp;
+  e.damage = e.damage.map((d) => ({ ...d, min: Math.round(d.min * 1.4), max: Math.round(d.max * 1.4) }));
   const parts: string[] = [];
   let outline = e.color; // 默认: 原色不变
   let pickedColor = false;
