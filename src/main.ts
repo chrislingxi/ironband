@@ -498,10 +498,20 @@ async function main() {
   // 小地图 (区域俯瞰: 玩家/怪/出口/雇佣兵)
   const mm = document.createElement('canvas');
   mm.width = 140; mm.height = 104;
+  mm.className = 'hud-mini';
   mm.style.cssText =
     'position:absolute;left:50%;transform:translateX(-50%);top:calc(8px + env(safe-area-inset-top));' +
     'width:140px;height:104px;border:1px solid #6a5a3a99;background:#0009;border-radius:6px;pointer-events:none;z-index:35;';
   document.body.appendChild(mm);
+
+  // 竖屏适配: 窄宽下居中小地图会压住左上血条 → 下移到血条行之下; 技能簇上抬避开底部功能栏。
+  const respStyle = document.createElement('style');
+  respStyle.textContent = `
+    @media (orientation: portrait) {
+      .hud-mini { top: calc(64px + env(safe-area-inset-top)) !important; }
+      #hud .skills { bottom: calc(104px + env(safe-area-inset-bottom)) !important; }
+    }`;
+  document.head.appendChild(respStyle);
   const mmctx = mm.getContext('2d');
   function syncMinimap(): void {
     if (!mmctx) return;
