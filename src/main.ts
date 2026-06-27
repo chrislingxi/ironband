@@ -235,7 +235,9 @@ async function main() {
 
   function makeSprite(e: Entity): Container {
     const c = new Container();
-    const actor = createActorSprite({ kind: actorKind(e), color: e.color, size: e.size, subKind: actorSubKind(e) });
+    // 贴图 key: 玩家=char/<职业>, 怪物/Boss=mon/<defId>。命中 assets/<key>.png 即用真图。
+    const textureKey = e.kind === 'player' ? `char/${game.character.cls}` : `mon/${e.defId}`;
+    const actor = createActorSprite({ kind: actorKind(e), color: e.color, size: e.size, subKind: actorSubKind(e), textureKey });
     actors.set(e.id, actor);
     c.addChild(actor.container);
     // 精英描边光环 + 名牌

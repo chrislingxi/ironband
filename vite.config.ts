@@ -8,6 +8,8 @@ import { resolve } from 'node:path';
 // 入口为 web/index.html (与根目录的"已构建产物 index.html"分离, 避免互相覆盖)。
 export default defineConfig({
   base: './',
+  // public/ 下的静态资源 (assets/<key>.png) 不被内联, 原样拷到 dist 根, 供运行期 Assets.load 取用。
+  publicDir: resolve(__dirname, 'public'),
   plugins: [viteSingleFile()],
   resolve: {
     alias: {
