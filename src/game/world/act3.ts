@@ -83,6 +83,7 @@ export const ACT3_AREAS: Record<string, LevelDef> = {
     monLevel: ml(36, 68, 100),
     monsters: ['skeleton', 'shaman'],
     size: [74, 74],
-    connects: ['travincal'],
+    // 击败梅菲斯特后, 经泰瑞尔的红门前往第四幕万神殿要塞。
+    connects: ['travincal', 'pandemonium_fortress'],
   },
 };

@@ -138,6 +138,8 @@ export interface SaveData {
   act1Complete: boolean;
   act2Complete: boolean;
   act3Complete: boolean;
+  act4Complete: boolean;
+  act5Complete: boolean;
   merc: MercSave | null;
 }
 
@@ -178,6 +180,8 @@ export function serializeGame(game: Game, name?: string): SaveData {
     act1Complete: game.act1Complete,
     act2Complete: game.act2Complete,
     act3Complete: game.act3Complete,
+    act4Complete: game.act4Complete,
+    act5Complete: game.act5Complete,
     merc: game.merc
       ? { level: game.merc.level, hp: game.merc.hp, maxHp: game.merc.maxHp, dead: game.merc.dead }
       : null,
@@ -222,6 +226,8 @@ export function applySave(game: Game, data: SaveData): void {
   game.act1Complete = data.act1Complete;
   game.act2Complete = data.act2Complete ?? false;
   game.act3Complete = data.act3Complete ?? false;
+  game.act4Complete = data.act4Complete ?? false;
+  game.act5Complete = data.act5Complete ?? false;
 
   // --- 雇佣兵: 重建最小状态, 位置等瞬态交由 loadArea 归位 ---
   if (data.merc) {
