@@ -677,6 +677,7 @@ export class Game {
         for (let k = 0; k < runeDrops; k++) {
           const r = RUNES[randInt(this.rng, 0, RUNES.length - 1)];
           this.runeBag[r.id] = (this.runeBag[r.id] ?? 0) + 1;
+          this.notices.push(`✦ 获得符文: ${r.name}`); // 符文掉落是大事件, 明确提示
         }
         if (this.rng() < (isElite ? 1 : 0.6)) {
           this.gold.push({ id: this.nextGoldId++, pos: { ...e.pos }, amount: randInt(this.rng, isBoss ? 40 : isElite ? 8 : 1, isBoss ? 90 : isElite ? 24 : 6) });

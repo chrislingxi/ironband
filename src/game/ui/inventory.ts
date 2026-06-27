@@ -28,9 +28,13 @@ function affixText(a: RolledAffix): string {
   return (STAT_TPL[a.stat] ?? `+{v} ${a.stat}`).replace('{v}', String(a.value));
 }
 function itemTip(it: ItemInstance): string {
-  const lines = [`<b style="color:${RARITY_HEX[it.rarity]}">${it.name}</b>`, `<span style="opacity:.6">${it.base.name} (ilvl ${it.ilvl})</span>`];
+  // 未鉴定: 只显基础信息, 隐藏词缀/专名 (保留"鉴定开盒"的悬念)
+  const dispName = it.identified ? it.name : `${it.base.name} <span style="color:#caa24a">(未鉴定)</span>`;
+  const dispColor = it.identified ? RARITY_HEX[it.rarity] : '#c8c8c8';
+  const lines = [`<b style="color:${dispColor}">${dispName}</b>`, `<span style="opacity:.6">${it.base.name} (ilvl ${it.ilvl})</span>`];
   if (it.base.baseDamage) lines.push(`<span style="opacity:.7">伤害 ${it.base.baseDamage[0]}-${it.base.baseDamage[1]}</span>`);
   if (it.base.baseDefense) lines.push(`<span style="opacity:.7">防御 ${it.base.baseDefense[0]}-${it.base.baseDefense[1]}</span>`);
+  if (!it.identified) { lines.push('<span style="opacity:.5">回营地鉴定后揭示属性</span>'); return lines.join('<br>'); }
   for (const a of it.affixes) lines.push(`<span style="color:#7a9cff">${affixText(a)}</span>`);
   // 套装: 显示所属套装与各档加成 (绿字)
   if (it.setId) {
@@ -190,8 +194,10 @@ export class InventoryPanel {
       cell.className = 'cell';
       if (it) {
         const sock = it.sockets ? ` <span style="opacity:.55">[${(it.socketed?.length ?? 0)}/${it.sockets}孔]</span>` : '';
+        const nm = it.identified ? it.name : `${it.base.name} (未鉴定)`;
+        const col = it.identified ? RARITY_HEX[it.rarity] : '#c8c8c8';
         cell.innerHTML = `<div class="s">${SLOT_LABEL[slot]}</div>` +
-          `<span class="nm" style="color:${RARITY_HEX[it.rarity]}">${it.name}</span>${sock}` +
+          `<span class="nm" style="color:${col}">${nm}</span>${sock}` +
           ` <span class="act" style="float:right;color:#d88;border:1px solid #6a4a4a;border-radius:5px;padding:0 6px">卸</span>`;
         (cell.querySelector('.nm') as HTMLElement).addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.showTip(it, { kind: 'equip', slot }); });
         (cell.querySelector('.act') as HTMLElement).addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); g.unequip(slot); this.refresh(); });
@@ -208,7 +214,9 @@ export class InventoryPanel {
       const el = document.createElement('div');
       el.className = 'item';
       const sock = it.sockets ? ` <span style="opacity:.55">[${(it.socketed?.length ?? 0)}/${it.sockets}孔]</span>` : '';
-      el.innerHTML = `<span class="nm" style="color:${RARITY_HEX[it.rarity]}">${it.name}</span>${sock}` +
+      const nm = it.identified ? it.name : `${it.base.name} (未鉴定)`;
+      const col = it.identified ? RARITY_HEX[it.rarity] : '#c8c8c8';
+      el.innerHTML = `<span class="nm" style="color:${col}">${nm}</span>${sock}` +
         ` <span class="act" style="float:right;color:#8d8;border:1px solid #4a6a4a;border-radius:5px;padding:0 6px">穿</span>`;
       (el.querySelector('.nm') as HTMLElement).addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.showTip(it, { kind: 'bag', index: i }); });
       (el.querySelector('.act') as HTMLElement).addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); g.equip(i); this.refresh(); });

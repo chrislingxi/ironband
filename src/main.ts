@@ -407,7 +407,8 @@ async function main() {
     itemLayer.removeChildren();
     for (const gi of game.groundItems) {
       const s = gridToScreen(gi.pos);
-      const col = RARITY_COLOR[gi.item.rarity] ?? 0xc8c8c8;
+      // 未鉴定掉落统一显示基础色 (不剧透稀有度; 鉴定后才显金/绿)
+      const col = RARITY_COLOR[gi.item.identified ? gi.item.rarity : 'normal'] ?? 0xc8c8c8;
       const g = new Graphics()
         .poly([0, -7, 5, 0, 0, 7, -5, 0]).fill({ color: col }).stroke({ color: 0x000000, width: 1 });
       g.position.set(s.x, s.y);
