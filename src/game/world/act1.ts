@@ -1,4 +1,5 @@
 import type { LevelDef, PerDifficulty } from '@game/data/schema.ts';
+import { ACT2_AREAS } from '@game/world/act2.ts';
 
 // 第一幕主线区域数据 (Levels.txt 风格). 结构忠实对标 D2 第一幕,
 // 但所有数值/连接为本作设定. monLevel 按三难度分段, 营地最低, 安达莉尔巢穴最高.
@@ -114,6 +115,10 @@ export const AREAS: Record<string, LevelDef> = {
     monLevel: ml(12, 46, 77),
     monsters: ['skeleton', 'shaman'],
     size: [70, 70],
-    connects: ['catacombs'],
+    // 击败安达莉尔后, 经此通往第二幕鲁高因 (沃里夫的车队)。
+    connects: ['catacombs', 'lut_gholein'],
   },
+
+  // ── 第二幕区域并入总注册表 ──
+  ...ACT2_AREAS,
 };

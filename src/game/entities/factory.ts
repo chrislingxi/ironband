@@ -3,9 +3,10 @@ import { freshId, makeCombatant, noResist } from './entity.ts';
 import { MONSTERS } from '@game/data/monsters.ts';
 import { MONSTERS_EXT } from '@game/data/monsters2.ts';
 import { ANDARIEL } from '@game/systems/boss/andariel.ts';
+import { DURIEL } from '@game/systems/boss/duriel.ts';
 import type { MonStat } from '@game/data/schema.ts';
 
-const ALL_MONSTERS: Record<string, MonStat> = { ...MONSTERS, ...MONSTERS_EXT, andariel: ANDARIEL };
+const ALL_MONSTERS: Record<string, MonStat> = { ...MONSTERS, ...MONSTERS_EXT, andariel: ANDARIEL, duriel: DURIEL };
 import type { Difficulty, DamageType } from '@game/data/schema.ts';
 import type { DamageInstance } from '@game/systems/combat/index.ts';
 import { randInt, type RNG } from '@engine/math/rng.ts';
