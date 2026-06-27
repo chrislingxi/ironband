@@ -21,6 +21,13 @@ import { playerResistPenalty, DIFFICULTIES } from '@game/systems/difficulty.ts';
 // 难度中文标签 (通关解锁提示用)。
 const DIFF_LABEL: Record<Difficulty, string> = { normal: '普通', nightmare: '噩梦', hell: '地狱' };
 
+// 各职业起手属性 (洗点时重置到此)。与 character/profiles 的构造保持一致。
+const STARTING_ATTRS: Record<CharClass, { str: number; dex: number; vit: number; energy: number }> = {
+  barbarian: { str: 30, dex: 20, vit: 25, energy: 10 },
+  amazon: { str: 20, dex: 25, vit: 20, energy: 15 },
+  sorceress: { str: 10, dex: 15, vit: 10, energy: 35 },
+};
+
 // Boss 区域 → 该区独占的 Boss defId (进区只刷该 Boss)。
 const BOSS_AREAS: Record<string, string> = {
   andariel_lair: 'andariel',
@@ -98,6 +105,7 @@ export class Game {
   missiles: Missile[] = []; // 投射物(箭/法术)
   questProgress: QuestProgress = initQuests(QUESTS); // 任务状态
   bonusSkillPoints = 0; // 任务奖励的额外技能点
+  statPoints = 0; // 未分配的属性点 (每级+5, 手动加点)
   mercUnlocked = false; // 任务奖励: 雇佣兵解锁(Phase D)
   act1Complete = false;
   act2Complete = false;
@@ -209,6 +217,32 @@ export class Game {
   spawnMonster(defId: string, x: number, y: number): void {
     // 传入区域 monLevel: 怪物等级与经验按所在区域缩放 (深幕怪更高级、给更多经验)。
     this.monsters.push(makeMonster(defId, x, y, this.rng, this.difficulty, this.currentArea.monLevel));
+  }
+
+  // 分配一点属性 (力/敏/体/精); 有未分配点则 +1 并重算战力。
+  allocateStat(attr: 'str' | 'dex' | 'vit' | 'energy'): boolean {
+    if (this.statPoints <= 0) return false;
+    this.character.base[attr] += 1;
+    this.statPoints -= 1;
+    this.recompute();
+    return true;
+  }
+
+  // 洗点费用 (随等级递增)。
+  respecCost(): number {
+    return 200 + this.character.level * 80;
+  }
+
+  // 营地洗点: 花金把属性重置为起手值, 退回全部 (等级-1)*5 点供重分。
+  respecStats(): boolean {
+    const cost = this.respecCost();
+    if (this.goldTotal < cost) return false;
+    this.goldTotal -= cost;
+    this.character.base = { ...STARTING_ATTRS[this.character.cls] };
+    this.statPoints = (this.character.level - 1) * 5;
+    this.recompute();
+    this.notices.push('属性已重置, 重新分配你的天赋');
+    return true;
   }
 
   // 可用技能点 = 等级-1 + 任务奖励 - 已投 (D2: 每级1点)
@@ -391,9 +425,7 @@ export class Game {
     while (ch.xp >= this.xpForNext(ch.level)) {
       ch.xp -= this.xpForNext(ch.level);
       ch.level++;
-      ch.base.str += 2;
-      ch.base.vit += 2;
-      ch.base.dex += 1;
+      this.statPoints += 5; // D2 标准: 每级 5 点自由分配 (手动加点)
       leveled = true;
     }
     if (leveled) {
