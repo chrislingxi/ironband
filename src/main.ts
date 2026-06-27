@@ -20,6 +20,7 @@ import { AREAS } from '@game/world/act1.ts';
 import { TitleScreen, type BootChoice } from '@game/ui/titlescreen.ts';
 import { QuestLogPanel } from '@game/ui/questlog.ts';
 import { maybeShowTutorial, showTutorial } from '@game/ui/tutorial.ts';
+import { SettingsPanel } from '@game/ui/settings.ts';
 import { TownPanel, type TownData } from '@game/ui/town.ts';
 import { QUESTS } from '@game/world/quests.ts';
 import { buyPrice, sellPrice, gambleCost } from '@game/systems/town/economy.ts';
@@ -607,6 +608,21 @@ async function main() {
   topBtn('🔊', 3, () => { audioOn = !audioOn; audio.setEnabled(audioOn); game.notices.push(audioOn ? '音效开' : '音效关'); });
   // 帮助: 重看新手引导 (暂停模拟, 关闭后恢复)
   topBtn('❓', 4, () => { paused = true; showTutorial(() => { paused = false; }); });
+  // 设置: 音量/音效/BGM/自动饮药/重置存档
+  let masterVol = 0.6, bgmOn = true;
+  const settings = new SettingsPanel({
+    getVolume: () => masterVol,
+    setVolume: (v) => { masterVol = v; audio.setVolume(v); },
+    getSfxOn: () => audioOn,
+    setSfxOn: (on) => { audioOn = on; audio.setEnabled(on); },
+    getBgmOn: () => bgmOn,
+    setBgmOn: (on) => { bgmOn = on; if (on) audio.startBgm(); else audio.stopBgm(); },
+    getAutoQuaff: () => game.autoQuaff,
+    setAutoQuaff: (on) => { game.autoQuaff = on; },
+    onResetSave: () => { void deleteSlot(activeSlot).then(() => location.reload()); },
+    onClose: () => { paused = false; },
+  });
+  topBtn('⚙', 5, () => { paused = true; settings.show(); });
   // ☰ 菜单开关: 折叠/展开上述次级按钮 (默认折叠, 只占一个角)
   let menuOpen = false;
   function menuToggle(open?: boolean): void {
