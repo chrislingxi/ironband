@@ -123,5 +123,12 @@ export function generateItem(mlvl: number, rng: RNG, rarityBoost = 1): ItemInsta
   const rarity = rollRarity(rng, ilvl);
   const affixes = rollAffixes(base, ilvl, rarity, rng);
   const identified = rarity === 'normal' || rarity === 'magic'; // 稀有/套装/暗金需鉴定
-  return { uid: uidSeq++, base, rarity, ilvl, affixes, name: makeName(base, rarity, affixes, rng), identified };
+  // 镶孔: 可镶底材(武器/盔甲/头盔/盾)有几率带 1-N 孔 (随 ilvl 略升, 封顶按底材)。
+  const socketable = ['weapon', 'armor', 'helm', 'shield'].includes(base.slot);
+  let sockets = 0;
+  if (socketable && rng() < Math.min(0.35, 0.12 + ilvl * 0.004)) {
+    const cap = base.sockets && base.sockets > 0 ? base.sockets : base.slot === 'weapon' || base.slot === 'armor' ? 3 : 2;
+    sockets = randInt(rng, 1, cap);
+  }
+  return { uid: uidSeq++, base, rarity, ilvl, affixes, name: makeName(base, rarity, affixes, rng), identified, sockets };
 }

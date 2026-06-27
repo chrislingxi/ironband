@@ -1,13 +1,21 @@
 import { describe, it, expect } from 'vitest';
 import { Game } from '../src/game/sim/Game.ts';
 import { CLASS_KEYS } from '../src/game/classes/profiles.ts';
-import { generateItem } from '../src/game/systems/items/index.ts';
-import { mulberry32 } from '../src/engine/math/rng.ts';
+import { makeNormalItem } from '../src/game/systems/items/index.ts';
+import type { ItemInstance, RolledAffix, StatKey } from '../src/game/systems/items/types.ts';
 import type { CharClass } from '../src/game/data/schema.ts';
 
-// 构建一个"该等级的合理 build": 主属性/体能/少量敏捷 + 满主技能 + 整套装备(武器选最大伤害)。
-// 代表"认真养成 + 使用药水"的玩家 (D2 正常玩法), 而非裸装。
-function hero(cls: CharClass, level: number, ilvl: number): Game {
+// 给一件装备贴上确定性词缀 (代表"认真养成"的装备, 不依赖掉落运气, 测试稳定)。
+function withAffixes(it: ItemInstance, mods: [StatKey, number][]): ItemInstance {
+  it.affixes = mods.map(([stat, value], i) => ({
+    id: `t_${stat}_${i}`, kind: i % 2 === 0 ? 'prefix' : 'suffix', stat, value, label: stat,
+  } as RolledAffix));
+  return it;
+}
+
+// 构建一个"该等级的合理 build": 主属性/体能/少量敏捷 + 满主技能 + 确定性整套装备
+// (吸血武器 + 防具 + 抗性/血量首饰)。代表"认真养成 + 使用药水"的玩家 (D2 正常玩法)。
+function hero(cls: CharClass, level: number): Game {
   const g = new Game(1, cls);
   g.character.level = level;
   const pts = (level - 1) * 5;
@@ -20,19 +28,13 @@ function hero(cls: CharClass, level: number, ilvl: number): Game {
   const k0 = CLASS_KEYS[cls][0], k1 = CLASS_KEYS[cls][1];
   g.skillTree[k0.treeSkillId ?? k0.id] = Math.min(20, sp);
   g.skillTree[k1.treeSkillId ?? k1.id] = Math.min(20, Math.max(0, sp - 20));
-  const rng = mulberry32(777);
-  let bestW: ReturnType<typeof generateItem> | null = null, bestWdmg = 0;
-  for (let i = 0; i < 200; i++) {
-    const it = generateItem(ilvl, rng, 3);
-    const slot = it.base.slot;
-    if (slot === 'weapon') {
-      const dm = (it.base.baseDamage?.[1] ?? 0) + it.affixes.reduce((s, a) => s + (a.stat === 'maxdam' ? a.value : 0), 0);
-      if (dm > bestWdmg) { bestWdmg = dm; bestW = it; }
-    } else if (!g.character.equipment[slot]) {
-      g.character.equipment[slot] = it;
-    }
-  }
-  if (bestW) g.character.equipment.weapon = bestW;
+  const eq = g.character.equipment;
+  eq.weapon = withAffixes(makeNormalItem('double_axe'), [['dmg_perc', 60], ['maxdam', 30], ['lifeleech', 6], ['tohit', 200]]);
+  eq.armor = withAffixes(makeNormalItem('chain'), [['defense', 120], ['res_all', 30], ['maxhp', 60]]);
+  eq.helm = withAffixes(makeNormalItem('skull_cap'), [['defense', 60], ['res_all', 20]]);
+  eq.shield = withAffixes(makeNormalItem('small_shield'), [['defense', 60], ['res_all', 20]]);
+  eq.ring = withAffixes(makeNormalItem('ring'), [['res_all', 30], ['maxhp', 50], ['str', 20]]);
+  eq.amulet = withAffixes(makeNormalItem('amulet'), [['res_all', 30], ['maxhp', 50], ['dex', 20]]);
   g.recompute(true);
   return g;
 }
@@ -58,7 +60,7 @@ const CLASSES: CharClass[] = ['barbarian', 'amazon', 'sorceress'];
 describe('平衡: 续航存在下各职业可击败普通巴尔且不被秒', () => {
   for (const cls of CLASSES) {
     it(`${cls}: L60 击败普通巴尔 (存活 + 非瞬秒)`, () => {
-      const g = hero(cls, 60, 75);
+      const g = hero(cls, 60);
       g.loadArea('worldstone_keep');
       const r = run(g, 90);
       expect(r.dead, `${cls} 被普通巴尔打死 (minHp=${r.minHp.toFixed(0)}/${r.maxHp})`).toBe(false);

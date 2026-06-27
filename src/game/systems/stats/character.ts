@@ -1,5 +1,5 @@
 import type { ItemInstance, EquipSlot } from '@game/systems/items/index.ts';
-import { emptyBag, accumulateItem } from '@game/systems/items/index.ts';
+import { emptyBag, accumulateItem, accumulateSockets } from '@game/systems/items/index.ts';
 import { makeNormalItem } from '@game/systems/items/index.ts';
 import type { DamageType, CharClass } from '@game/data/schema.ts';
 import type { DamageInstance } from '@game/systems/combat/index.ts';
@@ -58,6 +58,7 @@ export function deriveCombat(ch: Character, passive: PassiveBonusInput = {}): De
     const it = ch.equipment[key];
     if (!it) continue;
     accumulateItem(bag, it);
+    accumulateSockets(bag, it); // 镶嵌符文 + 符文之语贡献
     if (it.base.baseDefense) armorDef += Math.floor((it.base.baseDefense[0] + it.base.baseDefense[1]) / 2);
     if (it.base.slot === 'weapon') weapon = it;
   }
