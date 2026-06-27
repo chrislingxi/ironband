@@ -179,6 +179,8 @@ export class Game {
     };
     p.combat.level = this.character.level;
     p.damage = d.damage;
+    // 攻速: 由武器基础挥击间隔决定 (剑快斧慢, D2 武器快慢手感); 徒手 0.55。
+    p.attackInterval = this.character.equipment.weapon?.base.attackSpeed ?? 0.55;
   }
 
   // 装备背包中第 index 件 (旧装备退回背包), 重算战力

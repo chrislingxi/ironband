@@ -14,6 +14,22 @@ function castIceBoltDamage(points: number): number {
   return m!.dmg.reduce((s, d) => s + d.max, 0);
 }
 
+describe('攻速 (武器快慢)', () => {
+  it('短剑攻速快于双刃斧', async () => {
+    const { makeNormalItem } = await import('../src/game/systems/items/index.ts');
+    const g = new Game(1, 'barbarian');
+    g.character.equipment.weapon = makeNormalItem('short_sword');
+    g.recompute();
+    const fast = g.player.attackInterval;
+    g.character.equipment.weapon = makeNormalItem('double_axe');
+    g.recompute();
+    const slow = g.player.attackInterval;
+    expect(fast).toBeLessThan(slow);
+    expect(fast).toBeCloseTo(0.45, 2);
+    expect(slow).toBeCloseTo(0.7, 2);
+  });
+});
+
 describe('暴击 (critical_strike 生效)', () => {
   function critRate(critPoints: number): number {
     const g = new Game(99, 'amazon');
