@@ -593,21 +593,29 @@ async function main() {
     utilBtns.push(b);
     return b;
   }
-  // 航点
+  // 航点: 提为常驻左侧按钮 (高频核心移动手段, 不再藏进菜单)
   const wp = new WaypointPanel((id) => { game.loadArea(id); wp.hide(); paused = false; }, () => { wp.hide(); paused = false; });
-  topBtn('🗺', 0, () => {
+  const wpBtn = document.createElement('div');
+  wpBtn.textContent = '🗺';
+  wpBtn.style.cssText =
+    'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(276px + env(safe-area-inset-top));' +
+    'width:48px;height:48px;border-radius:11px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
+    'align-items:center;justify-content:center;font-size:22px;pointer-events:auto;z-index:40;box-shadow:0 4px 10px #000b,inset 0 1px 4px #ffffff16,inset 0 -3px 7px #00000050;';
+  wpBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
     if (wp.open) { wp.hide(); paused = false; }
     else { closePanels(); wp.show(listWaypoints(game.discoveredWaypoints, AREAS)); paused = true; }
   });
+  document.body.appendChild(wpBtn);
   // 存档 / 读档 (针对当前激活槽位, 保留角色名)
-  topBtn('💾', 1, () => { saveToDB(serializeGame(game, activeName), activeSlot).then(() => game.notices.push('已保存进度')); });
-  topBtn('📂', 2, () => {
+  topBtn('💾', 0, () => { saveToDB(serializeGame(game, activeName), activeSlot).then(() => game.notices.push('已保存进度')); });
+  topBtn('📂', 1, () => {
     loadFromDB(activeSlot).then((d) => { if (d) { applySave(game, d); activeName = d.name; game.notices.push('已读取存档'); } else game.notices.push('暂无存档'); });
   });
   let audioOn = true;
-  topBtn('🔊', 3, () => { audioOn = !audioOn; audio.setEnabled(audioOn); game.notices.push(audioOn ? '音效开' : '音效关'); });
+  topBtn('🔊', 2, () => { audioOn = !audioOn; audio.setEnabled(audioOn); game.notices.push(audioOn ? '音效开' : '音效关'); });
   // 帮助: 重看新手引导 (暂停模拟, 关闭后恢复)
-  topBtn('❓', 4, () => { paused = true; showTutorial(() => { paused = false; }); });
+  topBtn('❓', 3, () => { paused = true; showTutorial(() => { paused = false; }); });
   // 设置: 音量/音效/BGM/自动饮药/重置存档
   let masterVol = 0.6, bgmOn = true;
   const settings = new SettingsPanel({
@@ -622,7 +630,7 @@ async function main() {
     onResetSave: () => { void deleteSlot(activeSlot).then(() => location.reload()); },
     onClose: () => { paused = false; },
   });
-  topBtn('⚙', 5, () => { paused = true; settings.show(); });
+  topBtn('⚙', 4, () => { paused = true; settings.show(); });
   // ☰ 菜单开关: 折叠/展开上述次级按钮 (默认折叠, 只占一个角)
   let menuOpen = false;
   function menuToggle(open?: boolean): void {
