@@ -201,15 +201,25 @@ export class Game {
     } else {
       for (const sp of this.currentArea.monsterSpawns) this.spawnMonster(sp.defId, sp.x, sp.y);
     }
-    // 精英怪群: 随机把 1-2 只提升为带词缀的精英队长
+    // 精英怪群: 把若干只提升为带词缀的精英队长, 并在其周围生成同类随从(minion pack)。
+    // 难度越高: 队长越多、词缀越多 (D2 地狱遍地双词缀精英)。
     if (!this.currentArea.isTown && !bossDefId && this.monsters.length > 3) {
-      const nElite = 1 + (this.rng() < 0.5 ? 1 : 0);
+      const diffTier = this.difficulty === 'hell' ? 2 : this.difficulty === 'nightmare' ? 1 : 0;
+      const nElite = 1 + (this.rng() < 0.5 ? 1 : 0) + diffTier; // 普通1-2 / 噩梦2-3 / 地狱3-4
+      const minAffix = 1 + diffTier; // 地狱起步3词缀
+      const maxAffix = 2 + diffTier;
       for (let i = 0; i < nElite; i++) {
         const cap = this.monsters[randInt(this.rng, 0, this.monsters.length - 1)];
         if (cap.elite) continue;
-        const meta = applyElite(cap, rollEliteAffixes(this.rng, randInt(this.rng, 1, 2)));
+        const meta = applyElite(cap, rollEliteAffixes(this.rng, randInt(this.rng, minAffix, maxAffix)));
         cap.elite = meta;
         cap.size = Math.round(cap.size * 1.3);
+        // minion pack: 队长周围生成 2-4 只同类随从 (吃队长光环)
+        const nMinion = randInt(this.rng, 2, 4);
+        for (let k = 0; k < nMinion; k++) {
+          const ang = (k / nMinion) * Math.PI * 2;
+          this.spawnMonster(cap.defId, cap.pos.x + Math.cos(ang) * 1.5, cap.pos.y + Math.sin(ang) * 1.5);
+        }
       }
     }
     this.player.pos = { x: this.currentArea.size[0] / 2, y: this.currentArea.size[1] / 2 };
