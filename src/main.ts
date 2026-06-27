@@ -626,15 +626,17 @@ async function main() {
     else { closePanels(); wp.show(listWaypoints(game.discoveredWaypoints, AREAS)); paused = true; }
   });
   document.body.appendChild(wpBtn);
-  // 存档 / 读档 (针对当前激活槽位, 保留角色名)
-  topBtn('💾', 0, () => { saveToDB(serializeGame(game, activeName), activeSlot).then(() => game.notices.push('已保存进度')); });
-  topBtn('📂', 1, () => {
-    loadFromDB(activeSlot).then((d) => { if (d) { applySave(game, d); activeName = d.name; game.notices.push('已读取存档'); } else game.notices.push('暂无存档'); });
-  });
+  // 自动存档: 替代手动存/读。切区/升级/关面板/定时触发, 落到当前角色槽 (保留多角色)。
+  let saveAccum = 0;
+  let savedAreaId = game.currentArea.id;
+  let lastSaveLevel = game.character.level;
+  function autosave(): void { void saveToDB(serializeGame(game, activeName), activeSlot); }
+  // 页面隐藏(切后台/锁屏)时立即存一份, 防丢档
+  document.addEventListener('visibilitychange', () => { if (document.hidden) autosave(); });
   let audioOn = true;
-  topBtn('🔊', 2, () => { audioOn = !audioOn; audio.setEnabled(audioOn); game.notices.push(audioOn ? '音效开' : '音效关'); });
+  topBtn('🔊', 0, () => { audioOn = !audioOn; audio.setEnabled(audioOn); game.notices.push(audioOn ? '音效开' : '音效关'); });
   // 帮助: 重看新手引导 (暂停模拟, 关闭后恢复)
-  topBtn('❓', 3, () => { paused = true; showTutorial(() => { paused = false; }); });
+  topBtn('❓', 1, () => { paused = true; showTutorial(() => { paused = false; }); });
   // 设置: 音量/音效/BGM/自动饮药/重置存档
   let masterVol = 0.6, bgmOn = true;
   const settings = new SettingsPanel({
@@ -649,7 +651,7 @@ async function main() {
     onResetSave: () => { void deleteSlot(activeSlot).then(() => location.reload()); },
     onClose: () => { paused = false; },
   });
-  topBtn('⚙', 4, () => { paused = true; settings.show(); });
+  topBtn('⚙', 2, () => { paused = true; settings.show(); });
   // ☰ 菜单开关: 折叠/展开上述次级按钮 (默认折叠, 只占一个角)
   let menuOpen = false;
   function menuToggle(open?: boolean): void {
@@ -787,6 +789,11 @@ async function main() {
         move = { x: g.x * joy.strength, y: g.y * joy.strength };
       }
       game.update(dt, { move });
+      // 自动存档: 切区/升级即时存; 否则每 8 秒存一次
+      saveAccum += dt;
+      if (game.currentArea.id !== savedAreaId || game.character.level !== lastSaveLevel) {
+        savedAreaId = game.currentArea.id; lastSaveLevel = game.character.level; saveAccum = 0; autosave();
+      } else if (saveAccum >= 8) { saveAccum = 0; autosave(); }
       // 事件驱动: 击杀→顿帧+强屏震; 玩家受击→屏震
       for (const ev of game.events) {
         if (ev.miss || ev.heal || ev.xp) continue; // 非伤害事件不震屏/不红屏
