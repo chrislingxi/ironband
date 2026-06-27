@@ -45,6 +45,7 @@ export interface CombatEvent {
   amount: number;
   killed: boolean;
   toPlayer: boolean;
+  crit?: boolean; // 暴击 (双倍物理), 渲染层显示更大/特殊色
 }
 export interface GoldDrop {
   id: number;
@@ -343,7 +344,14 @@ export class Game {
   }
 
   private attack = (attacker: Entity, defender: Entity, dmg: DamageInstance[]): void => {
-    const r = resolveAttack(attacker.combat, defender.combat, dmg, this.rng, this.timeMs);
+    // 暴击/致命: 玩家攻击有几率双倍物理伤害 (基础5% + 亚马逊critical_strike每点3%)。
+    let useDmg = dmg;
+    let crit = false;
+    if (attacker === this.player && this.rng() < this.playerCritChance()) {
+      crit = true;
+      useDmg = dmg.map((d) => (d.type === 'physical' ? { ...d, min: d.min * 2, max: d.max * 2 } : d));
+    }
+    const r = resolveAttack(attacker.combat, defender.combat, useDmg, this.rng, this.timeMs);
     if (!r.hit) return;
     defender.hitFlash = 1;
     this.events.push({
@@ -351,6 +359,7 @@ export class Game {
       amount: r.totalDamage,
       killed: r.killed,
       toPlayer: defender.kind === 'player',
+      crit,
     });
     // 击退 (重量感): 把怪推离攻击者一小段, 不致死时
     if (defender.kind === 'monster' && !r.killed) {
@@ -617,6 +626,12 @@ export class Game {
         break;
       }
     }
+  }
+
+  /** 玩家暴击率: 基础 5% + 亚马逊 critical_strike 每点 3% (封顶 60%)。 */
+  private playerCritChance(): number {
+    const cs = pointsIn('critical_strike', this.skillTree);
+    return Math.min(0.6, 0.05 + cs * 0.03);
   }
 
   /**
