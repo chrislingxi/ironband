@@ -534,30 +534,49 @@ async function main() {
   const audio = new GameAudio();
   window.addEventListener('pointerdown', () => { audio.unlock(); audio.startBgm(); }, { once: true });
 
-  // 顶部右侧功能按钮 (航点/存档/读档)
-  function topBtn(emoji: string, topPx: number, onTap: () => void): void {
+  // 顶部右侧次级功能按钮 (航点/存档/读档/音效) — 收纳进可折叠的 ☰ 菜单, 减少常驻按钮。
+  const utilBtns: HTMLElement[] = [];
+  function topBtn(emoji: string, slot: number, onTap: () => void): HTMLElement {
     const b = document.createElement('div');
     b.textContent = emoji;
+    const topPx = 120 + slot * 50; // 菜单按钮之下依次排列
     b.style.cssText =
       `position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(${topPx}px + env(safe-area-inset-top));` +
-      'width:42px;height:42px;border-radius:10px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
+      'width:42px;height:42px;border-radius:10px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:none;' +
       'align-items:center;justify-content:center;font-size:20px;pointer-events:auto;z-index:40;box-shadow:0 4px 10px #000b,inset 0 1px 4px #ffffff16,inset 0 -3px 7px #00000050;';
-    b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); audio.sfx('select'); onTap(); });
+    b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); audio.sfx('select'); onTap(); menuToggle(false); });
     document.body.appendChild(b);
+    utilBtns.push(b);
+    return b;
   }
   // 航点
   const wp = new WaypointPanel((id) => { game.loadArea(id); wp.hide(); paused = false; }, () => { wp.hide(); paused = false; });
-  topBtn('🗺', 70, () => {
+  topBtn('🗺', 0, () => {
     if (wp.open) { wp.hide(); paused = false; }
     else { closePanels(); wp.show(listWaypoints(game.discoveredWaypoints, AREAS)); paused = true; }
   });
   // 存档 / 读档 (针对当前激活槽位, 保留角色名)
-  topBtn('💾', 120, () => { saveToDB(serializeGame(game, activeName), activeSlot).then(() => game.notices.push('已保存进度')); });
-  topBtn('📂', 170, () => {
+  topBtn('💾', 1, () => { saveToDB(serializeGame(game, activeName), activeSlot).then(() => game.notices.push('已保存进度')); });
+  topBtn('📂', 2, () => {
     loadFromDB(activeSlot).then((d) => { if (d) { applySave(game, d); activeName = d.name; game.notices.push('已读取存档'); } else game.notices.push('暂无存档'); });
   });
   let audioOn = true;
-  topBtn('🔊', 220, () => { audioOn = !audioOn; audio.setEnabled(audioOn); game.notices.push(audioOn ? '音效开' : '音效关'); });
+  topBtn('🔊', 3, () => { audioOn = !audioOn; audio.setEnabled(audioOn); game.notices.push(audioOn ? '音效开' : '音效关'); });
+  // ☰ 菜单开关: 折叠/展开上述次级按钮 (默认折叠, 只占一个角)
+  let menuOpen = false;
+  function menuToggle(open?: boolean): void {
+    menuOpen = open ?? !menuOpen;
+    for (const b of utilBtns) b.style.display = menuOpen ? 'flex' : 'none';
+    menuBtn.textContent = menuOpen ? '✕' : '☰';
+  }
+  const menuBtn = document.createElement('div');
+  menuBtn.textContent = '☰';
+  menuBtn.style.cssText =
+    'position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(70px + env(safe-area-inset-top));' +
+    'width:42px;height:42px;border-radius:10px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
+    'align-items:center;justify-content:center;font-size:20px;color:#e8d8a8;pointer-events:auto;z-index:41;box-shadow:0 4px 10px #000b,inset 0 1px 4px #ffffff16,inset 0 -3px 7px #00000050;';
+  menuBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); audio.sfx('select'); menuToggle(); });
+  document.body.appendChild(menuBtn);
 
   // 小地图 (区域俯瞰: 玩家/怪/出口/雇佣兵)
   const mm = document.createElement('canvas');
