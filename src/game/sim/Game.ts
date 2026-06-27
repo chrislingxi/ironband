@@ -509,12 +509,14 @@ export class Game {
         }
         // 物品掉落 (TreasureClass-lite): 精英必掉且更多, Boss 暴掉
         const drops = isBoss ? 4 : isElite ? 2 : this.rng() < 0.32 ? 1 : 0;
+        // 暗金概率放大: Boss×10 / 精英×3 / 普通×1 ("刷Boss/精英出金"成立)
+        const rarityBoost = isBoss ? 10 : isElite ? 3 : 1;
         for (let k = 0; k < drops; k++) {
           const off = () => (this.rng() - 0.5) * 0.9;
           this.groundItems.push({
             id: this.nextGoldId++,
             pos: { x: e.pos.x + off(), y: e.pos.y + off() },
-            item: generateItem(e.combat.level + (isElite ? 3 : 0), this.rng),
+            item: generateItem(e.combat.level + (isElite ? 3 : 0), this.rng, rarityBoost),
           });
         }
       }

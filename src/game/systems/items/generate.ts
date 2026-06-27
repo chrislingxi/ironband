@@ -1,9 +1,29 @@
 import type { ItemBase, Affix, Rarity } from '@game/data/schema.ts';
 import { ITEM_BASES, AFFIXES, RARE_WORDS } from '@game/data/items.ts';
+import { UNIQUES, type UniqueDef } from '@game/data/uniques.ts';
 import type { ItemInstance, RolledAffix, EquipSlot } from './types.ts';
 import { randInt, type RNG } from '@engine/math/rng.ts';
 
 let uidSeq = 1;
+
+// 暗金: 从等级允许的暗金里随机取一件 (按其基础物品需求等级筛)。
+function pickUnique(ilvl: number, rng: RNG): UniqueDef | null {
+  const pool = UNIQUES.filter((u) => {
+    const base = ITEM_BASES.find((b) => b.id === u.baseId);
+    return base && base.reqLevel <= ilvl + 2;
+  });
+  if (pool.length === 0) return null;
+  return pool[randInt(rng, 0, pool.length - 1)];
+}
+
+// 由暗金定义产出一件暗金物品 (固定词缀 + 专名; 未鉴定)。
+function makeUnique(u: UniqueDef, ilvl: number): ItemInstance {
+  const base = ITEM_BASES.find((b) => b.id === u.baseId)!;
+  const affixes: RolledAffix[] = u.affixes.map((a, i) => ({
+    id: `${u.id}_${i}`, kind: i % 2 === 0 ? 'prefix' : 'suffix', stat: a.stat, value: a.value, label: a.label,
+  }));
+  return { uid: uidSeq++, base, rarity: 'unique', ilvl, affixes, name: u.name, identified: false };
+}
 
 function affixApplies(a: Affix, slot: EquipSlot): boolean {
   return a.appliesTo.includes('any') || a.appliesTo.includes(slot);
@@ -88,9 +108,16 @@ export function makeNormalItem(baseId: string): ItemInstance {
   return { uid: uidSeq++, base, rarity: 'normal', ilvl: base.reqLevel, affixes: [], name: base.name, identified: true };
 }
 
-// 主入口: 按怪物等级 mlvl 生成一件掉落
-export function generateItem(mlvl: number, rng: RNG): ItemInstance {
+// 主入口: 按怪物等级 mlvl 生成一件掉落。
+// rarityBoost: 暗金概率放大 (精英~3, Boss~10), 让"刷Boss/精英出金"成立。
+export function generateItem(mlvl: number, rng: RNG, rarityBoost = 1): ItemInstance {
   const ilvl = Math.max(1, mlvl);
+  // 先掷暗金 (概率随等级与稀有加成上升, 封顶 8%)。
+  const uniqueChance = Math.min(0.08, (0.004 + ilvl * 0.0004) * rarityBoost);
+  if (rng() < uniqueChance) {
+    const u = pickUnique(ilvl, rng);
+    if (u) return makeUnique(u, ilvl);
+  }
   const eligible = ITEM_BASES.filter((b) => b.reqLevel <= ilvl + 2);
   const base = (eligible.length ? eligible : ITEM_BASES)[randInt(rng, 0, (eligible.length ? eligible : ITEM_BASES).length - 1)];
   const rarity = rollRarity(rng, ilvl);
