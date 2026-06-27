@@ -128,7 +128,7 @@ async function main() {
   // 地砖真图 (按主题预加载; 缺失则 buildGround 回退程序化菱形)
   const tileTextures = new Map<string, Texture | null>();
   await Promise.all(
-    ['wilderness', 'town', 'desert'].map(async (t) => tileTextures.set(t, await tryLoadTexture(`tile/${t}`))),
+    ['wilderness', 'town', 'desert', 'hell', 'snow'].map(async (t) => tileTextures.set(t, await tryLoadTexture(`tile/${t}`))),
   );
   let npcMarkers: { name: string; greeting: string; role: NpcRole; x: number; y: number }[] = [];
   function syncArea(): void {
@@ -139,8 +139,13 @@ async function main() {
     let h = 2166136261;
     for (let i = 0; i < a.id.length; i++) h = (Math.imul(h ^ a.id.charCodeAt(i), 16777619)) >>> 0;
     scene.ground.removeChildren();
-    // 主题: 城镇暖石 / 第二幕沙漠 / 其余荒野绿
-    const groundTheme = a.isTown ? 'town' : AREAS[a.id]?.act === 2 ? 'desert' : 'wilderness';
+    // 主题: 城镇暖石 / 二幕沙漠 / 四幕地狱 / 五幕雪山 / 其余荒野绿(一三幕林野)
+    const act = AREAS[a.id]?.act;
+    const groundTheme = a.isTown ? 'town'
+      : act === 2 ? 'desert'
+      : act === 4 ? 'hell'
+      : act === 5 ? 'snow'
+      : 'wilderness';
     buildGround(scene.ground, a.size[0], a.size[1], mulberry32(h), groundTheme, tileTextures.get(groundTheme));
     // 出口标记
     exitLayer.removeChildren();
