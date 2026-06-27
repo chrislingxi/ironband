@@ -35,7 +35,7 @@ const FINAL_QUEST = 'baal';
 // 所有 Boss defId (掉落/精英判定/区域独占)。
 const BOSS_IDS = new Set(['andariel', 'duriel', 'mephisto', 'diablo', 'baal']);
 import { CLASS_SKILLS } from '@game/classes/registry.ts';
-import { canInvest, invest, totalPointsSpent, type SkillTreeState } from '@game/classes/skilltree.ts';
+import { canInvest, invest, totalPointsSpent, pointsIn, synergyBonus, type SkillTreeState } from '@game/classes/skilltree.ts';
 import type { Difficulty } from '@game/data/schema.ts';
 import { dist, normalize, type Vec2 } from '@engine/math/vec.ts';
 import { mulberry32, randInt, type RNG } from '@engine/math/rng.ts';
@@ -616,6 +616,19 @@ export class Game {
     }
   }
 
+  /**
+   * 技能威力系数: 把"在技能树投的点 + synergy"接进战斗 —— 修复"投点零作用"。
+   * 系数 = (1 + 0.09·该技能投点) × (1 + synergy加成)。0 点时为 1(基础可用)。
+   */
+  private skillPower(key: ClassSkillKey): number {
+    const treeId = key.treeSkillId ?? key.id;
+    const lvl = pointsIn(treeId, this.skillTree);
+    const defs = CLASS_SKILLS[this.character.cls];
+    const def = defs.find((d) => d.id === treeId);
+    const syn = def ? synergyBonus(def, this.skillTree, defs) : 0;
+    return (1 + 0.09 * lvl) * (1 + syn);
+  }
+
   // 使用技能键 (0/1/2/3). 按职业从 CLASS_KEYS 取行为, 泛化执行近战/投射/特殊.
   useSkill(slot: number): boolean {
     if (slot < 0 || slot > 3) return false;
@@ -624,7 +637,7 @@ export class Game {
     const key = CLASS_KEYS[this.character.cls][slot];
     const aim = this.nearestMonster(p.pos, 16);
     if (aim) p.facing = Math.atan2(aim.pos.y - p.pos.y, aim.pos.x - p.pos.x);
-    const dmg = this.scaleDamage(key.damageMult, key.damageType);
+    const dmg = this.scaleDamage(key.damageMult * this.skillPower(key), key.damageType);
     switch (key.kind) {
       case 'melee': this.execMelee(key, dmg); break;
       case 'arc': this.execArc(key, dmg); break;
