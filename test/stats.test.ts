@@ -30,6 +30,7 @@ describe('属性派生 (装备改变战力)', () => {
 
   it('Game.equip 换更强武器提升伤害, 旧武器退回背包', () => {
     const g = new Game(1);
+    g.character.level = 10; g.character.base.str = 50; g.recompute(); // 满足双刃斧需求(等级10/力43)
     const before = g.player.damage[0].max;
     g.inventory.push(makeNormalItem('double_axe'));
     expect(g.equip(0)).toBe(true);
