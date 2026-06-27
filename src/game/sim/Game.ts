@@ -3,13 +3,14 @@ import { makePlayer, makeMonster } from '@game/entities/factory.ts';
 import type { DamageInstance } from '@game/systems/combat/index.ts';
 import { resolveAttack, rollDamage, attackInterval } from '@game/systems/combat/index.ts';
 import { updateMonsterAI, type AIContext } from '@game/systems/ai/behaviors.ts';
-import { CLASS_KEYS, CASTABLE_SKILLS, defaultLoadout, castableById, makeCharacterFor, type ClassSkillKey } from '@game/classes/profiles.ts';
+import { CASTABLE_SKILLS, defaultLoadout, castableById, makeCharacterFor, type ClassSkillKey } from '@game/classes/profiles.ts';
+import { BASIC_ATTACK } from '@game/classes/exec.ts';
 import { generateItem, socketRune, type ItemInstance, type EquipSlot } from '@game/systems/items/index.ts';
 import { RUNES, runeById } from '@game/data/runes.ts';
 import { deriveCombat, type Character } from '@game/systems/stats/character.ts';
 import { createMissile, updateMissiles, type Missile } from '@game/systems/missiles/index.ts';
 import { rollEliteAffixes, applyElite } from '@game/systems/elites/index.ts';
-import { QUESTS } from '@game/world/quests.ts';
+import { QUESTS, type QuestReward } from '@game/world/quests.ts';
 import { initQuests, completeQuest, onAreaCleared, type QuestProgress } from '@game/systems/quests/state.ts';
 import { generateShopStock, buyPrice, sellPrice, gambleCost, gambleItem, identifyCost } from '@game/systems/town/economy.ts';
 import { makeMerc, updateMerc, hireCost, reviveCost, type Merc } from '@game/systems/merc/merc.ts';
@@ -142,6 +143,7 @@ export class Game {
   private potionCd = 0; // 药水冷却 (秒)
   private lifeLeechPct = 0; // 装备吸血% (recompute 汇总)
   runeBag: Record<string, number> = {}; // 符文背包 (runeId → 数量); 镶孔消耗
+  questBonuses: Partial<Record<'maxhp' | 'res_all' | 'str' | 'dex' | 'vit' | 'energy', number>> = {}; // 任务永久增益
   private chillUntilMs = 0; // 被寒冷附魔精英命中后的减速截止 (玩家移速×0.5)
   private bagFullWarned = false; // 背包满提示节流 (有空位时重置)
   get isChilled(): boolean { return this.timeMs < this.chillUntilMs; } // 玩家是否处于减速
@@ -155,28 +157,39 @@ export class Game {
     this.loadArea('rogue_encampment'); // 从罗格营地起步
   }
 
-  // 取某技能槽当前绑定的技能行为 (从可装备池按 id 解析; 回退默认键)。
-  skillKey(slot: number): ClassSkillKey {
+  // 取某技能槽当前绑定的技能行为 (空槽返回 undefined; 槽0缺省普通攻击)。
+  skillKey(slot: number): ClassSkillKey | undefined {
     const cls = this.character.cls as CharClass;
     const id = this.assignedSkills[slot];
-    return (id ? castableById(cls, id) : undefined) ?? CLASS_KEYS[cls][slot];
+    const key = castableById(cls, id);
+    if (key) return key;
+    return slot === 0 ? BASIC_ATTACK : undefined; // 槽0永远至少是普通攻击
   }
 
-  // 某技能是否可装备: 默认起手4键始终可装; 其余需在其技能树 id 投过点 (学过才能上)。
+  // 某技能是否可装备到技能键: 普通攻击专属槽0; 其余主动技需在其技能树投过点 (学过才能上)。
   canAssignSkill(id: string): boolean {
+    if (id === BASIC_ATTACK.id) return false; // 普通攻击固定在槽0, 不参与指派
     const cls = this.character.cls as CharClass;
     const key = castableById(cls, id);
     if (!key) return false;
-    if (defaultLoadout(cls).includes(id)) return true;
     const treeId = key.treeSkillId ?? key.id;
     return pointsIn(treeId, this.skillTree) > 0;
   }
 
-  // 把技能 id 绑定到某槽 (0-3)。技能须可装备。
+  // 把技能 id 绑定到某槽 (仅 1-3; 槽0锁定普通攻击)。技能须已学。
   assignSkill(slot: number, id: string): boolean {
-    if (slot < 0 || slot > 3 || !this.canAssignSkill(id)) return false;
+    if (slot < 1 || slot > 3 || !this.canAssignSkill(id)) return false;
+    // 同一技能不能占两个槽: 若已在别处, 先清掉
+    for (let s = 1; s <= 3; s++) if (this.assignedSkills[s] === id) this.assignedSkills[s] = '';
     this.assignedSkills[slot] = id;
     this.skillCd[slot] = 0;
+    return true;
+  }
+
+  // 清空某技能槽 (1-3)。
+  clearSkillSlot(slot: number): boolean {
+    if (slot < 1 || slot > 3) return false;
+    this.assignedSkills[slot] = '';
     return true;
   }
 
@@ -238,7 +251,7 @@ export class Game {
   // 由 character(基础属性+等级+装备) 重算玩家战斗数值. initial=true 时回满血.
   recompute(initial = false): void {
     const passive = passiveBonuses(this.skillTree, CLASS_SKILLS[this.character.cls]);
-    const d = deriveCombat(this.character, passive);
+    const d = deriveCombat(this.character, passive, this.questBonuses);
     const p = this.player;
     const ratio = !initial && p.combat.maxHp > 0 ? p.combat.hp / p.combat.maxHp : 1;
     p.combat.maxHp = d.maxHp;
@@ -360,10 +373,33 @@ export class Game {
     return Math.max(0, this.character.level - 1 + this.bonusSkillPoints - totalPointsSpent(this.skillTree));
   }
 
+  // 发放一条结构化任务奖励。
+  private grantQuestReward(r: QuestReward): void {
+    switch (r.kind) {
+      case 'gold': this.goldTotal += r.amount; this.notices.push(`任务奖励: +⦿${r.amount} 金币`); break;
+      case 'skillPoint': this.bonusSkillPoints += r.amount; this.notices.push(`任务奖励: +${r.amount} 技能点`); break;
+      case 'statPoint': this.statPoints += r.amount; this.notices.push(`任务奖励: +${r.amount} 属性点`); break;
+      case 'item': {
+        const it = generateItem(Math.max(1, this.currentArea.monLevel), this.rng, r.rarityBoost);
+        if (this.inventory.length < this.invCap) this.inventory.push(it);
+        else this.groundItems.push({ id: this.nextGoldId++, pos: { ...this.player.pos }, item: it });
+        this.notices.push(`任务奖励: 获得 ${it.identified ? it.name : it.base.name}`);
+        break;
+      }
+      case 'perma':
+        this.questBonuses[r.stat] = (this.questBonuses[r.stat] ?? 0) + r.value;
+        this.recompute();
+        this.notices.push(`任务奖励: 永久 ${r.label}`);
+        break;
+    }
+  }
+
   // 完成任务并发奖励
   private completeAndReward(questId: string): void {
     this.questProgress = completeQuest(this.questProgress, questId);
-    if (questId === 'den_of_evil') { this.bonusSkillPoints += 1; this.notices.push('任务完成: 净化邪恶巢穴 (+1 技能点)'); }
+    const quest = QUESTS.find((q) => q.id === questId);
+    if (quest) for (const g of quest.grants) this.grantQuestReward(g);
+    if (questId === 'den_of_evil') { this.notices.push('任务完成: 净化邪恶巢穴'); }
     else if (questId === 'sisters_burial') { this.mercUnlocked = true; this.notices.push('任务完成: 姐妹的安息之地 (雇佣兵已解锁)'); }
     else if (questId === 'andariel') {
       this.act1Complete = true;
@@ -647,7 +683,7 @@ export class Game {
     if (!p.dead && p.combat.hp > 0 && p.combat.hp < p.combat.maxHp) {
       p.combat.hp = Math.min(p.combat.maxHp, p.combat.hp + p.combat.maxHp * 0.005 * dt);
     }
-    if (this.autoQuaff && !p.dead && p.combat.hp < p.combat.maxHp * 0.35) this.quaffPotion();
+    if (this.autoQuaff && !p.dead && p.combat.hp < p.combat.maxHp * 0.45) this.quaffPotion();
     const stunned = now < p.combat.stunUntilMs;
     if (!p.dead && !stunned) {
       const mv = input.move;
@@ -878,9 +914,10 @@ export class Game {
     const p = this.player;
     if (p.dead || this.timeMs < p.combat.stunUntilMs || this.skillCd[slot] > 0) return false;
     const key = this.skillKey(slot);
+    if (!key) return false; // 空槽
     const aim = this.nearestMonster(p.pos, 16);
     if (aim) p.facing = Math.atan2(aim.pos.y - p.pos.y, aim.pos.x - p.pos.x);
-    const dmg = this.scaleDamage(key.damageMult * this.skillPower(key), key.damageType);
+    const dmg = this.skillDamage(key);
     switch (key.kind) {
       case 'melee': this.execMelee(key, dmg); break;
       case 'arc': this.execArc(key, dmg); break;
@@ -900,6 +937,24 @@ export class Game {
     return this.player.damage.map((d) => ({
       type: type ?? d.type, min: Math.max(1, Math.round(d.min * mult)), max: Math.max(1, Math.round(d.max * mult)),
     }));
+  }
+
+  // 技能伤害: 元素法术用技能自身基础伤害(随技能等级+synergy, 与武器解耦 = D2 法系);
+  // 物理/武器技能用武器伤害×倍率×skillPower (近战吃武器/力量, 受装备驱动)。
+  private skillDamage(key: ClassSkillKey): DamageInstance[] {
+    const type = key.damageType ?? 'physical';
+    const treeId = key.treeSkillId ?? key.id;
+    const defs = CLASS_SKILLS[this.character.cls];
+    const def = defs.find((d) => d.id === treeId);
+    if (type !== 'physical' && def?.baseDamage) {
+      const lvl = Math.max(1, pointsIn(treeId, this.skillTree));
+      const syn = synergyBonus(def, this.skillTree, defs);
+      const [mn, mx] = def.baseDamage(lvl);
+      // 法术放大因子: 技能基础伤害量级远小于怪物HP经济, 统一放大以匹配 (M4 校验标定)。
+      const K = 14;
+      return [{ type, min: Math.max(1, Math.round(mn * (1 + syn) * K)), max: Math.max(1, Math.round(mx * (1 + syn) * K)) }];
+    }
+    return this.scaleDamage(key.damageMult * this.skillPower(key), type);
   }
 
   private inArc(e: Entity, facing: number, range: number, halfAngle: number): boolean {

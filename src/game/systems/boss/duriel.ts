@@ -19,7 +19,7 @@ export const DURIEL: MonStat = {
   attackRating: pd(360, 1700, 4400),
   defense: pd(140, 980, 2600),
   // 沉重近战钝击.
-  damage: pd([26, 40], [95, 140], [260, 360]),
+  damage: pd([26, 40], [95, 140], [145, 195]),
   // 寒冷免疫倾向, 火抗较低 (火法克制), 其余中等.
   resist: {
     cold: pd(75, 90, 100),

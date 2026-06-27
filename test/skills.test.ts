@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { Game } from '../src/game/sim/Game.ts';
 
 describe('野蛮人技能', () => {
-  it('战嚎(slot2) 命中并震慑环身多个敌人', () => {
+  it('战嚎(war_cry) 命中并震慑环身多个敌人', () => {
     const g = new Game(11);
+    g.skillTree = { war_cry: 1 }; g.assignSkill(2, 'war_cry');
     g.player.pos = { x: 10, y: 10 };
     g.spawnMonster('skeleton', 11, 10);
     g.spawnMonster('skeleton', 10, 11);
@@ -24,8 +25,9 @@ describe('野蛮人技能', () => {
     expect(g.skillCd[0]).toBeGreaterThan(0);
   });
 
-  it('双挥(slot1) 可同时命中身前多个敌人', () => {
+  it('双挥(double_swing) 可同时命中身前多个敌人', () => {
     const g = new Game(13);
+    g.skillTree = { double_swing: 1 }; g.assignSkill(1, 'double_swing');
     g.player.pos = { x: 10, y: 10 };
     g.player.facing = 0; // 朝 +x
     g.spawnMonster('skeleton', 11.5, 10);

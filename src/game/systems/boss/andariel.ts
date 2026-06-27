@@ -20,7 +20,7 @@ export const ANDARIEL: MonStat = {
   attackRating: pd(180, 1100, 3200),
   defense: pd(80, 720, 2100),
   // 物理近战基底, 配合下方毒系伤害实例叠加.
-  damage: pd([12, 22], [60, 95], [180, 260]),
+  damage: pd([12, 22], [60, 95], [110, 155]),
   // 毒抗极高 (本体免疫倾向), 其余抗性中等; hell 毒抗满 = 免疫.
   resist: {
     poison: pd(75, 90, 100),

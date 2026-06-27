@@ -4,10 +4,11 @@ import { Game } from '../src/game/sim/Game.ts';
 // 投技能点必须真正增强对应主动技能的伤害 (修复"技能树纯装饰")。
 function castIceBoltDamage(points: number): number {
   const g = new Game(1, 'sorceress');
-  g.skillTree = points > 0 ? { ice_bolt: points } : {};
-  // 放一个目标让朝向确定, 然后释放冰弹(槽0)
+  g.skillTree = { ice_bolt: Math.max(1, points) }; // 至少1点才能上键; 比较低投点vs高投点
+  g.assignSkill(1, 'ice_bolt');
+  // 放一个目标让朝向确定, 然后释放冰弹(槽1)
   g.spawnMonster('skeleton', g.player.pos.x + 3, g.player.pos.y);
-  g.useSkill(0);
+  g.useSkill(1);
   // 取生成的冰弹投射物的最大伤害
   const m = g.missiles.find((mm) => mm.kind === 'iceball');
   expect(m).toBeTruthy();
@@ -69,11 +70,10 @@ describe('被动技能生效 (合议 S2 收尾)', () => {
 });
 
 describe('技能树接通战斗: 投点增强主动技能', () => {
-  it('冰弹伤害随投点提升 (0点 < 5点)', () => {
-    const d0 = castIceBoltDamage(0);
-    const d5 = castIceBoltDamage(5);
+  it('冰弹伤害随投点提升 (低投点 < 高投点)', () => {
+    const d0 = castIceBoltDamage(1);
+    const d5 = castIceBoltDamage(8);
     expect(d5).toBeGreaterThan(d0);
-    // 5 点应约 +45% (0.09×5), 给出宽松下界防回归
     expect(d5).toBeGreaterThanOrEqual(Math.round(d0 * 1.3));
   });
 
@@ -82,8 +82,9 @@ describe('技能树接通战斗: 投点增强主动技能', () => {
     // 在 synergy 来源(如冰川尖刺/暴风雪)投点后, 冰弹应更高
     const g = new Game(1, 'sorceress');
     g.skillTree = { ice_bolt: 3, glacial_spike: 5, blizzard: 5 };
+    g.assignSkill(1, 'ice_bolt');
     g.spawnMonster('skeleton', g.player.pos.x + 3, g.player.pos.y);
-    g.useSkill(0);
+    g.useSkill(1);
     const m = g.missiles.find((mm) => mm.kind === 'iceball')!;
     const withSyn = m.dmg.reduce((s, d) => s + d.max, 0);
     expect(withSyn).toBeGreaterThanOrEqual(base); // 至少不低于 (有synergy则更高)

@@ -84,7 +84,8 @@ export function buildArea(
   if (!isTown && def.monsters.length > 0) {
     // 怪量随 monLevel 与难度增长 (提升密度, 配合安全出生半径保证不被秒)
     const lvl = def.monLevel[diff];
-    const base = 9 + Math.floor(lvl * 0.9);
+    // M4 校验: 地狱单图 200+ 怪对近战"拉怪即团灭", 降低密度系数 (硬度靠 monHp 而非数量碾压)。
+    const base = 9 + Math.floor(lvl * 0.55);
     const count = Math.round(base * DIFF_MULT[diff]);
     // 安全出生半径: 玩家落点(中心)周围不刷怪, 避免一进区域就被围秒
     const cx = w / 2, cy = h / 2;
