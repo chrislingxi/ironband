@@ -20,26 +20,25 @@
 
 ---
 
-## 1. 通用风格前缀（每个 prompt 都先粘这段）
+## 1. 通用风格前缀（每个 prompt 都先粘这段，中文）
 
 ```
-A premium mobile-game sprite in the style of a polished isometric action-RPG
-(Diablo II reimagined as cute "Q-version" / chibi). Hand-painted look, NOT flat
-vector, NOT cartoon outline-only. Rich shading with soft gradients, rim light from
-upper-left, thick dark outline (#1a0800), 1 : 2.5 head-to-body ratio (big head,
-short body). Saturated but moody palette: warm golds (#e7c66a), deep browns
-(#241410), gothic darks. Centered subject, 3/4 top-down view facing the camera,
-feet at bottom edge. **Transparent background (PNG alpha)**, no ground shadow baked
-in, no border, no text. Single character, full body in frame.
+一张高品质手游精灵图，精致等距动作 RPG 风格（《暗黑破坏神 2》的可爱 Q 版 / 赤豆
+人比例重塑）。手绘质感，不要扁平矢量、不要只有描边的卡通风。丰富的柔和渐变阴影，
+光源来自左上方的轮廓光；粗的深色描边（#1a0800）；1:2.5 大头身比例（大头、短身）。
+饱和但暗调的配色：暖金（#e7c66a）、深棕（#241410）、哥特暗色。主体居中，俯视
+3/4 视角面朝镜头，脚在底部。**透明背景（PNG 透明通道）**，不要烘焙地面阴影、不要
+边框、不要文字。单个角色，全身入画。
 ```
 
-之后接每个素材的「具体描述」+「尺寸/输出要求」。
+之后接每个素材的「具体描述」+「输出要求」。
 
-**统一输出要求**（也粘进每个 prompt 末尾）：
+**统一输出要求**（也粘进每个 prompt 末尾，中文）：
 ```
-Output: square PNG, 512×512, transparent background, subject centered and ~80% of
-frame height, crisp edges.
+输出：正方形 PNG，512×512，透明背景，主体居中、约占画面高度 80%，边缘锐利干净。
 ```
+
+> 英文模型表现更稳时，可用英文等价版（见文末「附：英文对照」）。中英任选其一即可。
 
 ---
 
@@ -103,6 +102,62 @@ frame height, crisp edges.
 
 ---
 
+## 2.5 即用 prompt（Tier 1，整段直接复制，中文）
+
+> 以下每段都已把「风格前缀 + 具体描述 + 输出要求」拼好，复制整段即可生成。
+
+**① 野蛮人 → `public/assets/char/barbarian.png`**
+```
+一张高品质手游精灵图，精致等距动作 RPG 风格（《暗黑破坏神 2》的可爱 Q 版赤豆人比例）。
+手绘质感，柔和渐变阴影，左上轮廓光，粗深色描边(#1a0800)，1:2.5 大头身比例，饱和暗调
+（暖金 #e7c66a、深棕 #241410、哥特暗色）。主体居中，俯视 3/4 视角面朝镜头，脚在底部，
+透明背景，不要阴影/边框/文字。
+内容：野蛮人——魁梧赤膊战士，巨大毛皮护肩，络腮胡，皮甲斜带，双手紧握一把双刃巨斧，
+肌肉虬结，怒目，棕红主色。
+输出：正方形 PNG，512×512，透明背景，主体居中约占画面高 80%，边缘锐利。
+```
+
+**② 亚马逊 → `public/assets/char/amazon.png`**
+```
+（同上风格前缀）
+内容：亚马逊女猎手——皮甲胸弧 + 单肩轻甲，高束马尾，背后箭袋，手持一把大弓并已搭箭，
+身姿矫健，古铜肤色配青色布料。
+输出：正方形 PNG，512×512，透明背景，主体居中约占画面高 80%，边缘锐利。
+```
+
+**③ 法师 → `public/assets/char/sorceress.png`**
+```
+（同上风格前缀）
+内容：女法师——尖顶法帽镶宝珠，飘逸长袍裙摆，披肩领，手持顶端发光的法杖，指尖萦绕
+元素微光，紫蓝主色，神秘。
+输出：正方形 PNG，512×512，透明背景，主体居中约占画面高 80%，边缘锐利。
+```
+
+**④ 荒野地砖 → `public/assets/tile/wilderness.png`**（注意：等距菱形地砖）
+```
+一块等距（2:1）菱形地砖，俯视手绘风，《暗黑破坏神 2》哥特荒野质感：暗森林草泥地，
+点缀杂草、碎石、苔斑，柔和阴影与细节纹理，暗绿褐配色。菱形需填满整张图、四角透明，
+可上下左右无缝平铺，不要边框/文字。
+输出：PNG，256×128，透明背景（仅菱形不透明），可平铺。
+```
+
+**⑤ 营地地砖 → `public/assets/tile/town.png`**
+```
+一块等距（2:1）菱形地砖，俯视手绘风：营地铺装石板路，暖石灰色，石缝与磨损细节。
+菱形填满、四角透明、可无缝平铺，不要边框/文字。
+输出：PNG，256×128，透明背景，可平铺。
+```
+
+**⑥ 沙漠地砖 → `public/assets/tile/desert.png`**
+```
+一块等距（2:1）菱形地砖，俯视手绘风：沙漠沙地，沙纹起伏、零星碎石与干裂纹理，
+暖沙黄褐色。菱形填满、四角透明、可无缝平铺，不要边框/文字。
+输出：PNG，256×128，透明背景，可平铺。
+```
+
+> 怪物 / Boss / NPC / UI 的具体描述见上方第 2 节表格，套同一「风格前缀 + 输出要求」即可。
+> Boss 用 768×768，UI 球/框用 256×256，面板 512×512。
+
 ## 3. 命名/路径对照（务必精确）
 
 ```
@@ -124,4 +179,31 @@ public/assets/
 ## 5. 给我反馈的格式
 
 > "char/barbarian.png 已放好" / "tile 这批生成了，但 desert 偏暗" —— 我据此调集成参数或重出 prompt。
+
+---
+
+## 附：英文对照（模型偏好英文时用）
+
+**风格前缀（英文）**
+```
+A premium mobile-game sprite, polished isometric action-RPG (Diablo II reimagined
+as cute chibi / Q-version). Hand-painted, NOT flat vector. Rich soft-gradient
+shading, rim light from upper-left, thick dark outline (#1a0800), 1:2.5 big-head
+ratio, saturated moody palette (warm golds #e7c66a, deep browns #241410, gothic
+darks). Centered subject, 3/4 top-down view facing camera, feet at bottom edge.
+Transparent PNG background, no baked shadow, no border, no text. Full body in frame.
+```
+**输出要求（英文）**
+```
+Output: square PNG 512×512, transparent background, subject centered ~80% of frame
+height, crisp clean edges.
+```
+**地砖（英文，2:1 iso diamond）**
+```
+A single isometric (2:1) diamond ground tile, top-down hand-painted. <theme>.
+Diamond fills the image with transparent corners, seamlessly tileable. No border,
+no text. Output PNG 256×128, transparent corners, tileable.
+```
+（`<theme>` 替换：wilderness = dark forest grass-dirt with weeds/pebbles/moss；
+town = warm flagstone path；desert = sandy dunes with ripples/cracks/pebbles。）
 </content>

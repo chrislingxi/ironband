@@ -1,4 +1,4 @@
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Sprite, type Texture } from 'pixi.js';
 import { gridToScreen, TILE_W, TILE_H } from '../math/iso.ts';
 
 // ── 程序化等距地砖 ──
@@ -89,6 +89,7 @@ export function buildGround(
   rows: number,
   rng: () => number,
   theme: GroundTheme = 'wilderness',
+  tileTex?: Texture | null,
 ): void {
   container.removeChildren();
   const pal = PALETTES[theme];
@@ -98,6 +99,19 @@ export function buildGround(
   for (let gy = 0; gy < rows; gy++) {
     for (let gx = 0; gx < cols; gx++) {
       const s = gridToScreen({ x: gx, y: gy });
+
+      // 命中真图地砖: 直接铺等距菱形精灵 (同纹理多实例由 Pixi 批处理, 高效)
+      if (tileTex) {
+        const sp = new Sprite(tileTex);
+        sp.anchor.set(0.5, 0.5);
+        sp.width = TILE_W; sp.height = TILE_H;
+        sp.position.set(s.x, s.y);
+        // 棋盘极轻微明暗, 避免大片纯平
+        sp.tint = (gx + gy) % 2 === 0 ? 0xf2f2f2 : 0xffffff;
+        container.addChild(sp);
+        continue;
+      }
+
       const tile = new Graphics();
 
       // 基色: 候选挑一 + 亮度噪声扰动 (棋盘暗化叠加, 保留等距体积感)

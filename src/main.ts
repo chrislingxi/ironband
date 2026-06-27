@@ -1,4 +1,5 @@
-import { Application, Container, Graphics, Text } from 'pixi.js';
+import { Application, Container, Graphics, Text, type Texture } from 'pixi.js';
+import { tryLoadTexture } from '@game/assets/loader.ts';
 import { IsoScene } from '@engine/render/IsoScene.ts';
 import { GameLoop } from '@engine/loop.ts';
 import { Joystick } from '@engine/input/joystick.ts';
@@ -124,6 +125,11 @@ async function main() {
   scene.entityLayer.addChild(mercLayer);
   // 区域切换时重建的静态内容
   let lastAreaId = '';
+  // 地砖真图 (按主题预加载; 缺失则 buildGround 回退程序化菱形)
+  const tileTextures = new Map<string, Texture | null>();
+  await Promise.all(
+    ['wilderness', 'town', 'desert'].map(async (t) => tileTextures.set(t, await tryLoadTexture(`tile/${t}`))),
+  );
   let npcMarkers: { name: string; greeting: string; role: NpcRole; x: number; y: number }[] = [];
   function syncArea(): void {
     const a = game.currentArea;
@@ -135,7 +141,7 @@ async function main() {
     scene.ground.removeChildren();
     // 主题: 城镇暖石 / 第二幕沙漠 / 其余荒野绿
     const groundTheme = a.isTown ? 'town' : AREAS[a.id]?.act === 2 ? 'desert' : 'wilderness';
-    buildGround(scene.ground, a.size[0], a.size[1], mulberry32(h), groundTheme);
+    buildGround(scene.ground, a.size[0], a.size[1], mulberry32(h), groundTheme, tileTextures.get(groundTheme));
     // 出口标记
     exitLayer.removeChildren();
     for (const ex of a.exits) {
