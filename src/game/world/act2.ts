@@ -90,6 +90,7 @@ export const ACT2_AREAS: Record<string, LevelDef> = {
     monLevel: ml(24, 58, 89),
     monsters: ['skeleton', 'brute'],
     size: [72, 72],
-    connects: ['arcane_sanctuary'],
+    // 击败督瑞尔后, 经此前往第三幕卡纳镇。
+    connects: ['arcane_sanctuary', 'kurast_docks'],
   },
 };

@@ -41,6 +41,14 @@ export const QUESTS: Quest[] = [
     desc: '塔拉夏的古墓被痛苦之王督瑞尔占据。深入沙海尽头的墓室, 终结这头巨兽。',
     targetArea: 'tal_rasha_tomb',
     giver: 'cain',
+    reward: '通往第三幕的传送门就此开启。',
+  },
+  {
+    id: 'mephisto',
+    name: '憎恨之王',
+    desc: '憎恨之王梅菲斯特盘踞在库拉斯特城底的仇恨监狱。穿过丛林与崔凡克, 将他击杀。',
+    targetArea: 'durance_of_hate',
+    giver: 'cain',
     reward: '通关本难度, 解锁更高难度的试炼。',
   },
 ];

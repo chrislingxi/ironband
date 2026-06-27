@@ -4,9 +4,10 @@ import { MONSTERS } from '@game/data/monsters.ts';
 import { MONSTERS_EXT } from '@game/data/monsters2.ts';
 import { ANDARIEL } from '@game/systems/boss/andariel.ts';
 import { DURIEL } from '@game/systems/boss/duriel.ts';
+import { MEPHISTO } from '@game/systems/boss/mephisto.ts';
 import type { MonStat } from '@game/data/schema.ts';
 
-const ALL_MONSTERS: Record<string, MonStat> = { ...MONSTERS, ...MONSTERS_EXT, andariel: ANDARIEL, duriel: DURIEL };
+const ALL_MONSTERS: Record<string, MonStat> = { ...MONSTERS, ...MONSTERS_EXT, andariel: ANDARIEL, duriel: DURIEL, mephisto: MEPHISTO };
 import type { Difficulty, DamageType } from '@game/data/schema.ts';
 import type { DamageInstance } from '@game/systems/combat/index.ts';
 import { randInt, type RNG } from '@engine/math/rng.ts';
@@ -22,6 +23,7 @@ const PLACEHOLDER: Record<string, { color: number; size: number }> = {
   hound: { color: 0x9a6a3a, size: 10 },
   andariel: { color: 0xb01818, size: 30 },
   duriel: { color: 0x8ab0c8, size: 32 }, // 寒冷苍白, 体型最大
+  mephisto: { color: 0x7a5ad0, size: 31 }, // 憎恨之王, 紫电色
 };
 
 export function makePlayer(): Entity {
