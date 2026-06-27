@@ -48,12 +48,28 @@ import type { Difficulty } from '@game/data/schema.ts';
 import { dist, normalize, type Vec2 } from '@engine/math/vec.ts';
 import { mulberry32, randInt, type RNG } from '@engine/math/rng.ts';
 
+// 取一次伤害里占比最大的元素类型 (供飘字按元素配色)。
+function dominantDamageType(byType: Partial<Record<DamageType, number>>): DamageType | undefined {
+  let best: DamageType | undefined;
+  let max = -1;
+  for (const k of Object.keys(byType) as DamageType[]) {
+    const v = byType[k] ?? 0;
+    if (v > max) { max = v; best = k; }
+  }
+  return best;
+}
+
 export interface CombatEvent {
   pos: Vec2;
   amount: number;
   killed: boolean;
   toPlayer: boolean;
   crit?: boolean; // 暴击 (双倍物理), 渲染层显示更大/特殊色
+  miss?: boolean; // 未命中 (AR 不足), 渲染层显示灰色 "Miss"
+  immune?: boolean; // 免疫 (抗性≥100, 伤害归零), 显示 "免疫"
+  dmgType?: DamageType; // 主要伤害类型, 飘字按元素配色
+  heal?: number; // 回血量 (吸血/药水/自然), 显示绿色 +N
+  xp?: number; // 击杀经验, 显示绿色 +N XP
 }
 export interface GoldDrop {
   id: number;
@@ -454,14 +470,22 @@ export class Game {
       useDmg = dmg.map((d) => (d.type === 'physical' ? { ...d, min: d.min * 2, max: d.max * 2 } : d));
     }
     const r = resolveAttack(attacker.combat, defender.combat, useDmg, this.rng, this.timeMs);
-    if (!r.hit) return;
+    if (!r.hit) {
+      // 未命中: 推一条 miss 事件 (让 AR/命中系统对玩家可感)
+      this.events.push({ pos: { x: defender.pos.x, y: defender.pos.y }, amount: 0, killed: false, toPlayer: defender.kind === 'player', miss: true });
+      return;
+    }
     defender.hitFlash = 1;
+    const dmgType = dominantDamageType(r.damageByType);
+    const immune = r.totalDamage === 0 && useDmg.length > 0;
     this.events.push({
       pos: { x: defender.pos.x, y: defender.pos.y },
       amount: r.totalDamage,
       killed: r.killed,
       toPlayer: defender.kind === 'player',
       crit,
+      dmgType,
+      immune,
     });
     // 击退 (重量感): 把怪推离攻击者一小段, 不致死时
     if (defender.kind === 'monster' && !r.killed) {
@@ -475,11 +499,19 @@ export class Game {
     // 装备吸血: 玩家命中按造成伤害回血 (近战续航主力)。
     if (attacker === this.player && this.lifeLeechPct > 0 && !r.killed) {
       const heal = Math.round((r.totalDamage * this.lifeLeechPct) / 100);
-      if (heal > 0) attacker.combat.hp = Math.min(attacker.combat.maxHp, attacker.combat.hp + heal);
+      if (heal > 0) {
+        const before = attacker.combat.hp;
+        attacker.combat.hp = Math.min(attacker.combat.maxHp, attacker.combat.hp + heal);
+        const gained = Math.round(attacker.combat.hp - before);
+        if (gained > 0) this.events.push({ pos: { x: attacker.pos.x, y: attacker.pos.y }, amount: 0, killed: false, toPlayer: false, heal: gained });
+      }
     }
     if (r.killed) {
       defender.dead = true;
-      if (attacker === this.player && defender.kind === 'monster') this.grantXp(defender.xpReward);
+      if (attacker === this.player && defender.kind === 'monster') {
+        this.grantXp(defender.xpReward);
+        if (defender.xpReward > 0) this.events.push({ pos: { x: defender.pos.x, y: defender.pos.y }, amount: 0, killed: false, toPlayer: false, xp: defender.xpReward });
+      }
     }
   };
 
@@ -930,15 +962,19 @@ export class Game {
   private dealMissileDamage(target: Entity, m: Missile): void {
     // 翻滚无敌帧: 玩家免疫敌方投射物伤害
     if (target.kind === 'player' && this.timeMs < this.dodgeUntilMs) return;
-    const { total } = rollDamage(m.dmg, target.combat.resist, this.rng);
+    const { byType, total } = rollDamage(m.dmg, target.combat.resist, this.rng);
     target.combat.hp = Math.max(0, target.combat.hp - total);
     target.hitFlash = 1;
     const killed = target.combat.hp <= 0;
-    this.events.push({ pos: { ...target.pos }, amount: total, killed, toPlayer: target.kind === 'player' });
+    const immune = total === 0 && m.dmg.length > 0; // 抗性≥100 → 免疫
+    this.events.push({ pos: { ...target.pos }, amount: total, killed, toPlayer: target.kind === 'player', dmgType: dominantDamageType(byType), immune });
     if (!killed && m.kind === 'iceball') target.combat.stunUntilMs = Math.max(target.combat.stunUntilMs, this.timeMs + 1000);
     if (killed) {
       target.dead = true;
-      if (m.fromPlayer && target.kind === 'monster') this.grantXp(target.xpReward);
+      if (m.fromPlayer && target.kind === 'monster') {
+        this.grantXp(target.xpReward);
+        if (target.xpReward > 0) this.events.push({ pos: { ...target.pos }, amount: 0, killed: false, toPlayer: false, xp: target.xpReward });
+      }
     }
   }
 

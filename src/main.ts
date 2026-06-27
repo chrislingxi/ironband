@@ -310,32 +310,40 @@ async function main() {
     if (ring) ring.alpha = 0.55 + 0.45 * Math.abs(Math.sin(performance.now() / 400));
   }
 
-  function spawnDamageText(): void {
+    // 元素飘字配色 (与投射物 missileColor 同系)
+    const ELEM_COLOR: Record<string, number> = { fire: 0xff7a2a, cold: 0x7ac8ff, lightning: 0xffe24a, poison: 0x7ad04a, magic: 0xc89cff, physical: 0xffffff };
+    function spawnDamageText(): void {
     for (const ev of game.events) {
       const s = gridToScreen(ev.pos);
-      const t = new Text({
-        // 暴击: 更大字号 + 橙色 + 双感叹号 (爆发颗粒感)
-        text: ev.crit ? `${ev.amount}‼` : ev.killed ? `${ev.amount}!` : `${ev.amount}`,
-        style: {
-          fontFamily: 'Georgia, serif',
-          fontSize: ev.crit ? 26 : ev.killed ? 22 : 16,
-          fill: ev.toPlayer ? 0xff5e4a : ev.crit ? 0xff9a30 : ev.killed ? 0xffd76b : 0xffffff,
-          stroke: { color: 0x000000, width: 3 },
-          fontWeight: '700',
-        },
-      });
+      // 文本与配色: miss/免疫/回血/经验 各有专属表现
+      let text: string, fill: number, size: number;
+      if (ev.miss) { text = 'Miss'; fill = 0xb0b0b0; size = 14; }
+      else if (ev.immune) { text = '免疫'; fill = 0x9aa0a8; size = 15; }
+      else if (ev.heal) { text = `+${ev.heal}`; fill = 0x5fe06a; size = 15; }
+      else if (ev.xp) { text = `+${ev.xp} XP`; fill = 0xa0e060; size = 13; }
+      else {
+        text = ev.crit ? `${ev.amount}‼` : ev.killed ? `${ev.amount}!` : `${ev.amount}`;
+        size = ev.crit ? 26 : ev.killed ? 22 : 16;
+        // 元素伤害按系着色; 玩家受击红; 物理普通命中白; 击杀金
+        fill = ev.toPlayer ? 0xff5e4a
+          : ev.crit ? 0xff9a30
+          : ev.dmgType && ev.dmgType !== 'physical' ? ELEM_COLOR[ev.dmgType]
+          : ev.killed ? 0xffd76b : 0xffffff;
+      }
+      const t = new Text({ text, style: { fontFamily: 'Georgia, serif', fontSize: size, fill, stroke: { color: 0x000000, width: 3 }, fontWeight: '700' } });
       t.anchor.set(0.5);
       t.position.set(s.x, s.y - 18);
       t.zIndex = 1e9;
       scene.entityLayer.addChild(t);
-      damageTexts.push({ t, life: 0.8 });
-      // 打击粒子迸溅: 击杀=金红大爆裂, 玩家受击=红, 普通命中=白火花
-      if (ev.killed) {
+      damageTexts.push({ t, life: ev.miss || ev.heal || ev.xp || ev.immune ? 0.6 : 0.8 });
+      // 粒子: miss/回血/经验 不迸溅; 击杀=金红大爆裂; 玩家受击=红; 元素命中=元素色; 物理=白
+      if (ev.miss || ev.heal || ev.xp || ev.immune) { /* 无迸溅 */ }
+      else if (ev.killed) {
         burst(s.x, s.y - 8, 0xffe9a0, 16, 175, 380);
         burst(s.x, s.y - 8, 0xd8442e, 10, 130, 380);
         ring(s.x, s.y - 8, 0xffe08a, 30); // 金色冲击环 (扩张到 30px)
       } else if (ev.toPlayer) { burst(s.x, s.y - 8, 0xff5e4a, 8, 100, 300); ring(s.x, s.y - 8, 0xff5e4a, 20); }
-      else burst(s.x, s.y - 8, 0xffffff, 7, 110, 320);
+      else burst(s.x, s.y - 8, ev.dmgType && ev.dmgType !== 'physical' ? ELEM_COLOR[ev.dmgType] : 0xffffff, 7, 110, 320);
     }
     game.events.length = 0;
   }
@@ -796,9 +804,10 @@ async function main() {
       syncSwings();
       syncMissiles();
       syncMerc();
-      // 音效: 命中/受击/升级/拾取
-      if (game.events.length) {
-        if (game.events.some((e) => e.toPlayer)) audio.sfx('hurt');
+      // 音效: 命中/受击 (仅真实伤害事件; miss/回血/经验不发声)
+      const dmgEvents = game.events.filter((e) => e.amount > 0 && !e.miss);
+      if (dmgEvents.length) {
+        if (dmgEvents.some((e) => e.toPlayer)) audio.sfx('hurt');
         else audio.sfx('hit');
       }
       if (game.notices.some((n) => n.includes('升级'))) audio.sfx('levelup');
