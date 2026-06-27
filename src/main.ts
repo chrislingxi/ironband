@@ -760,7 +760,11 @@ async function main() {
         } else { nearNpcRole = null; npcEl.style.display = 'none'; }
       } else { nearNpcRole = null; npcEl.style.display = 'none'; }
       if (game.state === 'dead') {
+        // 阵亡: 全屏暗幕 + 可点击重生 (拦截输入是对的)
         banner.style.display = 'flex';
+        banner.style.pointerEvents = 'auto';
+        banner.style.background = '#000a';
+        banner.style.justifyContent = 'center';
         const penaltyText = game.difficulty === 'hell'
           ? `<div style="font-size:14px;color:#ff8888;margin:4px 0">⚠ 惩罚: -20% 金币 · 装备耐久-20 · 重生于营地</div>`
           : game.difficulty === 'nightmare'
@@ -768,8 +772,12 @@ async function main() {
           : `<div style="font-size:14px;color:#88ff88;margin:4px 0">普通模式: 无惩罚, 原地复活</div>`;
         banner.innerHTML = `☠ 你已阵亡${penaltyText}<div style="font-size:13px;opacity:.7;margin-top:8px">点击重生</div>`;
       } else if (game.state === 'cleared' && !game.currentArea.isTown) {
+        // 区域肃清: 仅顶部提示条, 不暗幕、不拦截输入 (否则摇杆被吃, 走不到出口 → 卡死)
         banner.style.display = 'flex';
-        banner.innerHTML = '⚔ 区域肃清!<div style="font-size:15px;opacity:.85">走到发光出口前往相邻区域</div>';
+        banner.style.pointerEvents = 'none';
+        banner.style.background = 'transparent';
+        banner.style.justifyContent = 'flex-start';
+        banner.innerHTML = '<div style="margin-top:16%;font-size:26px">⚔ 区域肃清!<div style="font-size:15px;opacity:.85">走到蓝色发光出口前往相邻区域</div></div>';
       } else {
         banner.style.display = 'none';
       }

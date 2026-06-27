@@ -81,21 +81,28 @@ export function buildArea(
 
   const monsterSpawns: MonsterSpawn[] = [];
   if (!isTown && def.monsters.length > 0) {
-    // 怪量随 monLevel 与难度增长 (略降, 配合安全出生半径)
+    // 怪量随 monLevel 与难度增长 (提升密度, 配合安全出生半径保证不被秒)
     const lvl = def.monLevel[diff];
-    const base = 4 + Math.floor(lvl * 0.5);
+    const base = 9 + Math.floor(lvl * 0.9);
     const count = Math.round(base * DIFF_MULT[diff]);
     // 安全出生半径: 玩家落点(中心)周围不刷怪, 避免一进区域就被围秒
     const cx = w / 2, cy = h / 2;
     const safe = Math.max(7, Math.min(w, h) * 0.3);
     let guard = 0;
-    while (monsterSpawns.length < count && guard < count * 12) {
+    // 成群布点: 多数怪以 2~4 只的小队聚集 (D2 pack 感), 而非均匀散布
+    while (monsterSpawns.length < count && guard < count * 14) {
       guard++;
-      const x = MARGIN + rng() * (w - 2 * MARGIN);
-      const y = MARGIN + rng() * (h - 2 * MARGIN);
-      if (Math.hypot(x - cx, y - cy) < safe) continue; // 太靠近落点, 重抽
-      const defId = def.monsters[randInt(rng, 0, def.monsters.length - 1)];
-      monsterSpawns.push({ defId, x, y });
+      const ax = MARGIN + rng() * (w - 2 * MARGIN);
+      const ay = MARGIN + rng() * (h - 2 * MARGIN);
+      if (Math.hypot(ax - cx, ay - cy) < safe) continue; // 锚点太靠近落点, 重抽
+      const packN = 2 + randInt(rng, 0, 2); // 该群 2~4 只
+      for (let k = 0; k < packN && monsterSpawns.length < count; k++) {
+        const x = Math.max(MARGIN, Math.min(w - MARGIN, ax + (rng() - 0.5) * 6));
+        const y = Math.max(MARGIN, Math.min(h - MARGIN, ay + (rng() - 0.5) * 6));
+        if (Math.hypot(x - cx, y - cy) < safe) continue;
+        const defId = def.monsters[randInt(rng, 0, def.monsters.length - 1)];
+        monsterSpawns.push({ defId, x, y });
+      }
     }
   }
 
