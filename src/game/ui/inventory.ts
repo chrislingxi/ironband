@@ -92,14 +92,37 @@ export class InventoryPanel {
   refresh(): void {
     const g = this.game;
     const d = deriveCombat(g.character);
+    const sp = g.statPoints;
+    // 属性行: 有未分配点时显示 [+] 按钮 (手动加点)。
+    const attrRow = (label: string, a: 'str' | 'dex' | 'vit' | 'energy', v: number) =>
+      `<div>${label} <b>${v}</b>${sp > 0 ? ` <span class="alloc" data-a="${a}" style="cursor:pointer;color:#7bd66a;border:1px solid #4a7a3a;border-radius:4px;padding:0 6px;margin-left:4px">+</span>` : ''}</div>`;
+    const inTown = g.currentArea.isTown;
     this.statsEl.innerHTML = `
       <div>等级 ${g.character.level} · 经验 ${g.character.xp}</div>
-      <div>力量 ${d.attrs.str} · 敏捷 ${d.attrs.dex} · 体能 ${d.attrs.vit} · 精力 ${d.attrs.energy}</div>
+      ${sp > 0 ? `<div style="color:#7bd66a;font-weight:700">可分配属性点: ${sp}</div>` : ''}
+      ${attrRow('力量', 'str', d.attrs.str)}
+      ${attrRow('敏捷', 'dex', d.attrs.dex)}
+      ${attrRow('体能', 'vit', d.attrs.vit)}
+      ${attrRow('精力', 'energy', d.attrs.energy)}
       <div>生命 ${Math.ceil(g.player.combat.hp)}/${d.maxHp}</div>
       <div>命中(AR) ${d.attackRating} · 防御 ${d.defense}</div>
       <div>伤害 ${d.damage[0].min}-${d.damage[0].max}</div>
       <div>抗性 火${d.resist.fire} 冰${d.resist.cold} 电${d.resist.lightning} 毒${d.resist.poison}</div>
-      <div style="color:#ffd24a">金币 ${g.goldTotal}</div>`;
+      <div style="color:#ffd24a">金币 ${g.goldTotal}</div>
+      ${inTown ? `<div class="respec" style="cursor:pointer;margin-top:6px;color:#c79433;border:1px solid #6a5a3a;border-radius:6px;padding:3px 8px;display:inline-block">洗点 (花费 ${g.respecCost()} 金)</div>` : ''}`;
+    // 绑定加点/洗点 (innerHTML 重建后重新绑定)
+    this.statsEl.querySelectorAll('.alloc').forEach((el) => {
+      el.addEventListener('pointerdown', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        g.allocateStat((el as HTMLElement).dataset.a as 'str' | 'dex' | 'vit' | 'energy');
+        this.refresh();
+      });
+    });
+    const respec = this.statsEl.querySelector('.respec');
+    if (respec) respec.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (g.respecStats()) this.refresh();
+    });
 
     // 装备槽
     this.equipEl.innerHTML = '';

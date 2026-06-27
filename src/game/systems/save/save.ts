@@ -134,6 +134,7 @@ export interface SaveData {
   areaId: string;
   questProgress: QuestProgress;
   bonusSkillPoints: number;
+  statPoints: number;
   mercUnlocked: boolean;
   act1Complete: boolean;
   act2Complete: boolean;
@@ -176,6 +177,7 @@ export function serializeGame(game: Game, name?: string): SaveData {
     areaId: game.currentArea.id,
     questProgress: { ...game.questProgress },
     bonusSkillPoints: game.bonusSkillPoints,
+    statPoints: game.statPoints,
     mercUnlocked: game.mercUnlocked,
     act1Complete: game.act1Complete,
     act2Complete: game.act2Complete,
@@ -222,6 +224,7 @@ export function applySave(game: Game, data: SaveData): void {
   // --- 任务与奖励标记 ---
   game.questProgress = { ...data.questProgress };
   game.bonusSkillPoints = data.bonusSkillPoints;
+  game.statPoints = data.statPoints ?? 0;
   game.mercUnlocked = data.mercUnlocked;
   game.act1Complete = data.act1Complete;
   game.act2Complete = data.act2Complete ?? false;
