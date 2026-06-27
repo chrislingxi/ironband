@@ -14,6 +14,30 @@ function castIceBoltDamage(points: number): number {
   return m!.dmg.reduce((s, d) => s + d.max, 0);
 }
 
+describe('暴击 (critical_strike 生效)', () => {
+  function critRate(critPoints: number): number {
+    const g = new Game(99, 'amazon');
+    g.skillTree = critPoints > 0 ? { critical_strike: critPoints } : {};
+    // 放一个超肉盾贴身, 玩家自动攻击, 怪不死 → 累计大量命中
+    g.spawnMonster('brute', g.player.pos.x + 0.6, g.player.pos.y);
+    const dummy = g.monsters[0];
+    dummy.combat.maxHp = dummy.combat.hp = 1e7;
+    for (let i = 0; i < 400; i++) {
+      dummy.combat.hp = 1e7; // 保活
+      g.update(1 / 60, { move: { x: 0, y: 0 } });
+    }
+    const hits = g.events.filter((e) => !e.toPlayer);
+    const crits = hits.filter((e) => e.crit);
+    return hits.length > 0 ? crits.length / hits.length : 0;
+  }
+  it('投 critical_strike 后暴击率明显高于基础', () => {
+    const base = critRate(0);    // ~5%
+    const invested = critRate(15); // ~5%+45%=50%
+    expect(invested).toBeGreaterThan(base);
+    expect(invested).toBeGreaterThan(0.25);
+  });
+});
+
 describe('被动技能生效 (合议 S2 收尾)', () => {
   it('铁壁→防御↑, 精通→命中/伤害↑, 天生抗性→全抗↑', () => {
     const g = new Game(1, 'barbarian');

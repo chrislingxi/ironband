@@ -310,11 +310,12 @@ async function main() {
     for (const ev of game.events) {
       const s = gridToScreen(ev.pos);
       const t = new Text({
-        text: ev.killed ? `${ev.amount}!` : `${ev.amount}`,
+        // 暴击: 更大字号 + 橙色 + 双感叹号 (爆发颗粒感)
+        text: ev.crit ? `${ev.amount}‼` : ev.killed ? `${ev.amount}!` : `${ev.amount}`,
         style: {
           fontFamily: 'Georgia, serif',
-          fontSize: ev.killed ? 22 : 16,
-          fill: ev.toPlayer ? 0xff5e4a : ev.killed ? 0xffd76b : 0xffffff,
+          fontSize: ev.crit ? 26 : ev.killed ? 22 : 16,
+          fill: ev.toPlayer ? 0xff5e4a : ev.crit ? 0xff9a30 : ev.killed ? 0xffd76b : 0xffffff,
           stroke: { color: 0x000000, width: 3 },
           fontWeight: '700',
         },
