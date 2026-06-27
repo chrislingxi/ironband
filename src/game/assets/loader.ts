@@ -17,15 +17,23 @@ function candidatePaths(key: string): string[] {
 }
 
 // 尝试按契约顺序加载某 key 的纹理; 全部缺失则返回 null (不抛错).
-export async function tryLoadTexture(key: string): Promise<Texture | null> {
-  for (const url of candidatePaths(key)) {
-    try {
-      // Assets.load 命中缓存或成功加载即返回纹理.
-      const tex = (await Assets.load(url)) as Texture;
-      if (tex) return tex;
-    } catch {
-      // 该候选不存在/加载失败, 静默尝试下一个.
+// 按 key 记忆加载结果 (含"缺失"=null), 避免每个实体生成都重复发起 404 请求。
+const _texCache = new Map<string, Promise<Texture | null>>();
+
+export function tryLoadTexture(key: string): Promise<Texture | null> {
+  const cached = _texCache.get(key);
+  if (cached) return cached;
+  const p = (async () => {
+    for (const url of candidatePaths(key)) {
+      try {
+        const tex = (await Assets.load(url)) as Texture;
+        if (tex) return tex;
+      } catch {
+        // 该候选不存在/加载失败, 静默尝试下一个。
+      }
     }
-  }
-  return null;
+    return null;
+  })();
+  _texCache.set(key, p);
+  return p;
 }

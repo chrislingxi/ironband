@@ -1,4 +1,5 @@
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Sprite } from 'pixi.js';
+import { tryLoadTexture } from '@game/assets/loader.ts';
 
 // ── 程序化等距角色精灵 (Q版/Chibi 升级) ──
 // 用纯 PixiJS Graphics 画"Q版"风格人形/怪物: 大头(1:2.5 头身比), 粗描边, 班底色彩.
@@ -18,6 +19,8 @@ export interface ActorSpriteOpts {
   color: number;      // 主体色 (与数据表 entity.color 对齐)
   size: number;       // 基准半径 (像素), 与 entity.size 对齐
   subKind?: ActorSubKind;
+  /** 可选贴图 key (如 'char/barbarian'): 命中 assets/<key>.png 即用真图覆盖矢量, 缺失回退。 */
+  textureKey?: string;
 }
 
 export interface ActorUpdate {
@@ -53,6 +56,8 @@ export class ActorSprite {
   private readonly head = new Graphics();         // 头部
   private readonly accessory = new Graphics();    // 职业/怪物特征件 (武器/帽/弓)
   private readonly pointer = new Graphics();      // 朝向尖角
+  private sprite?: Sprite;        // 命中真图时的精灵 (替代矢量)
+  private usingTexture = false;   // 是否已切换到真图渲染
 
   constructor(private readonly opts: ActorSpriteOpts) {
     this.container.addChild(this.shadow);
@@ -62,6 +67,26 @@ export class ActorSprite {
     this.bodyHolder.addChild(this.head);
     this.container.addChild(this.pointer);
     this.drawStatic();
+    if (this.opts.textureKey) void this.loadTexture(this.opts.textureKey);
+  }
+
+  // 异步加载真图: 命中则切到精灵渲染并隐藏矢量; 缺失静默保持矢量。
+  private async loadTexture(key: string): Promise<void> {
+    const tex = await tryLoadTexture(key);
+    if (!tex) return; // 没这张图 → 维持程序化绘制
+    const s = this.opts.size;
+    const sp = new Sprite(tex);
+    sp.anchor.set(0.5, 0.82); // 脚部近底
+    const targetH = s * 2.6;  // 与矢量身高相称
+    sp.scale.set(targetH / tex.height);
+    this.bodyHolder.addChildAt(sp, 0);
+    this.sprite = sp;
+    this.usingTexture = true;
+    // 隐藏矢量部件 (保留 shadow/bodyHolder 容器以复用 bob/翻转/前倾)
+    this.body.visible = false;
+    this.head.visible = false;
+    this.accessory.visible = false;
+    this.pointer.visible = false;
   }
 
   private drawStatic(): void {
@@ -554,12 +579,17 @@ export class ActorSprite {
     const faceLeft = Math.cos(facing) < 0;
     this.bodyHolder.scale.x = faceLeft ? -1 : 1;
 
-    const lightFactor = 1 + 0.18 * Math.sin(facing);
-    const base = flash > 0 ? towardWhite(this.opts.color, Math.min(1, flash)) : this.opts.color;
-    const main = shade(base, lightFactor);
-    const lit = shade(base, 1.45);
-    const dark = shade(base, 0.55);
-    this.drawBody(main, lit, dark);
+    if (this.usingTexture) {
+      // 真图: 不重绘矢量; 受击轻微提亮 (tint 只能压暗, 故用 alpha 微闪近似)
+      if (this.sprite) this.sprite.alpha = flash > 0 ? 0.7 + 0.3 * (1 - Math.min(1, flash)) : 1;
+    } else {
+      const lightFactor = 1 + 0.18 * Math.sin(facing);
+      const base = flash > 0 ? towardWhite(this.opts.color, Math.min(1, flash)) : this.opts.color;
+      const main = shade(base, lightFactor);
+      const lit = shade(base, 1.45);
+      const dark = shade(base, 0.55);
+      this.drawBody(main, lit, dark);
+    }
 
     // 走动 bob
     const bob = moving

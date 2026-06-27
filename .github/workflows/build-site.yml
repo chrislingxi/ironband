@@ -27,14 +27,20 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: cp dist/web/index.html index.html
-      - name: Commit rebuilt single-file index.html
+      # 美术素材: public/assets 同步到根 assets/ (Pages 从根目录发布, 运行期 Assets.load 取用)
+      - run: |
+          if [ -d public/assets ]; then
+            mkdir -p assets
+            rsync -a --delete --exclude 'README.txt' public/assets/ assets/
+          fi
+      - name: Commit rebuilt single-file index.html + assets
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if ! git diff --quiet -- index.html; then
-            git add index.html
-            git commit -m "chore: rebuild single-file index.html [skip ci]"
+          git add index.html assets 2>/dev/null || git add index.html
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: rebuild single-file index.html + sync assets [skip ci]"
             git push
           else
-            echo "index.html unchanged"
+            echo "nothing changed"
           fi
