@@ -61,6 +61,7 @@ export interface ItemBase {
   reqDex?: number;
   sockets?: number;
   sprite: string;
+  maxDurability?: number; // 最大耐久度 (Hell 难度死亡时扣减)
 }
 
 // MagicPrefix/Suffix 对齐
