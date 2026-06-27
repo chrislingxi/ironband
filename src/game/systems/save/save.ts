@@ -26,7 +26,33 @@ export const SAVE_VERSION = 1;
 
 const DB_NAME = 'ironband';
 const STORE_NAME = 'save';
-const SLOT_KEY = 'slot0';
+/** 默认槽位 (旧版单槽存档的 key, 保持向后兼容)。 */
+const DEFAULT_SLOT = 'slot0';
+
+/** 存档槽数量上限 (你与朋友各自建号, 留足余量)。 */
+export const MAX_SLOTS = 6;
+
+/** 槽位摘要 — 用于角色选择界面列出已有存档, 不必反序列化整份物品。 */
+export interface SlotMeta {
+  slotId: string;
+  name: string;
+  cls: CharClass;
+  level: number;
+  difficulty: Difficulty;
+  areaId: string;
+}
+
+/** 从一份存档抽取槽位摘要 (旧档缺 name 时用职业+等级兜底)。 */
+function metaOf(slotId: string, d: SaveData): SlotMeta {
+  return {
+    slotId,
+    name: d.name ?? `${d.cls}-Lv${d.level}`,
+    cls: d.cls,
+    level: d.level,
+    difficulty: d.difficulty,
+    areaId: d.areaId,
+  };
+}
 
 // 反序列化物品时分配的 uid。从一个高位起步, 尽量避开运行期生成器的取值区间,
 // 降低与现存物品 uid 撞号的概率 (撞号本身也不影响逻辑, uid 仅作 UI 标识)。
@@ -92,12 +118,15 @@ export interface MercSave {
 /** 一份完整存档。所有字段均为纯数据 (可 JSON 化)。 */
 export interface SaveData {
   version: number;
+  /** 角色名 (多存档槽显示用; 旧档无此字段时按职业名兜底)。 */
+  name: string;
   cls: CharClass;
   level: number;
   xp: number;
   base: Character['base'];
   equipment: Record<string, ItemSave>; // 槽位名 → 装备
   inventory: ItemSave[];
+  stash: ItemSave[]; // 共享仓库 (旧档无此字段, 读取时按空处理)
   skillTree: SkillTreeState;
   gold: number;
   difficulty: Difficulty;
@@ -114,7 +143,7 @@ export interface SaveData {
 // ---------------------------------------------------------------------------
 
 /** 从一个 Game 实例抽取可持久化状态。只读 game 的公共字段, 不修改它。 */
-export function serializeGame(game: Game): SaveData {
+export function serializeGame(game: Game, name?: string): SaveData {
   const ch = game.character;
 
   // 装备: 逐槽位转存档物品。
@@ -126,6 +155,7 @@ export function serializeGame(game: Game): SaveData {
 
   return {
     version: SAVE_VERSION,
+    name: name ?? `${ch.cls}-Lv${ch.level}`,
     cls: ch.cls,
     level: ch.level,
     xp: ch.xp,
@@ -133,6 +163,7 @@ export function serializeGame(game: Game): SaveData {
     base: { ...ch.base },
     equipment,
     inventory: game.inventory.map(itemToSave),
+    stash: game.stash.map(itemToSave),
     skillTree: { ...game.skillTree },
     gold: game.goldTotal,
     difficulty: game.difficulty,
@@ -168,8 +199,9 @@ export function applySave(game: Game, data: SaveData): void {
   }
   ch.equipment = equipment;
 
-  // --- 背包 ---
+  // --- 背包 / 仓库 (旧档可能无 stash 字段) ---
   game.inventory = data.inventory.map(itemFromSave);
+  game.stash = (data.stash ?? []).map(itemFromSave);
 
   // --- 技能树 / 金币 / 难度 ---
   game.skillTree = { ...data.skillTree };
@@ -241,21 +273,59 @@ function withStore<T>(
   );
 }
 
-/** 写入 (覆盖) slot0 存档。 */
-export function saveToDB(data: SaveData): Promise<void> {
-  return withStore<IDBValidKey>('readwrite', (store) => store.put(data, SLOT_KEY)).then(() => undefined);
+/** 写入 (覆盖) 指定槽位存档 (默认 slot0)。 */
+export function saveToDB(data: SaveData, slotId: string = DEFAULT_SLOT): Promise<void> {
+  return withStore<IDBValidKey>('readwrite', (store) => store.put(data, slotId)).then(() => undefined);
 }
 
-/** 读取 slot0 存档, 不存在时返回 null。 */
-export function loadFromDB(): Promise<SaveData | null> {
-  return withStore<SaveData | undefined>('readonly', (store) => store.get(SLOT_KEY)).then(
+/** 读取指定槽位存档 (默认 slot0), 不存在时返回 null。 */
+export function loadFromDB(slotId: string = DEFAULT_SLOT): Promise<SaveData | null> {
+  return withStore<SaveData | undefined>('readonly', (store) => store.get(slotId)).then(
     (v) => v ?? null,
   );
 }
 
-/** 是否已有存档 (用于开局是否提示读取)。 */
-export function hasSave(): Promise<boolean> {
-  return withStore<number>('readonly', (store) => store.count(SLOT_KEY)).then((n) => n > 0);
+/** 指定槽位 (默认 slot0) 是否已有存档。 */
+export function hasSave(slotId: string = DEFAULT_SLOT): Promise<boolean> {
+  return withStore<number>('readonly', (store) => store.count(slotId)).then((n) => n > 0);
+}
+
+/** 删除指定槽位存档。 */
+export function deleteSlot(slotId: string): Promise<void> {
+  return withStore<undefined>('readwrite', (store) => store.delete(slotId)).then(() => undefined);
+}
+
+/** 列出所有已有存档槽的摘要 (按 slotId 升序), 供角色选择界面渲染。 */
+export function listSlots(): Promise<SlotMeta[]> {
+  return openDB().then(
+    (db) =>
+      new Promise<SlotMeta[]>((resolve, reject) => {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const keysReq = store.getAllKeys();
+        const valsReq = store.getAll();
+        tx.oncomplete = () => {
+          db.close();
+          const keys = keysReq.result as IDBValidKey[];
+          const vals = valsReq.result as SaveData[];
+          const metas = keys
+            .map((k, i) => metaOf(String(k), vals[i]))
+            .sort((a, b) => a.slotId.localeCompare(b.slotId));
+          resolve(metas);
+        };
+        tx.onerror = () => reject(tx.error);
+      }),
+  );
+}
+
+/** 分配下一个空闲槽位 id (slot0..slotN); 满则返回 null。 */
+export function nextFreeSlot(used: SlotMeta[]): string | null {
+  const taken = new Set(used.map((m) => m.slotId));
+  for (let i = 0; i < MAX_SLOTS; i++) {
+    const id = `slot${i}`;
+    if (!taken.has(id)) return id;
+  }
+  return null;
 }
 
 // ---------------------------------------------------------------------------

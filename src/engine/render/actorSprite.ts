@@ -1,27 +1,34 @@
 import { Container, Graphics } from 'pixi.js';
 
-// ── 程序化等距角色精灵 ──
-// 用纯 PixiJS Graphics 画一个"有体型"的人形/怪物, 替代 main.ts 的占位圆形.
-// 组成: 底部椭圆阴影 + 躯干 + 头 + 朝向尖角. 8 向靠 facing 决定左右翻转与受光明暗,
-// 走动时整体上下轻微 bob, 受击 flash 把身体染白. 真实 FLARE/原版精灵接入后可整体替换.
+// ── 程序化等距角色精灵 (Q版/Chibi 升级) ──
+// 用纯 PixiJS Graphics 画"Q版"风格人形/怪物: 大头(1:2.5 头身比), 粗描边, 班底色彩.
+// 三职业有各自独特轮廓 (野蛮人=宽肩大剑, 亚马逊=细长弓, 法师=尖帽法袍).
+// 怪物按类型分色 (堕落=橙红, 骷髅=灰蓝, 僵尸=病绿, 等).
 
 export type ActorKind = 'humanoid' | 'beast' | 'caster';
 
+// 可选 subKind 细分职业/怪物外观
+export type ActorSubKind =
+  | 'barbarian' | 'amazon' | 'sorceress'   // 玩家职业
+  | 'fallen' | 'skeleton' | 'zombie' | 'hound' | 'brute' | 'spitter' | 'andariel' // 怪物
+  | undefined;
+
 export interface ActorSpriteOpts {
   kind: ActorKind;
-  color: number;   // 主体色 (与数据表 entity.color 对齐)
-  size: number;    // 基准半径 (像素), 与 entity.size 对齐
+  color: number;      // 主体色 (与数据表 entity.color 对齐)
+  size: number;       // 基准半径 (像素), 与 entity.size 对齐
+  subKind?: ActorSubKind;
 }
 
 export interface ActorUpdate {
-  facing: number;    // 朝向弧度 (atan2(dy,dx), 0=E)
-  moving: boolean;   // 是否在移动 (驱动 bob)
-  attacking: boolean;// 是否在挥击 (躯干前倾)
-  flash: number;     // 受击白闪强度 0..1
-  timeMs: number;    // 全局毫秒时钟 (驱动动画相位)
+  facing: number;     // 朝向弧度 (atan2(dy,dx), 0=E)
+  moving: boolean;    // 是否在移动 (驱动 bob)
+  attacking: boolean; // 是否在挥击 (躯干前倾)
+  flash: number;      // 受击白闪强度 0..1
+  timeMs: number;     // 全局毫秒时钟 (驱动动画相位)
 }
 
-// 把颜色按 factor 提亮/压暗 (factor<1 变暗, >1 变亮), 用于受光面/背光面.
+// 按 factor 提亮/压暗
 function shade(color: number, factor: number): number {
   const r = Math.min(255, Math.round(((color >> 16) & 0xff) * factor));
   const g = Math.min(255, Math.round(((color >> 8) & 0xff) * factor));
@@ -29,7 +36,7 @@ function shade(color: number, factor: number): number {
   return (r << 16) | (g << 8) | b;
 }
 
-// 把颜色朝白色插值 t (0..1), 用于受击 flash.
+// 朝白色插值 t (0..1)
 function towardWhite(color: number, t: number): number {
   const r = Math.round(((color >> 16) & 0xff) + (255 - ((color >> 16) & 0xff)) * t);
   const g = Math.round(((color >> 8) & 0xff) + (255 - ((color >> 8) & 0xff)) * t);
@@ -40,56 +47,358 @@ function towardWhite(color: number, t: number): number {
 export class ActorSprite {
   readonly container = new Container();
 
-  private readonly shadow = new Graphics();   // 底部椭圆投影
-  private readonly bodyHolder = new Container(); // 承载躯干+头, 整体做 bob/前倾
-  private readonly body = new Graphics();      // 躯干
-  private readonly head = new Graphics();      // 头部
-  private readonly pointer = new Graphics();   // 朝向尖角 (传达打击方向)
+  private readonly shadow = new Graphics();       // 底部椭圆投影
+  private readonly bodyHolder = new Container();  // 承载躯干+头, 整体做 bob/前倾
+  private readonly body = new Graphics();         // 躯干
+  private readonly head = new Graphics();         // 头部
+  private readonly accessory = new Graphics();    // 职业/怪物特征件 (武器/帽/弓)
+  private readonly pointer = new Graphics();      // 朝向尖角
 
   constructor(private readonly opts: ActorSpriteOpts) {
     this.container.addChild(this.shadow);
     this.container.addChild(this.bodyHolder);
     this.bodyHolder.addChild(this.body);
+    this.bodyHolder.addChild(this.accessory);
     this.bodyHolder.addChild(this.head);
     this.container.addChild(this.pointer);
     this.drawStatic();
   }
 
-  // 画与动画无关的静态部件 (阴影/朝向角). 只在构造时画一次.
   private drawStatic(): void {
     const s = this.opts.size;
+    // 更大、更柔和的阴影 (Q版特征)
     this.shadow
-      .ellipse(0, s * 0.55, s * 1.05, s * 0.5)
-      .fill({ color: 0x000000, alpha: 0.35 });
-    // 朝向尖角: 后续靠 container.rotation? 不, 用单独旋转保持躯干不歪.
+      .ellipse(0, s * 0.6, s * 1.1, s * 0.45)
+      .fill({ color: 0x000000, alpha: 0.3 });
+    // 朝向尖角
     this.pointer
       .poly([s + 1, 0, s + 9, -4, s + 9, 4])
       .fill({ color: 0x000000, alpha: 0.5 });
   }
 
-  // 按 kind 画躯干轮廓 (人形=梯形+肩; beast=低矮宽身; caster=带兜帽长袍).
   private drawBody(main: number, lit: number, dark: number): void {
     const s = this.opts.size;
     this.body.clear();
     this.head.clear();
+    this.accessory.clear();
+
+    const sub = this.opts.subKind;
+
+    // ── 按 subKind 画各职业/怪物 ──
+    if (sub === 'barbarian') {
+      this.drawBarbarian(s, main, lit, dark);
+    } else if (sub === 'amazon') {
+      this.drawAmazon(s, main, lit, dark);
+    } else if (sub === 'sorceress') {
+      this.drawSorceress(s, main, lit, dark);
+    } else if (sub === 'fallen') {
+      this.drawFallen(s, main, lit, dark);
+    } else if (sub === 'skeleton') {
+      this.drawSkeleton(s, main, lit, dark);
+    } else if (sub === 'zombie') {
+      this.drawZombie(s, main, lit, dark);
+    } else if (sub === 'andariel') {
+      this.drawAndariel(s, main, lit, dark);
+    } else {
+      // fallback: 通用人形/野兽/施法者
+      this.drawGeneric(s, main, lit, dark);
+    }
+  }
+
+  // ── 野蛮人: 宽肩 + 大剑 + 尖发 ──
+  private drawBarbarian(s: number, main: number, lit: number, dark: number): void {
+    const OUTLINE = 0x1a0800;
+    // 躯干: 超宽梯形 (比普通宽 40%)
+    this.body
+      .moveTo(-s * 0.75, -s * 0.6)
+      .lineTo(s * 0.75, -s * 0.6)
+      .lineTo(s * 0.85, s * 0.55)
+      .lineTo(-s * 0.85, s * 0.55)
+      .closePath()
+      .fill({ color: main })
+      .stroke({ color: OUTLINE, width: 3 });
+    // 受光半身
+    this.body.poly([0, -s * 0.6, s * 0.75, -s * 0.6, s * 0.85, s * 0.55, 0, s * 0.55])
+      .fill({ color: lit, alpha: 0.3 });
+    // 肩甲 (两个突出方块)
+    this.body.rect(-s * 0.9, -s * 0.7, s * 0.3, s * 0.3).fill({ color: shade(main, 0.7) }).stroke({ color: OUTLINE, width: 2 });
+    this.body.rect(s * 0.6, -s * 0.7, s * 0.3, s * 0.3).fill({ color: shade(main, 0.7) }).stroke({ color: OUTLINE, width: 2 });
+
+    // 大剑 (背部, 右侧)
+    this.accessory
+      .rect(s * 0.55, -s * 1.5, s * 0.22, s * 1.8)
+      .fill({ color: 0x8090a0 })
+      .stroke({ color: OUTLINE, width: 2 });
+    // 剑护手
+    this.accessory.rect(s * 0.4, -s * 0.55, s * 0.5, s * 0.14).fill({ color: 0x6a4a20 }).stroke({ color: OUTLINE, width: 1 });
+
+    // Q版大头 (1:2.5比例)
+    this.head
+      .circle(0, -s * 1.05, s * 0.52)
+      .fill({ color: shade(main, 1.08) })
+      .stroke({ color: OUTLINE, width: 3 });
+    // 脸光: 高光点
+    this.head.circle(s * 0.1, -s * 1.12, s * 0.18).fill({ color: lit, alpha: 0.6 });
+    // 尖刺发型 (3根尖角)
+    for (let i = -1; i <= 1; i++) {
+      this.head
+        .poly([
+          i * s * 0.28 - s * 0.14, -s * 1.52,
+          i * s * 0.28, -s * 1.85,
+          i * s * 0.28 + s * 0.14, -s * 1.52,
+        ])
+        .fill({ color: dark })
+        .stroke({ color: OUTLINE, width: 2 });
+    }
+    // 眼睛 (凶悍)
+    this.head.circle(-s * 0.15, -s * 1.08, s * 0.07).fill({ color: 0xff2200 });
+    this.head.circle(s * 0.15, -s * 1.08, s * 0.07).fill({ color: 0xff2200 });
+  }
+
+  // ── 亚马逊: 细长 + 弓 + 马尾 ──
+  private drawAmazon(s: number, main: number, lit: number, dark: number): void {
+    const OUTLINE = 0x1a0800;
+    // 躯干: 修长梯形 (高10%身材)
+    this.body
+      .moveTo(-s * 0.48, -s * 0.72)
+      .lineTo(s * 0.48, -s * 0.72)
+      .lineTo(s * 0.58, s * 0.62)
+      .lineTo(-s * 0.58, s * 0.62)
+      .closePath()
+      .fill({ color: main })
+      .stroke({ color: OUTLINE, width: 3 });
+    // 皮甲高光
+    this.body.poly([0, -s * 0.72, s * 0.48, -s * 0.72, s * 0.58, s * 0.62, 0, s * 0.62])
+      .fill({ color: lit, alpha: 0.25 });
+    // 绿色腰带
+    this.body.rect(-s * 0.58, s * 0.05, s * 1.16, s * 0.2).fill({ color: 0x3a6a2a }).stroke({ color: OUTLINE, width: 1 });
+
+    // 弓 (背后, 左侧弧形)
+    this.accessory
+      .arc(-s * 0.75, -s * 0.4, s * 0.55, -0.6, 0.6)
+      .stroke({ color: 0x6b4a1a, width: 3 })
+      .moveTo(-s * 0.55, -s * 0.7)
+      .lineTo(-s * 0.55, s * 0.0)
+      .stroke({ color: 0xc0b090, width: 1.5 }); // 弓弦
+
+    // Q版大头
+    this.head
+      .circle(0, -s * 1.02, s * 0.48)
+      .fill({ color: shade(main, 1.06) })
+      .stroke({ color: OUTLINE, width: 3 });
+    this.head.circle(s * 0.1, -s * 1.08, s * 0.16).fill({ color: lit, alpha: 0.55 });
+    // 马尾 (向后甩)
+    this.head
+      .moveTo(s * 0.3, -s * 1.35)
+      .bezierCurveTo(s * 0.7, -s * 1.0, s * 0.8, -s * 0.5, s * 0.5, -s * 0.2)
+      .stroke({ color: dark, width: 4 });
+    // 发箍
+    this.head.rect(-s * 0.25, -s * 1.45, s * 0.5, s * 0.1).fill({ color: 0x4a8a3a }).stroke({ color: OUTLINE, width: 1 });
+    // 眼睛 (细长优雅)
+    this.head.rect(-s * 0.22, -s * 1.06, s * 0.12, s * 0.055).fill({ color: 0x1a0a00 });
+    this.head.rect(s * 0.1, -s * 1.06, s * 0.12, s * 0.055).fill({ color: 0x1a0a00 });
+  }
+
+  // ── 法师: 尖帽 + 法袍 + 法球 ──
+  private drawSorceress(s: number, main: number, lit: number, dark: number): void {
+    const OUTLINE = 0x0a0020;
+    // 法袍: 上窄下宽钟形 (夸张)
+    this.body
+      .moveTo(-s * 0.42, -s * 0.8)
+      .lineTo(s * 0.42, -s * 0.8)
+      .lineTo(s * 1.05, s * 0.65)
+      .lineTo(-s * 1.05, s * 0.65)
+      .closePath()
+      .fill({ color: main })
+      .stroke({ color: OUTLINE, width: 3 });
+    // 袍子受光半身
+    this.body.poly([0, -s * 0.8, s * 0.42, -s * 0.8, s * 1.05, s * 0.65, 0, s * 0.65])
+      .fill({ color: lit, alpha: 0.3 });
+    // 袍边装饰线
+    this.body.moveTo(-s * 1.05, s * 0.65).lineTo(-s * 0.42, -s * 0.8).stroke({ color: shade(main, 1.3), width: 2 });
+    this.body.moveTo(s * 1.05, s * 0.65).lineTo(s * 0.42, -s * 0.8).stroke({ color: shade(main, 1.3), width: 2 });
+
+    // 法球 (漂浮, 右手)
+    const orbColor = 0x40ddff;
+    this.accessory
+      .circle(s * 0.85, -s * 0.5, s * 0.28)
+      .fill({ color: orbColor, alpha: 0.85 })
+      .stroke({ color: 0xffffff, width: 2 });
+    // 法球高光
+    this.accessory.circle(s * 0.75, -s * 0.6, s * 0.1).fill({ color: 0xffffff, alpha: 0.7 });
+    // 法杖主体
+    this.accessory.moveTo(s * 0.6, -s * 0.3).lineTo(s * 0.85, -s * 0.5).stroke({ color: 0x6a4a1a, width: 4 });
+
+    // Q版大头
+    this.head
+      .circle(0, -s * 1.0, s * 0.46)
+      .fill({ color: shade(main, 1.1) })
+      .stroke({ color: OUTLINE, width: 3 });
+    this.head.circle(s * 0.08, -s * 1.06, s * 0.15).fill({ color: lit, alpha: 0.5 });
+    // 尖帽
+    this.head
+      .poly([
+        -s * 0.52, -s * 1.35,
+        0, -s * 2.1,
+        s * 0.52, -s * 1.35,
+      ])
+      .fill({ color: dark })
+      .stroke({ color: OUTLINE, width: 3 });
+    // 帽子帽沿
+    this.head.ellipse(0, -s * 1.38, s * 0.6, s * 0.14).fill({ color: shade(dark, 1.2) }).stroke({ color: OUTLINE, width: 2 });
+    // 魔法眼睛 (发光)
+    this.head.circle(-s * 0.14, -s * 1.04, s * 0.065).fill({ color: 0x80ffff });
+    this.head.circle(s * 0.14, -s * 1.04, s * 0.065).fill({ color: 0x80ffff });
+  }
+
+  // ── 堕落者: 小矮人, 橙红 ──
+  private drawFallen(s: number, main: number, _lit: number, dark: number): void {
+    const OUTLINE = 0x2a0000;
+    // 矮胖躯干
+    this.body
+      .ellipse(0, 0, s * 0.8, s * 0.65)
+      .fill({ color: main })
+      .stroke({ color: OUTLINE, width: 2 });
+    // 大耳朵
+    this.accessory.ellipse(-s * 0.7, -s * 0.4, s * 0.2, s * 0.32).fill({ color: dark }).stroke({ color: OUTLINE, width: 2 });
+    this.accessory.ellipse(s * 0.7, -s * 0.4, s * 0.2, s * 0.32).fill({ color: dark }).stroke({ color: OUTLINE, width: 2 });
+    // 大头
+    this.head
+      .circle(0, -s * 0.78, s * 0.55)
+      .fill({ color: shade(main, 0.9) })
+      .stroke({ color: OUTLINE, width: 2 });
+    // 黄眼睛 (惊吓状)
+    this.head.circle(-s * 0.17, -s * 0.82, s * 0.1).fill({ color: 0xffcc00 });
+    this.head.circle(s * 0.17, -s * 0.82, s * 0.1).fill({ color: 0xffcc00 });
+    // 小刀
+    this.accessory.poly([s * 0.7, -s * 0.2, s * 0.9, -s * 0.5, s * 0.8, -s * 0.15]).fill({ color: 0xaaaaaa }).stroke({ color: OUTLINE, width: 1 });
+  }
+
+  // ── 骷髅: 灰蓝 ──
+  private drawSkeleton(s: number, main: number, lit: number, _dark: number): void {
+    const OUTLINE = 0x080818;
+    // 骨头躯干 (细长)
+    this.body
+      .moveTo(-s * 0.35, -s * 0.65)
+      .lineTo(s * 0.35, -s * 0.65)
+      .lineTo(s * 0.32, s * 0.55)
+      .lineTo(-s * 0.32, s * 0.55)
+      .closePath()
+      .fill({ color: main })
+      .stroke({ color: OUTLINE, width: 2 });
+    // 肋骨线条
+    for (let i = 0; i < 3; i++) {
+      const y = -s * 0.4 + i * s * 0.28;
+      this.body.moveTo(-s * 0.32, y).lineTo(s * 0.32, y).stroke({ color: lit, width: 1.5 });
+    }
+    // 锈蚀剑
+    this.accessory.rect(s * 0.3, -s * 0.8, s * 0.14, s * 1.1).fill({ color: 0x607080 }).stroke({ color: OUTLINE, width: 2 });
+
+    // 骷髅头
+    this.head
+      .circle(0, -s * 0.95, s * 0.48)
+      .fill({ color: shade(main, 1.1) })
+      .stroke({ color: OUTLINE, width: 2 });
+    // 空洞眼睛 (黑洞)
+    this.head.circle(-s * 0.16, -s * 0.98, s * 0.1).fill({ color: 0x000000 });
+    this.head.circle(s * 0.16, -s * 0.98, s * 0.1).fill({ color: 0x000000 });
+    // 牙齿
+    for (let i = -1; i <= 1; i++) {
+      this.head.rect(i * s * 0.12 - s * 0.05, -s * 0.72, s * 0.09, s * 0.12).fill({ color: lit });
+    }
+  }
+
+  // ── 僵尸: 病绿 ──
+  private drawZombie(s: number, main: number, lit: number, dark: number): void {
+    const OUTLINE = 0x0a1a08;
+    // 臃肿躯干
+    this.body
+      .ellipse(s * 0.1, 0, s * 0.85, s * 0.75)
+      .fill({ color: main })
+      .stroke({ color: OUTLINE, width: 2 });
+    // 腐烂斑点
+    this.body.circle(-s * 0.2, -s * 0.1, s * 0.15).fill({ color: dark, alpha: 0.6 });
+    this.body.circle(s * 0.3, s * 0.2, s * 0.12).fill({ color: dark, alpha: 0.6 });
+    // 伸出的手臂
+    this.accessory
+      .moveTo(s * 0.7, -s * 0.3)
+      .lineTo(s * 1.2, -s * 0.6)
+      .stroke({ color: main, width: s * 0.25 });
+    this.accessory.circle(s * 1.2, -s * 0.6, s * 0.15).fill({ color: shade(main, 0.8) }).stroke({ color: OUTLINE, width: 2 });
+
+    // 大头
+    this.head
+      .circle(0, -s * 0.88, s * 0.5)
+      .fill({ color: shade(main, 0.9) })
+      .stroke({ color: OUTLINE, width: 2 });
+    this.head.circle(s * 0.1, -s * 0.92, s * 0.16).fill({ color: lit, alpha: 0.3 });
+    // 腐烂眼睛 (红)
+    this.head.circle(-s * 0.15, -s * 0.92, s * 0.09).fill({ color: 0xcc2200 });
+    this.head.circle(s * 0.15, -s * 0.92, s * 0.09).fill({ color: 0xcc2200 });
+  }
+
+  // ── 安达莉尔 Boss ──
+  private drawAndariel(s: number, main: number, lit: number, dark: number): void {
+    const OUTLINE = 0x1a001a;
+    // 大型蜘蛛下身
+    this.body
+      .ellipse(0, s * 0.3, s * 1.2, s * 0.9)
+      .fill({ color: dark })
+      .stroke({ color: OUTLINE, width: 3 });
+    // 上身 (女性形态)
+    this.body
+      .moveTo(-s * 0.65, -s * 0.7)
+      .lineTo(s * 0.65, -s * 0.7)
+      .lineTo(s * 0.75, s * 0.3)
+      .lineTo(-s * 0.75, s * 0.3)
+      .closePath()
+      .fill({ color: main })
+      .stroke({ color: OUTLINE, width: 3 });
+    // 毒腺高光
+    this.body.circle(0, s * 0.4, s * 0.35).fill({ color: 0x60d040, alpha: 0.6 });
+
+    // 触角/爪子 (4根)
+    for (let i = 0; i < 4; i++) {
+      const angle = (-0.6 + i * 0.4) * Math.PI;
+      const x1 = Math.cos(angle) * s * 0.7, y1 = Math.sin(angle) * s * 0.4 + s * 0.2;
+      const x2 = Math.cos(angle) * s * 1.5, y2 = Math.sin(angle) * s * 0.6 + s * 0.2;
+      this.accessory.moveTo(x1, y1).lineTo(x2, y2).stroke({ color: dark, width: 3 });
+      this.accessory.circle(x2, y2, s * 0.1).fill({ color: 0x80ff40 });
+    }
+
+    // 大头 (皇冠)
+    this.head
+      .circle(0, -s * 1.1, s * 0.6)
+      .fill({ color: shade(main, 1.1) })
+      .stroke({ color: OUTLINE, width: 3 });
+    this.head.circle(s * 0.1, -s * 1.18, s * 0.2).fill({ color: lit, alpha: 0.5 });
+    // 皇冠
+    this.head
+      .poly([-s * 0.4, -s * 1.65, -s * 0.2, -s * 1.85, 0, -s * 1.65, s * 0.2, -s * 1.85, s * 0.4, -s * 1.65])
+      .fill({ color: 0xffd700 })
+      .stroke({ color: OUTLINE, width: 2 });
+    // 恶魔眼睛
+    this.head.circle(-s * 0.2, -s * 1.14, s * 0.1).fill({ color: 0xff0080 });
+    this.head.circle(s * 0.2, -s * 1.14, s * 0.1).fill({ color: 0xff0080 });
+  }
+
+  // ── 通用 fallback ──
+  private drawGeneric(s: number, main: number, lit: number, dark: number): void {
+    const OUTLINE = 0x000000;
     switch (this.opts.kind) {
       case 'beast': {
-        // 低矮宽厚的四足/野兽轮廓
         this.body
           .ellipse(0, 0, s * 1.15, s * 0.85)
           .fill({ color: main })
-          .stroke({ color: 0x000000, width: 2 });
-        // 背脊高光
+          .stroke({ color: OUTLINE, width: 2 });
         this.body.ellipse(-s * 0.2, -s * 0.3, s * 0.7, s * 0.35).fill({ color: lit, alpha: 0.5 });
-        // 头 (前突)
         this.head
           .circle(s * 0.8, -s * 0.1, s * 0.45)
           .fill({ color: dark })
-          .stroke({ color: 0x000000, width: 2 });
+          .stroke({ color: OUTLINE, width: 2 });
         break;
       }
       case 'caster': {
-        // 长袍: 上窄下宽的钟形 + 兜帽
         this.body
           .moveTo(-s * 0.5, -s * 0.9)
           .lineTo(s * 0.5, -s * 0.9)
@@ -97,73 +406,65 @@ export class ActorSprite {
           .lineTo(-s * 0.95, s * 0.7)
           .closePath()
           .fill({ color: main })
-          .stroke({ color: 0x000000, width: 2 });
-        // 受光侧袍褶
+          .stroke({ color: OUTLINE, width: 2 });
         this.body.poly([0, -s * 0.9, s * 0.5, -s * 0.9, s * 0.95, s * 0.7, 0, s * 0.7])
           .fill({ color: lit, alpha: 0.35 });
-        // 兜帽 (暗) + 内部脸 (高光点)
         this.head
           .circle(0, -s * 0.95, s * 0.5)
           .fill({ color: dark })
-          .stroke({ color: 0x000000, width: 2 });
+          .stroke({ color: OUTLINE, width: 2 });
         this.head.circle(s * 0.08, -s * 0.9, s * 0.22).fill({ color: lit, alpha: 0.7 });
         break;
       }
       case 'humanoid':
       default: {
-        // 躯干: 上窄下宽的梯形 + 肩部圆弧
+        // Q版加大头 (1:2.5)
         this.body
-          .moveTo(-s * 0.55, -s * 0.7)
-          .lineTo(s * 0.55, -s * 0.7)
-          .lineTo(s * 0.7, s * 0.6)
-          .lineTo(-s * 0.7, s * 0.6)
+          .moveTo(-s * 0.55, -s * 0.62)
+          .lineTo(s * 0.55, -s * 0.62)
+          .lineTo(s * 0.7, s * 0.55)
+          .lineTo(-s * 0.7, s * 0.55)
           .closePath()
           .fill({ color: main })
-          .stroke({ color: 0x000000, width: 2 });
-        // 受光半身 (右侧偏亮)
-        this.body.poly([0, -s * 0.7, s * 0.55, -s * 0.7, s * 0.7, s * 0.6, 0, s * 0.6])
+          .stroke({ color: OUTLINE, width: 2 });
+        this.body.poly([0, -s * 0.62, s * 0.55, -s * 0.62, s * 0.7, s * 0.55, 0, s * 0.55])
           .fill({ color: lit, alpha: 0.35 });
-        // 背光半身 (左侧偏暗)
-        this.body.poly([0, -s * 0.7, -s * 0.55, -s * 0.7, -s * 0.7, s * 0.6, 0, s * 0.6])
+        this.body.poly([0, -s * 0.62, -s * 0.55, -s * 0.62, -s * 0.7, s * 0.55, 0, s * 0.55])
           .fill({ color: dark, alpha: 0.3 });
-        // 头部
+        // 大头 (更圆更大)
         this.head
-          .circle(0, -s * 1.05, s * 0.42)
+          .circle(0, -s * 1.08, s * 0.5)
           .fill({ color: shade(main, 1.05) })
-          .stroke({ color: 0x000000, width: 2 });
-        this.head.circle(s * 0.12, -s * 1.1, s * 0.18).fill({ color: lit, alpha: 0.5 });
+          .stroke({ color: OUTLINE, width: 2 });
+        this.head.circle(s * 0.12, -s * 1.14, s * 0.2).fill({ color: lit, alpha: 0.5 });
         break;
       }
     }
   }
 
-  // 每帧调用: 更新朝向翻转、明暗、bob、攻击前倾、受击白闪.
   update(u: ActorUpdate): void {
     const { facing, moving, attacking, flash, timeMs } = u;
 
-    // 8 向: 用 cos(facing) 的符号决定整体左右翻转 (朝左镜像).
     const faceLeft = Math.cos(facing) < 0;
     this.bodyHolder.scale.x = faceLeft ? -1 : 1;
 
-    // 受光/背光: 朝向越偏向"上方"(背对光源)越暗, 朝下越亮 (简单顶光近似).
-    const lightFactor = 1 + 0.18 * Math.sin(facing); // sin>0 即朝下方, 偏亮
+    const lightFactor = 1 + 0.18 * Math.sin(facing);
     const base = flash > 0 ? towardWhite(this.opts.color, Math.min(1, flash)) : this.opts.color;
     const main = shade(base, lightFactor);
-    const lit = shade(base, 1.4);
-    const dark = shade(base, 0.6);
+    const lit = shade(base, 1.45);
+    const dark = shade(base, 0.55);
     this.drawBody(main, lit, dark);
 
-    // 走动 bob: 上下小幅正弦; 静止则缓慢呼吸.
+    // 走动 bob
     const bob = moving
       ? Math.sin(timeMs / 90) * this.opts.size * 0.12
       : Math.sin(timeMs / 600) * this.opts.size * 0.04;
     this.bodyHolder.position.y = bob;
 
-    // 攻击前倾: 沿朝向方向轻推躯干 (镜像后用本地 x).
+    // 攻击前倾
     const lunge = attacking ? this.opts.size * 0.35 : 0;
     this.bodyHolder.position.x = (faceLeft ? -lunge : lunge);
 
-    // 朝向尖角: 跟随 facing 旋转 (独立于躯干镜像).
     this.pointer.rotation = facing;
   }
 
@@ -172,7 +473,6 @@ export class ActorSprite {
   }
 }
 
-// 简单工厂: 与 new ActorSprite(opts) 等价, 方便 main.ts 一行创建.
 export function createActorSprite(opts: ActorSpriteOpts): ActorSprite {
   return new ActorSprite(opts);
 }

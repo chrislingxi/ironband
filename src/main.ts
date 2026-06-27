@@ -6,7 +6,7 @@ import { gridToScreen, screenToGrid, depthKey } from '@engine/math/iso.ts';
 import { normalize } from '@engine/math/vec.ts';
 import { mulberry32 } from '@engine/math/rng.ts';
 import { buildGround } from '@engine/render/groundTiles.ts';
-import { createActorSprite, type ActorSprite, type ActorKind } from '@engine/render/actorSprite.ts';
+import { createActorSprite, type ActorSprite, type ActorKind, type ActorSubKind } from '@engine/render/actorSprite.ts';
 import { Lighting } from '@engine/render/lighting.ts';
 import { Game } from '@game/sim/Game.ts';
 import type { Entity } from '@game/entities/entity.ts';
@@ -15,17 +15,16 @@ import { InventoryPanel } from '@game/ui/inventory.ts';
 import { SkillTreePanel } from '@game/ui/skilltree.ts';
 import { NPCS } from '@game/world/npcs.ts';
 import { AREAS } from '@game/world/act1.ts';
-import { TitleScreen } from '@game/ui/titlescreen.ts';
+import { TitleScreen, type BootChoice } from '@game/ui/titlescreen.ts';
 import { QuestLogPanel } from '@game/ui/questlog.ts';
 import { TownPanel, type TownData } from '@game/ui/town.ts';
 import { QUESTS } from '@game/world/quests.ts';
 import { buyPrice, sellPrice, gambleCost } from '@game/systems/town/economy.ts';
 import { hireCost, reviveCost } from '@game/systems/merc/merc.ts';
 import { GameAudio } from '@engine/audio/index.ts';
-import { serializeGame, applySave, saveToDB, loadFromDB } from '@game/systems/save/index.ts';
+import { serializeGame, applySave, saveToDB, loadFromDB, listSlots, nextFreeSlot, deleteSlot } from '@game/systems/save/index.ts';
 import { WaypointPanel } from '@game/ui/waypoint.ts';
 import { listWaypoints } from '@game/systems/waypoint/waypoint.ts';
-import type { CharClass } from '@game/data/schema.ts';
 import { dist } from '@engine/math/vec.ts';
 
 const areaName = (id: string): string => AREAS[id]?.name ?? id;
@@ -56,7 +55,7 @@ async function main() {
   const app = new Application();
   // iOS Safari 的 WebGPU 不稳定 → 强制 WebGL; 失败再退默认(自动选择)
   const initOpts = {
-    background: '#0a0a0f', resizeTo: window, antialias: true,
+    background: '#1a0f0a', resizeTo: window, antialias: true,
     resolution: Math.min(window.devicePixelRatio || 1, 2), autoDensity: true,
   };
   try {
@@ -73,12 +72,33 @@ async function main() {
   window.addEventListener('resize', () => lighting.resize());
   // 地砖由 syncArea() 按当前区域尺寸/主题构建
 
-  // 选职界面 (Promise 化: 选定后再开局)
-  const cls = await new Promise<CharClass>((res) => {
-    const title = new TitleScreen((c) => res(c));
+  // 开局界面 (Promise 化): 存档槽选择 → 续玩 或 新建(选职+命名)
+  const slots = await listSlots();
+  const choice = await new Promise<BootChoice>((res) => {
+    const title = new TitleScreen(slots, nextFreeSlot(slots), (c) => res(c), (id) => { void deleteSlot(id); });
     title.show();
   });
-  const game = new Game(0xC0FFEE, cls); // 构造时自动加载罗格营地
+
+  // 当前激活的存档槽与角色名 (供存/读档按钮复用, 保持续存时不丢名字)
+  let activeSlot = choice.slotId;
+  let activeName: string;
+  let game: Game;
+  if (choice.kind === 'continue') {
+    const data = await loadFromDB(choice.slotId);
+    if (data) {
+      game = new Game(0xC0FFEE, data.cls);
+      applySave(game, data);
+      activeName = data.name;
+    } else {
+      // 理论不会发生 (列表来自已存在的槽); 兜底新建一个野蛮人。
+      game = new Game(0xC0FFEE, 'barbarian');
+      activeName = '野蛮人';
+    }
+  } else {
+    game = new Game(0xC0FFEE, choice.cls); // 构造时自动加载罗格营地
+    activeName = choice.name;
+    void saveToDB(serializeGame(game, activeName), activeSlot); // 立即落一份初始存档, 占住槽位
+  }
 
   // ----- 渲染层 -----
   const sprites = new Map<number, Container>();
@@ -153,14 +173,24 @@ async function main() {
     return 'humanoid';
   }
 
+  function actorSubKind(e: Entity): ActorSubKind {
+    if (e.kind === 'player') return game.character.cls as ActorSubKind;
+    if (e.defId === 'andariel') return 'andariel';
+    if (e.ai === 'fallen') return 'fallen';
+    if (e.ai === 'skeleton') return 'skeleton';
+    if (e.ai === 'zombie') return 'zombie';
+    return undefined;
+  }
+
   function makeSprite(e: Entity): Container {
     const c = new Container();
-    const actor = createActorSprite({ kind: actorKind(e), color: e.color, size: e.size });
+    const actor = createActorSprite({ kind: actorKind(e), color: e.color, size: e.size, subKind: actorSubKind(e) });
     actors.set(e.id, actor);
     c.addChild(actor.container);
     // 精英描边光环 + 名牌
     if (e.elite) {
-      const ring = new Graphics().ellipse(0, e.size * 0.5, e.size * 1.35, e.size * 0.72).stroke({ color: e.elite.color, width: 3, alpha: 0.9 });
+      const ring = new Graphics().ellipse(0, e.size * 0.5, e.size * 1.5, e.size * 0.8).stroke({ color: e.elite.color, width: 4, alpha: 0.9 });
+      ring.label = 'eliteRing';
       c.addChild(ring);
       const nm = new Text({ text: e.elite.name, style: { fontFamily: 'Georgia,serif', fontSize: 11, fill: e.elite.color, stroke: { color: 0x000000, width: 3 } } });
       nm.anchor.set(0.5, 1); nm.position.set(0, -e.size - 20);
@@ -168,7 +198,7 @@ async function main() {
     }
     // 血条 (受伤才显)
     const hpbg = new Graphics().rect(-14, -e.size - 16, 28, 4).fill({ color: 0x000000, alpha: 0.6 });
-    const hp = new Graphics().rect(-13, -e.size - 15, 26, 2).fill({ color: 0x6ee08a });
+    const hp = new Graphics().rect(-13, -e.size - 15, 26, 2).fill({ color: 0xcc2200 });
     hpbg.label = 'hpbg'; hp.label = 'hp';
     hpbg.visible = false;
     c.addChild(hpbg, hp);
@@ -198,7 +228,10 @@ async function main() {
     const damaged = ratio < 0.999;
     hpbg.visible = hp.visible = damaged;
     hp.scale.x = ratio;
-    hp.tint = ratio > 0.5 ? 0x6ee08a : ratio > 0.25 ? 0xe0c020 : 0xe23a3a;
+    hp.tint = ratio > 0.5 ? 0x44cc44 : ratio > 0.25 ? 0xe0c020 : 0xff2200;
+    // Elite 光环脉冲
+    const ring = c.getChildByLabel('eliteRing') as Graphics | null;
+    if (ring) ring.alpha = 0.55 + 0.45 * Math.abs(Math.sin(performance.now() / 400));
   }
 
   function spawnDamageText(): void {
@@ -293,10 +326,43 @@ async function main() {
     missileLayer.removeChildren();
     for (const m of game.missiles) {
       const s = gridToScreen(m.pos);
-      const rad = m.kind === 'fireball' || m.kind === 'nova' ? 8 : 5;
-      const g = new Graphics().circle(0, 0, rad).fill({ color: m.color }).stroke({ color: 0x000000, width: 1 });
-      // 拖尾
-      g.circle(-m.vel.x * 6, -m.vel.y * 3, rad * 0.6).fill({ color: m.color, alpha: 0.4 });
+      const g = new Graphics();
+      // 速度方向 (用于定向绘制)
+      const vx = m.vel.x, vy = m.vel.y;
+      const vlen = Math.hypot(vx, vy) || 1;
+      const nx = vx / vlen, ny = vy / vlen; // 归一化朝向
+      const angle = Math.atan2(ny, nx);
+
+      if (m.kind === 'arrow') {
+        // 箭: 细长菱形 (4:1 纵横比)
+        g.rotation = angle;
+        g.poly([16, 0, 2, 3, -6, 0, 2, -3]).fill({ color: m.color }).stroke({ color: 0x3a2800, width: 1 });
+        // 拖尾 (半透明)
+        g.poly([-6, 0, -18, 2, -18, -2]).fill({ color: m.color, alpha: 0.35 });
+      } else if (m.kind === 'fireball') {
+        // 火球: 橙色圆 + 光晕 + 拖尾
+        g.circle(0, 0, 9).fill({ color: 0xff8800 }).stroke({ color: 0xff3300, width: 2 });
+        g.circle(0, 0, 14).fill({ color: 0xff6600, alpha: 0.25 }); // 外光晕
+        // 火焰拖尾 (逆速度方向)
+        g.circle(-nx * 10, -ny * 10, 6).fill({ color: 0xff4400, alpha: 0.5 });
+        g.circle(-nx * 18, -ny * 18, 4).fill({ color: 0xff2200, alpha: 0.3 });
+      } else if (m.kind === 'iceball') {
+        // 冰弹: 蓝白色菱形碎片
+        g.rotation = angle;
+        g.poly([10, 0, 2, 4, -5, 0, 2, -4]).fill({ color: 0xd0f0ff }).stroke({ color: 0x4080cc, width: 1 });
+        g.poly([10, 0, 5, 1.5, 6, 4]).fill({ color: 0xffffff, alpha: 0.6 }); // 冰晶高光
+        // 霜迹拖尾
+        g.circle(-nx * 8, -ny * 8, 4).fill({ color: 0x8fd6ff, alpha: 0.4 });
+      } else if (m.kind === 'nova' || m.kind === 'bolt') {
+        // 闪电: 黄色小球 + 电光
+        g.circle(0, 0, 6).fill({ color: 0xffff40 }).stroke({ color: 0xffcc00, width: 1 });
+        g.circle(-nx * 7, -ny * 7, 4).fill({ color: 0xffee00, alpha: 0.5 });
+      } else {
+        // 默认: 简单圆
+        const rad = 5;
+        g.circle(0, 0, rad).fill({ color: m.color }).stroke({ color: 0x000000, width: 1 });
+        g.circle(-vx * 6, -vy * 3, rad * 0.6).fill({ color: m.color, alpha: 0.4 });
+      }
       g.position.set(s.x, s.y - 8);
       g.zIndex = 1e8;
       missileLayer.addChild(g);
@@ -375,6 +441,10 @@ async function main() {
       })),
       gambleCost: gambleCost(game.character.level),
       merc: { hired: !!game.merc, dead: !!game.merc?.dead, hireCost: hireCost(), reviveCost: reviveCost(game.merc?.level ?? game.character.level) },
+      stash: game.stash.map((i) => ({
+        uid: i.uid, name: i.identified ? i.name : i.base.name,
+        rarity: i.identified ? i.rarity : 'normal',
+      })),
     };
   }
   const town = new TownPanel({
@@ -384,6 +454,8 @@ async function main() {
     onIdentify: (uid) => { game.identifyItem(uid); town.refresh(buildTownData()); },
     onHireMerc: () => { game.hireMerc(); town.refresh(buildTownData()); },
     onReviveMerc: () => { game.reviveMerc(); town.refresh(buildTownData()); },
+    onDeposit: (uid) => { game.depositToStash(uid); town.refresh(buildTownData()); },
+    onWithdraw: (uid) => { game.withdrawFromStash(uid); town.refresh(buildTownData()); },
     onClose: () => { town.hide(); paused = false; },
   });
   const townBtn = document.createElement('div');
@@ -421,10 +493,10 @@ async function main() {
     if (wp.open) { wp.hide(); paused = false; }
     else { closePanels(); wp.show(listWaypoints(game.discoveredWaypoints, AREAS)); paused = true; }
   });
-  // 存档 / 读档
-  topBtn('💾', 120, () => { saveToDB(serializeGame(game)).then(() => game.notices.push('已保存进度')); });
+  // 存档 / 读档 (针对当前激活槽位, 保留角色名)
+  topBtn('💾', 120, () => { saveToDB(serializeGame(game, activeName), activeSlot).then(() => game.notices.push('已保存进度')); });
   topBtn('📂', 170, () => {
-    loadFromDB().then((d) => { if (d) { applySave(game, d); game.notices.push('已读取存档'); } else game.notices.push('暂无存档'); });
+    loadFromDB(activeSlot).then((d) => { if (d) { applySave(game, d); activeName = d.name; game.notices.push('已读取存档'); } else game.notices.push('暂无存档'); });
   });
   let audioOn = true;
   topBtn('🔊', 220, () => { audioOn = !audioOn; audio.setEnabled(audioOn); game.notices.push(audioOn ? '音效开' : '音效关'); });
@@ -432,10 +504,20 @@ async function main() {
   // 小地图 (区域俯瞰: 玩家/怪/出口/雇佣兵)
   const mm = document.createElement('canvas');
   mm.width = 124; mm.height = 88;
+  mm.className = 'hud-mini';
   mm.style.cssText =
     'position:absolute;left:50%;transform:translateX(-50%);top:calc(58px + env(safe-area-inset-top));' +
     'width:124px;height:88px;border:1px solid #6a5a3a99;background:#0009;border-radius:6px;pointer-events:none;z-index:35;';
   document.body.appendChild(mm);
+
+  // 竖屏适配: 窄宽下居中小地图会压住左上血条 → 下移到血条行之下; 技能簇上抬避开底部功能栏。
+  const respStyle = document.createElement('style');
+  respStyle.textContent = `
+    @media (orientation: portrait) {
+      .hud-mini { top: calc(64px + env(safe-area-inset-top)) !important; }
+      #hud .skills { bottom: calc(104px + env(safe-area-inset-bottom)) !important; }
+    }`;
+  document.head.appendChild(respStyle);
   const mmctx = mm.getContext('2d');
 
   // 出口方向箭头 (野外指向最近出口, 解决"出口太远找不到")
@@ -458,9 +540,9 @@ async function main() {
   }
   function syncMinimap(): void {
     if (!mmctx) return;
-    mmctx.clearRect(0, 0, 140, 104);
+    mmctx.clearRect(0, 0, 124, 88);
     const [aw, ah] = game.currentArea.size;
-    const sx = 140 / aw, sy = 104 / ah;
+    const sx = 124 / aw, sy = 88 / ah;
     mmctx.fillStyle = '#3ad6ff';
     for (const ex of game.currentArea.exits) mmctx.fillRect(ex.pos.x * sx - 2, ex.pos.y * sy - 2, 4, 4);
     mmctx.fillStyle = '#e23a3a';
@@ -576,7 +658,12 @@ async function main() {
       } else npcEl.style.display = 'none';
       if (game.state === 'dead') {
         banner.style.display = 'flex';
-        banner.innerHTML = '☠ 你已阵亡<div style="font-size:15px;opacity:.85">点击重生</div>';
+        const penaltyText = game.difficulty === 'hell'
+          ? `<div style="font-size:14px;color:#ff8888;margin:4px 0">⚠ 惩罚: -20% 金币 · 装备耐久-20 · 重生于营地</div>`
+          : game.difficulty === 'nightmare'
+          ? `<div style="font-size:14px;color:#ffaa44;margin:4px 0">⚠ 惩罚: -10% 金币 · 50% HP · 重生于区域入口</div>`
+          : `<div style="font-size:14px;color:#88ff88;margin:4px 0">普通模式: 无惩罚, 原地复活</div>`;
+        banner.innerHTML = `☠ 你已阵亡${penaltyText}<div style="font-size:13px;opacity:.7;margin-top:8px">点击重生</div>`;
       } else if (game.state === 'cleared' && !game.currentArea.isTown) {
         banner.style.display = 'flex';
         banner.innerHTML = '⚔ 区域肃清!<div style="font-size:15px;opacity:.85">走到发光出口前往相邻区域</div>';

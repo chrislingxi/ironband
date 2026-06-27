@@ -3,25 +3,25 @@ import type { ItemBase, Affix } from './schema.ts';
 // 物品基础 (第一幕量级). type 用槽位字符串; 词缀按 type 适配. 名称为通用物品名.
 export const ITEM_BASES: ItemBase[] = [
   // 武器
-  { id: 'hand_axe', name: '手斧', slot: 'weapon', type: 'weapon', baseDamage: [3, 7], reqLevel: 1, reqStr: 12, sprite: 'item/hand_axe' },
-  { id: 'short_sword', name: '短剑', slot: 'weapon', type: 'weapon', baseDamage: [2, 7], reqLevel: 1, reqStr: 10, sprite: 'item/short_sword' },
-  { id: 'club', name: '棍棒', slot: 'weapon', type: 'weapon', baseDamage: [1, 6], reqLevel: 1, sprite: 'item/club' },
-  { id: 'mace', name: '钉头锤', slot: 'weapon', type: 'weapon', baseDamage: [3, 10], reqLevel: 6, reqStr: 27, sprite: 'item/mace' },
-  { id: 'double_axe', name: '双刃斧', slot: 'weapon', type: 'weapon', baseDamage: [5, 13], reqLevel: 10, reqStr: 43, sprite: 'item/double_axe' },
+  { id: 'hand_axe', name: '手斧', slot: 'weapon', type: 'weapon', baseDamage: [3, 7], reqLevel: 1, reqStr: 12, sprite: 'item/hand_axe', maxDurability: 60 },
+  { id: 'short_sword', name: '短剑', slot: 'weapon', type: 'weapon', baseDamage: [2, 7], reqLevel: 1, reqStr: 10, sprite: 'item/short_sword', maxDurability: 60 },
+  { id: 'club', name: '棍棒', slot: 'weapon', type: 'weapon', baseDamage: [1, 6], reqLevel: 1, sprite: 'item/club', maxDurability: 60 },
+  { id: 'mace', name: '钉头锤', slot: 'weapon', type: 'weapon', baseDamage: [3, 10], reqLevel: 6, reqStr: 27, sprite: 'item/mace', maxDurability: 60 },
+  { id: 'double_axe', name: '双刃斧', slot: 'weapon', type: 'weapon', baseDamage: [5, 13], reqLevel: 10, reqStr: 43, sprite: 'item/double_axe', maxDurability: 60 },
   // 头盔
-  { id: 'cap', name: '皮帽', slot: 'helm', type: 'helm', baseDefense: [3, 5], reqLevel: 1, sprite: 'item/cap' },
-  { id: 'skull_cap', name: '头盔', slot: 'helm', type: 'helm', baseDefense: [8, 11], reqLevel: 5, reqStr: 15, sprite: 'item/skull_cap' },
+  { id: 'cap', name: '皮帽', slot: 'helm', type: 'helm', baseDefense: [3, 5], reqLevel: 1, sprite: 'item/cap', maxDurability: 40 },
+  { id: 'skull_cap', name: '头盔', slot: 'helm', type: 'helm', baseDefense: [8, 11], reqLevel: 5, reqStr: 15, sprite: 'item/skull_cap', maxDurability: 40 },
   // 盔甲
-  { id: 'quilted', name: '绗缝甲', slot: 'armor', type: 'armor', baseDefense: [8, 11], reqLevel: 1, sprite: 'item/quilted' },
-  { id: 'leather', name: '皮甲', slot: 'armor', type: 'armor', baseDefense: [14, 17], reqLevel: 3, reqStr: 15, sprite: 'item/leather' },
-  { id: 'chain', name: '锁子甲', slot: 'armor', type: 'armor', baseDefense: [30, 35], reqLevel: 9, reqStr: 41, sprite: 'item/chain' },
+  { id: 'quilted', name: '绗缝甲', slot: 'armor', type: 'armor', baseDefense: [8, 11], reqLevel: 1, sprite: 'item/quilted', maxDurability: 80 },
+  { id: 'leather', name: '皮甲', slot: 'armor', type: 'armor', baseDefense: [14, 17], reqLevel: 3, reqStr: 15, sprite: 'item/leather', maxDurability: 80 },
+  { id: 'chain', name: '锁子甲', slot: 'armor', type: 'armor', baseDefense: [30, 35], reqLevel: 9, reqStr: 41, sprite: 'item/chain', maxDurability: 80 },
   // 盾
-  { id: 'buckler', name: '小圆盾', slot: 'shield', type: 'shield', baseDefense: [4, 6], reqLevel: 1, sprite: 'item/buckler' },
-  { id: 'small_shield', name: '小盾', slot: 'shield', type: 'shield', baseDefense: [8, 12], reqLevel: 5, reqStr: 22, sprite: 'item/small_shield' },
+  { id: 'buckler', name: '小圆盾', slot: 'shield', type: 'shield', baseDefense: [4, 6], reqLevel: 1, sprite: 'item/buckler', maxDurability: 50 },
+  { id: 'small_shield', name: '小盾', slot: 'shield', type: 'shield', baseDefense: [8, 12], reqLevel: 5, reqStr: 22, sprite: 'item/small_shield', maxDurability: 50 },
   // 其他
-  { id: 'leather_gloves', name: '皮手套', slot: 'gloves', type: 'gloves', baseDefense: [2, 3], reqLevel: 1, sprite: 'item/gloves' },
-  { id: 'leather_boots', name: '皮靴', slot: 'boots', type: 'boots', baseDefense: [2, 3], reqLevel: 1, sprite: 'item/boots' },
-  { id: 'sash', name: '布腰带', slot: 'belt', type: 'belt', baseDefense: [1, 2], reqLevel: 1, sprite: 'item/sash' },
+  { id: 'leather_gloves', name: '皮手套', slot: 'gloves', type: 'gloves', baseDefense: [2, 3], reqLevel: 1, sprite: 'item/gloves', maxDurability: 30 },
+  { id: 'leather_boots', name: '皮靴', slot: 'boots', type: 'boots', baseDefense: [2, 3], reqLevel: 1, sprite: 'item/boots', maxDurability: 30 },
+  { id: 'sash', name: '布腰带', slot: 'belt', type: 'belt', baseDefense: [1, 2], reqLevel: 1, sprite: 'item/sash', maxDurability: 25 },
   { id: 'ring', name: '戒指', slot: 'ring', type: 'ring', reqLevel: 1, sprite: 'item/ring' },
   { id: 'amulet', name: '护符', slot: 'amulet', type: 'amulet', reqLevel: 1, sprite: 'item/amulet' },
 ];

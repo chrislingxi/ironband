@@ -59,18 +59,20 @@ export interface ClassSkillKey {
   //  projectile 单发投射物 (生成 missile)
   //  spread     扇形多发投射物 (生成 count 个 missile)
   //  nova       环身放射 (生成环形 missile / 即时环身判定)
-  kind: 'melee' | 'arc' | 'aoe' | 'projectile' | 'spread' | 'nova';
+  kind: 'melee' | 'arc' | 'aoe' | 'projectile' | 'spread' | 'nova' | 'shout' | 'dodge' | 'teleport';
   damageMult: number; // 伤害系数 (相对武器/技能基础, 0.8~2.6)
   damageType?: DamageType; // 元素类型 (缺省=physical)
   missileKind?: 'arrow' | 'fireball' | 'iceball' | 'bolt' | 'nova'; // 投射物外观/资产
   count?: number; // 多重投射数 (spread 用)
   radius?: number; // 作用半径 (aoe/nova/落点爆炸用, 单位=格)
   stun?: number; // 震慑/减速时长 (秒), >0 表示命中后施加控制
+  duration?: number; // 效果持续时长 (秒, shout/dodge/teleport 使用)
 }
 
-// 每个职业的 3 个技能键 (顺序对应 3 个技能槽位).
+// 每个职业的 4 个技能键 (顺序对应 4 个技能槽位).
 // damageMult 控制相对强度: 近战受武器加成大故偏低, 法术自带倍率故偏高.
-export const CLASS_KEYS: Record<CharClass, [ClassSkillKey, ClassSkillKey, ClassSkillKey]> = {
+// 第4技能为特色主动技: 野蛮人=呐喊(防御提升), 亚马逊=翻滚(无敌帧), 法师=传送(闪现).
+export const CLASS_KEYS: Record<CharClass, [ClassSkillKey, ClassSkillKey, ClassSkillKey, ClassSkillKey]> = {
   // 野蛮人 — 与现有 BARB_SKILLS 一致: 猛击 / 双挥 / 战嚎.
   barbarian: [
     {
@@ -103,6 +105,16 @@ export const CLASS_KEYS: Record<CharClass, [ClassSkillKey, ClassSkillKey, ClassS
       damageType: 'physical',
       radius: 3,
       stun: 1.2, // 震慑
+    },
+    {
+      id: 'shout',
+      name: '呐喊',
+      icon: '📣',
+      cooldown: 8,
+      kind: 'shout', // 特殊: 临时防御提升
+      damageMult: 0,
+      damageType: 'physical',
+      duration: 5, // 持续5秒
     },
   ],
 
@@ -138,6 +150,16 @@ export const CLASS_KEYS: Record<CharClass, [ClassSkillKey, ClassSkillKey, ClassS
       damageMult: 2.2, // 高伤单发
       damageType: 'physical',
       missileKind: 'bolt',
+    },
+    {
+      id: 'dodge_roll',
+      name: '翻滚',
+      icon: '🌀',
+      cooldown: 6,
+      kind: 'dodge', // 特殊: 无敌帧冲刺
+      damageMult: 0,
+      damageType: 'physical',
+      duration: 0.4, // 无敌帧0.4秒, 位移2格
     },
   ],
 
@@ -175,6 +197,16 @@ export const CLASS_KEYS: Record<CharClass, [ClassSkillKey, ClassSkillKey, ClassS
       damageType: 'lightning',
       missileKind: 'nova',
       radius: 4,
+    },
+    {
+      id: 'teleport',
+      name: '传送',
+      icon: '🌌',
+      cooldown: 5,
+      kind: 'teleport', // 特殊: 闪现至摇杆方向
+      damageMult: 0,
+      damageType: 'magic',
+      radius: 3, // 传送距离(格)
     },
   ],
 };

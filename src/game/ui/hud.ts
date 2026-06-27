@@ -20,13 +20,16 @@ function injectStyle(): void {
   #hud .xpbar > i { display:block; height:100%; width:0; background:linear-gradient(#ffe08a,#e0a020); }
   #hud .info { position:absolute; right:14px; top:14px; font-size:12px; color:#e8e0d0; text-align:right; text-shadow:0 1px 2px #000; opacity:.9; }
   #hud .skills { position:absolute; right:calc(16px + env(safe-area-inset-right)); bottom:calc(28px + env(safe-area-inset-bottom));
-    display:flex; gap:14px; align-items:flex-end; pointer-events:auto; }
+    display:grid; grid-template-columns:62px 62px; grid-template-rows:62px 62px; gap:10px;
+    pointer-events:auto; }
   #hud .skill { width:62px; height:62px; border-radius:50%; background:#1a1a24cc; border:2px solid #6a5a3a;
     display:flex; align-items:center; justify-content:center; font-size:26px; position:relative; box-shadow:0 3px 8px #000a;
     color:#fff; overflow:hidden; user-select:none; -webkit-user-select:none; }
   #hud .skill:active { transform:scale(.92); }
-  #hud .skill .cd { position:absolute; inset:0; background:#000b; display:flex; align-items:center; justify-content:center;
-    font-size:16px; font-weight:700; color:#fff; opacity:0; }
+  #hud .skill.skill-4 { border-color:#9a6aaa; background:#241a2ecc; }
+  #hud .skill .cd { position:absolute; inset:0; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    font-size:16px; font-weight:700; color:#fff; opacity:0; pointer-events:none; }
+  #hud .skill .cd-arc { position:absolute; inset:0; border-radius:50%; pointer-events:none; }
   #hud .skill .nm { position:absolute; bottom:-15px; left:0; width:100%; text-align:center; font-size:9px; color:#cbb; }
   `;
   const tag = document.createElement('style');
@@ -41,7 +44,7 @@ export class HUD {
   private infoEl: HTMLElement;
   private lvlEl: HTMLElement;
   private xpFill: HTMLElement;
-  private skills: { cd: HTMLElement; meta: ClassSkillKey }[] = [];
+  private skills: { cd: HTMLElement; arc: HTMLCanvasElement; meta: ClassSkillKey; slot: number }[] = [];
 
   constructor(private game: Game, onSkill: (slot: number) => void) {
     injectStyle();
@@ -64,14 +67,31 @@ export class HUD {
     this.xpFill = root.querySelector('.xpbar > i') as HTMLElement;
     const skillsEl = root.querySelector('.skills') as HTMLElement;
 
-    CLASS_KEYS[this.game.character.cls].forEach((meta, i) => {
+    // 2x2 网格布局: 技能按钮 1-4
+    // 视觉排列 (grid-area): 上排=[slot0,slot2], 下排=[slot1,slot3]
+    // slot3 = 第4技能/特色技 (特殊样式)
+    const gridLayout: Array<{ slot: number; row: number; col: number }> = [
+      { slot: 0, row: 1, col: 1 }, { slot: 2, row: 1, col: 2 },
+      { slot: 1, row: 2, col: 1 }, { slot: 3, row: 2, col: 2 },
+    ];
+    const keys = CLASS_KEYS[this.game.character.cls];
+    gridLayout.forEach(({ slot: i, row, col }) => {
+      const meta = keys[i];
+      if (!meta) return;
       const btn = document.createElement('div');
-      btn.className = 'skill';
-      btn.innerHTML = `${meta.icon}<div class="cd"></div><div class="nm">${meta.name}</div>`;
+      btn.className = i === 3 ? 'skill skill-4' : 'skill';
+      btn.innerHTML = `${meta.icon}<canvas class="cd-arc" width="62" height="62"></canvas><div class="cd"></div><div class="nm">${meta.name}</div>`;
+      btn.style.gridRow = String(row);
+      btn.style.gridColumn = String(col);
       const fire = (e: Event) => { e.preventDefault(); e.stopPropagation(); onSkill(i); };
       btn.addEventListener('pointerdown', fire);
       skillsEl.appendChild(btn);
-      this.skills.push({ cd: btn.querySelector('.cd') as HTMLElement, meta });
+      this.skills.push({
+        cd: btn.querySelector('.cd') as HTMLElement,
+        arc: btn.querySelector('.cd-arc') as HTMLCanvasElement,
+        meta,
+        slot: i,
+      });
     });
   }
 
@@ -89,10 +109,30 @@ export class HUD {
       : this.game.currentArea?.isTown
         ? `${area} · 安全区`
         : `${area} · 剩余怪物 ${this.game.monsters.length}`;
-    this.skills.forEach((s, i) => {
-      const cd = this.game.skillCd[i];
-      if (cd > 0.05) { s.cd.style.opacity = '1'; s.cd.textContent = cd.toFixed(1); }
-      else s.cd.style.opacity = '0';
+    this.skills.forEach((s) => {
+      const cd = this.game.skillCd[s.slot];
+      const maxCd = s.meta.cooldown;
+      if (cd > 0.05) {
+        s.cd.style.opacity = '1';
+        s.cd.textContent = cd.toFixed(1);
+        // 冷却弧光 (Canvas pie wipe)
+        const ctx = s.arc.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, 62, 62);
+          ctx.beginPath();
+          ctx.moveTo(31, 31);
+          const startAngle = -Math.PI / 2;
+          const endAngle = startAngle + (cd / maxCd) * Math.PI * 2;
+          ctx.arc(31, 31, 30, startAngle, endAngle);
+          ctx.closePath();
+          ctx.fillStyle = 'rgba(0,0,0,0.6)';
+          ctx.fill();
+        }
+      } else {
+        s.cd.style.opacity = '0';
+        const ctx = s.arc.getContext('2d');
+        if (ctx) ctx.clearRect(0, 0, 62, 62);
+      }
     });
   }
 }

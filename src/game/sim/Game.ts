@@ -58,6 +58,8 @@ export class Game {
   groundItems: GroundItem[] = []; // 地面掉落
   inventory: ItemInstance[] = []; // 背包 (单格)
   invCap = 32;
+  stash: ItemInstance[] = []; // 共享仓库 (营地存取, 随角色存档)
+  stashCap = 48;
   swings: Swing[] = []; // 挥砍弧光 (打击感)
   events: CombatEvent[] = []; // 每帧渲染后清空
   notices: string[] = []; // UI 提示(升级等), 渲染后清空
@@ -67,7 +69,9 @@ export class Game {
   currentArea!: AreaInstance; // 当前区域 (构造时 loadArea 注入)
   private travelCd = 0; // 进入区域后短暂禁用出口, 防瞬间回弹
   state: 'playing' | 'dead' | 'cleared' = 'playing';
-  skillCd = [0, 0, 0]; // 三技能键冷却(秒)
+  skillCd = [0, 0, 0, 0]; // 四技能键冷却(秒)
+  shoutUntilMs = 0; // 呐喊防御提升结束时间(ms)
+  dodgeUntilMs = 0; // 翻滚无敌帧结束时间(ms)
   private rng: RNG;
   private nextGoldId = 1;
 
@@ -224,6 +228,20 @@ export class Game {
     it.identified = true;
     return true;
   }
+  /** 背包 → 仓库 (仓库满则失败)。 */
+  depositToStash(uid: number): boolean {
+    const idx = this.inventory.findIndex((i) => i.uid === uid);
+    if (idx < 0 || this.stash.length >= this.stashCap) return false;
+    this.stash.push(this.inventory.splice(idx, 1)[0]);
+    return true;
+  }
+  /** 仓库 → 背包 (背包满则失败)。 */
+  withdrawFromStash(uid: number): boolean {
+    const idx = this.stash.findIndex((i) => i.uid === uid);
+    if (idx < 0 || this.inventory.length >= this.invCap) return false;
+    this.inventory.push(this.stash.splice(idx, 1)[0]);
+    return true;
+  }
   hireMerc(): boolean {
     if (this.merc || this.goldTotal < hireCost()) return false;
     this.goldTotal -= hireCost();
@@ -340,7 +358,7 @@ export class Game {
     // ----- 玩家 -----
     p.attackCd = Math.max(0, p.attackCd - dt);
     this.travelCd = Math.max(0, this.travelCd - dt);
-    for (let i = 0; i < 3; i++) this.skillCd[i] = Math.max(0, this.skillCd[i] - dt);
+    for (let i = 0; i < 4; i++) this.skillCd[i] = Math.max(0, this.skillCd[i] - dt);
     p.hitFlash = Math.max(0, p.hitFlash - dt * 4);
     const stunned = now < p.combat.stunUntilMs;
     if (!p.dead && !stunned) {
@@ -480,17 +498,56 @@ export class Game {
     }
   }
 
-  // 阵亡重生: 回满血并重载当前区域 (金币保留)
+  // 阵亡重生: 按难度应用惩罚后重载
   respawn(): void {
     const p = this.player;
-    p.combat.hp = p.combat.maxHp;
     p.dead = false;
-    this.loadArea(this.currentArea.id);
+    this.shoutUntilMs = 0; // 清除增益
+    this.dodgeUntilMs = 0;
+
+    switch (this.difficulty) {
+      case 'normal':
+        // 普通: 原地复活, 满血, 无惩罚
+        p.combat.hp = p.combat.maxHp;
+        this.loadArea(this.currentArea.id);
+        this.notices.push('已复活 (普通难度无惩罚)');
+        break;
+
+      case 'nightmare': {
+        // 噩梦: 扣10%金币, 50% HP, 重生于区域入口
+        const goldLoss = Math.floor(this.goldTotal * 0.1);
+        this.goldTotal = Math.max(0, this.goldTotal - goldLoss);
+        this.loadArea(this.currentArea.id);
+        p.combat.hp = Math.max(1, Math.floor(p.combat.maxHp * 0.5));
+        if (goldLoss > 0) this.notices.push(`噩梦惩罚: 失去 ${goldLoss} 金币, HP 50%`);
+        else this.notices.push('噩梦惩罚: HP 50%');
+        break;
+      }
+
+      case 'hell': {
+        // 地狱: 扣20%金币, 30% HP, 重生于罗格营地, 所有装备耐久-20
+        const goldLoss = Math.floor(this.goldTotal * 0.2);
+        this.goldTotal = Math.max(0, this.goldTotal - goldLoss);
+        // 耐久度惩罚
+        const slots = Object.values(this.character.equipment) as (import('@game/systems/items/types.ts').ItemInstance | undefined)[];
+        for (const item of slots) {
+          if (!item) continue;
+          const maxDur = item.base.maxDurability ?? 0;
+          if (maxDur > 0) {
+            item.durability = Math.max(0, (item.durability ?? maxDur) - 20);
+          }
+        }
+        this.loadArea('rogue_encampment');
+        p.combat.hp = Math.max(1, Math.floor(p.combat.maxHp * 0.3));
+        this.notices.push(`地狱惩罚: 失去 ${goldLoss} 金币, 装备耐久-20, 重生营地`);
+        break;
+      }
+    }
   }
 
-  // 使用技能键 (0/1/2). 按职业从 CLASS_KEYS 取行为, 泛化执行近战/投射.
+  // 使用技能键 (0/1/2/3). 按职业从 CLASS_KEYS 取行为, 泛化执行近战/投射/特殊.
   useSkill(slot: number): boolean {
-    if (slot < 0 || slot > 2) return false;
+    if (slot < 0 || slot > 3) return false;
     const p = this.player;
     if (p.dead || this.timeMs < p.combat.stunUntilMs || this.skillCd[slot] > 0) return false;
     const key = CLASS_KEYS[this.character.cls][slot];
@@ -504,6 +561,9 @@ export class Game {
       case 'projectile': this.execProjectiles(key, dmg, 1); break;
       case 'spread': this.execProjectiles(key, dmg, key.count ?? 3); break;
       case 'nova': this.execNova(key, dmg); break;
+      case 'shout': this.execShout(key); break;
+      case 'dodge': this.execDodge(key); break;
+      case 'teleport': this.execTeleport(key); break;
     }
     this.skillCd[slot] = key.cooldown;
     return true;
@@ -597,8 +657,44 @@ export class Game {
     this.swings.push({ pos: { ...this.player.pos }, facing: this.player.facing, ageMs: 0, kind: 'skill' });
   }
 
+  // 呐喊: 临时大幅提升防御
+  private execShout(key: ClassSkillKey): void {
+    const duration = (key.duration ?? 5) * 1000;
+    this.shoutUntilMs = this.timeMs + duration;
+    // 临时将防御翻倍 (用标记; recompute 时检测并应用)
+    this.player.combat.defense = Math.round(this.player.combat.defense * 1.5);
+    this.notices.push('呐喊! 防御大幅提升 5秒');
+  }
+
+  // 翻滚: 朝面向方向冲刺并短暂无敌
+  private execDodge(key: ClassSkillKey): void {
+    const duration = (key.duration ?? 0.4) * 1000;
+    this.dodgeUntilMs = this.timeMs + duration;
+    const dist2 = 2.5;
+    this.player.pos.x += Math.cos(this.player.facing) * dist2;
+    this.player.pos.y += Math.sin(this.player.facing) * dist2;
+    this.player.combat.stunUntilMs = 0; // 翻滚取消硬直
+    this.swings.push({ pos: { ...this.player.pos }, facing: this.player.facing, ageMs: 0, kind: 'skill' });
+  }
+
+  // 传送: 闪现至朝向方向一定距离
+  private execTeleport(key: ClassSkillKey): void {
+    const range = key.radius ?? 3;
+    const newX = this.player.pos.x + Math.cos(this.player.facing) * range;
+    const newY = this.player.pos.y + Math.sin(this.player.facing) * range;
+    // 边界约束
+    const area = this.currentArea;
+    this.player.pos.x = Math.max(1, Math.min(area.size[0] - 1, newX));
+    this.player.pos.y = Math.max(1, Math.min(area.size[1] - 1, newY));
+    this.player.combat.stunUntilMs = 0;
+    this.swings.push({ pos: { ...this.player.pos }, facing: this.player.facing, ageMs: 0, kind: 'skill' });
+    this.notices.push('传送!');
+  }
+
   // 投射物命中结算 (法术必中, 走抗性; 冰系附带减速)
   private dealMissileDamage(target: Entity, m: Missile): void {
+    // 翻滚无敌帧: 玩家免疫敌方投射物伤害
+    if (target.kind === 'player' && this.timeMs < this.dodgeUntilMs) return;
     const { total } = rollDamage(m.dmg, target.combat.resist, this.rng);
     target.combat.hp = Math.max(0, target.combat.hp - total);
     target.hitFlash = 1;
