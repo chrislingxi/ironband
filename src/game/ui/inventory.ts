@@ -3,6 +3,7 @@ import type { ItemInstance, RolledAffix, EquipSlot } from '@game/systems/items/i
 import { openSockets, matchRuneword } from '@game/systems/items/index.ts';
 import { runeById } from '@game/data/runes.ts';
 import { setById } from '@game/data/sets.ts';
+import { sellPrice } from '@game/systems/town/economy.ts';
 import { deriveCombat } from '@game/systems/stats/character.ts';
 
 // 镶嵌位置: 装备槽 或 背包索引 (供 showTip 决定调用哪个镶孔方法)。
@@ -27,14 +28,25 @@ const STAT_TPL: Record<string, string> = {
 function affixText(a: RolledAffix): string {
   return (STAT_TPL[a.stat] ?? `+{v} ${a.stat}`).replace('{v}', String(a.value));
 }
-function itemTip(it: ItemInstance): string {
+interface TipCtx { level: number; str: number; dex: number; value?: number }
+function reqLine(label: string, need: number, have: number): string {
+  const ok = have >= need;
+  return `<span style="color:${ok ? '#9a8a66' : '#ff6a5a'}">${label} ${need}${ok ? '' : ` (当前 ${have})`}</span>`;
+}
+function itemTip(it: ItemInstance, ctx?: TipCtx): string {
   // 未鉴定: 只显基础信息, 隐藏词缀/专名 (保留"鉴定开盒"的悬念)
   const dispName = it.identified ? it.name : `${it.base.name} <span style="color:#caa24a">(未鉴定)</span>`;
   const dispColor = it.identified ? RARITY_HEX[it.rarity] : '#c8c8c8';
   const lines = [`<b style="color:${dispColor}">${dispName}</b>`, `<span style="opacity:.6">${it.base.name} (ilvl ${it.ilvl})</span>`];
   if (it.base.baseDamage) lines.push(`<span style="opacity:.7">伤害 ${it.base.baseDamage[0]}-${it.base.baseDamage[1]}</span>`);
   if (it.base.baseDefense) lines.push(`<span style="opacity:.7">防御 ${it.base.baseDefense[0]}-${it.base.baseDefense[1]}</span>`);
-  if (!it.identified) { lines.push('<span style="opacity:.5">回营地鉴定后揭示属性</span>'); return lines.join('<br>'); }
+  // 需求 (等级/力量/敏捷); 不满足红字
+  const reqs: string[] = [];
+  if (it.base.reqLevel > 1) reqs.push(reqLine('需要等级', it.base.reqLevel, ctx?.level ?? 99));
+  if (it.base.reqStr) reqs.push(reqLine('需要力量', it.base.reqStr, ctx?.str ?? 999));
+  if (it.base.reqDex) reqs.push(reqLine('需要敏捷', it.base.reqDex, ctx?.dex ?? 999));
+  if (reqs.length) lines.push(reqs.join(' · '));
+  if (!it.identified) { lines.push('<span style="opacity:.5">回营地鉴定后揭示属性</span>'); if (ctx?.value) lines.push(`<span style="color:#c8a860">价值 ⦿${ctx.value}</span>`); return lines.join('<br>'); }
   for (const a of it.affixes) lines.push(`<span style="color:#7a9cff">${affixText(a)}</span>`);
   // 套装: 显示所属套装与各档加成 (绿字)
   if (it.setId) {
@@ -58,6 +70,7 @@ function itemTip(it: ItemInstance): string {
       for (const m of rw.mods) lines.push(`<span style="color:#caa24a">${affixText({ stat: m.stat, value: m.value } as RolledAffix)}</span>`);
     }
   }
+  if (ctx?.value) lines.push(`<span style="color:#c8a860">价值 ⦿${ctx.value}</span>`);
   return lines.join('<br>');
 }
 
@@ -120,7 +133,16 @@ export class InventoryPanel {
   hide(): void { this.open = false; this.root.style.display = 'none'; }
 
   private showTip(it: ItemInstance, loc: ItemLoc = null): void {
-    this.tipEl.innerHTML = itemTip(it);
+    const d = deriveCombat(this.game.character);
+    const ctx = { level: this.game.character.level, str: d.attrs.str, dex: d.attrs.dex, value: sellPrice(it) };
+    this.tipEl.innerHTML = itemTip(it, ctx);
+    // 背包件: 并排显示已装备同槽对比 (Round 4 实现)
+    if (loc?.kind === 'bag') {
+      const eq = this.game.character.equipment[it.base.slot];
+      if (eq && eq.uid !== it.uid) {
+        this.tipEl.innerHTML += `<div style="margin-top:8px;border-top:1px dashed #3a3a48;padding-top:6px;opacity:.85"><div style="opacity:.6;font-size:11px">▼ 当前已装备</div>${itemTip(eq, ctx)}</div>`;
+      }
+    }
     // 有空孔且持有符文 → 渲染可镶符文按钮 (点击镶入并刷新)。
     const runeIds = Object.keys(this.game.runeBag).filter((id) => this.game.runeBag[id] > 0);
     if (loc && openSockets(it) > 0 && runeIds.length > 0) {

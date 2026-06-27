@@ -250,10 +250,24 @@ export class Game {
     p.attackInterval = attackInterval(baseSpeed, d.ias);
   }
 
+  // 装备需求是否满足 (等级/力量/敏捷)。未鉴定不可穿 (D2: 先鉴定)。
+  canEquip(it: ItemInstance): boolean {
+    if (!it.identified) return false;
+    const d = deriveCombat(this.character);
+    if (this.character.level < it.base.reqLevel) return false;
+    if (it.base.reqStr && d.attrs.str < it.base.reqStr) return false;
+    if (it.base.reqDex && d.attrs.dex < it.base.reqDex) return false;
+    return true;
+  }
+
   // 装备背包中第 index 件 (旧装备退回背包), 重算战力
   equip(index: number): boolean {
     const it = this.inventory[index];
     if (!it) return false;
+    if (!this.canEquip(it)) {
+      this.notices.push(it.identified ? '不满足装备需求 (等级/力量/敏捷)' : '需先鉴定才能装备');
+      return false;
+    }
     const slot = it.base.slot;
     const prev = this.character.equipment[slot];
     this.character.equipment[slot] = it;
