@@ -602,7 +602,12 @@ async function main() {
       } else npcEl.style.display = 'none';
       if (game.state === 'dead') {
         banner.style.display = 'flex';
-        banner.innerHTML = '☠ 你已阵亡<div style="font-size:15px;opacity:.85">点击重生</div>';
+        const penaltyText = game.difficulty === 'hell'
+          ? `<div style="font-size:14px;color:#ff8888;margin:4px 0">⚠ 惩罚: -20% 金币 · 装备耐久-20 · 重生于营地</div>`
+          : game.difficulty === 'nightmare'
+          ? `<div style="font-size:14px;color:#ffaa44;margin:4px 0">⚠ 惩罚: -10% 金币 · 50% HP · 重生于区域入口</div>`
+          : `<div style="font-size:14px;color:#88ff88;margin:4px 0">普通模式: 无惩罚, 原地复活</div>`;
+        banner.innerHTML = `☠ 你已阵亡${penaltyText}<div style="font-size:13px;opacity:.7;margin-top:8px">点击重生</div>`;
       } else if (game.state === 'cleared' && !game.currentArea.isTown) {
         banner.style.display = 'flex';
         banner.innerHTML = '⚔ 区域肃清!<div style="font-size:15px;opacity:.85">走到发光出口前往相邻区域</div>';
