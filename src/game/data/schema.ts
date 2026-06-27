@@ -28,6 +28,7 @@ export interface MonStat {
   exp: PerDifficulty<number>;
   speed: number; // 格/秒
   radius: number;
+  rangedType?: DamageType; // 远程攻击的伤害类型 (缺省 fire); 如吐酸怪=poison
   flags?: { boss?: boolean; champion?: boolean; ranged?: boolean };
 }
 

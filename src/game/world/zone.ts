@@ -27,6 +27,7 @@ export interface AreaInstance {
   name: string;
   isTown: boolean;
   size: [number, number];
+  monLevel: number; // 本区域当前难度的怪物等级 (供怪物等级/经验缩放)
   monsterSpawns: MonsterSpawn[];
   exits: AreaExit[];
 }
@@ -111,6 +112,7 @@ export function buildArea(
     name: def.name,
     isTown,
     size: [w, h],
+    monLevel: def.monLevel[diff],
     monsterSpawns,
     exits,
   };
