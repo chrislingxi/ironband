@@ -22,6 +22,12 @@ function injectStyle(): void {
   #hud .gold { position:absolute; left:16px; top:44px; padding:2px 10px 2px 8px; border-radius:10px;
     background:#0c0c12cc; border:1px solid #6a5a3a; font-size:13px; color:#ffcf4a; font-weight:800;
     text-shadow:0 1px 2px #000; box-shadow:0 2px 5px #0008; }
+  /* 治疗药水: 可点红珠 (点击/低血自动饮) */
+  #hud .potion { position:absolute; left:108px; top:43px; padding:2px 9px 2px 7px; border-radius:11px; pointer-events:auto;
+    background:radial-gradient(circle at 50% 30%,#7a1414,#3a0808); border:1.5px solid #c24a3a; font-size:13px; color:#ffd2c8;
+    font-weight:800; text-shadow:0 1px 2px #000; box-shadow:0 2px 5px #0008, inset 0 1px 3px #ffffff22; user-select:none; }
+  #hud .potion:active { transform:scale(.92); }
+  #hud .potion.empty { filter:grayscale(1) brightness(.6); }
   /* 等级: 金色徽记 */
   #hud .lvl { position:absolute; left:244px; top:15px; padding:2px 11px; border-radius:11px;
     background:linear-gradient(#3a2c14,#1c1408); border:1.5px solid #c79433;
@@ -57,6 +63,7 @@ export class HUD {
   private hpFill: HTMLElement;
   private hpTxt: HTMLElement;
   private goldEl: HTMLElement;
+  private potionEl: HTMLElement;
   private infoEl: HTMLElement;
   private lvlEl: HTMLElement;
   private xpFill: HTMLElement;
@@ -70,6 +77,7 @@ export class HUD {
       <div class="bar"><i></i></div>
       <div class="hptxt"></div>
       <div class="gold">⦿ 0</div>
+      <div class="potion">💊 <b>4</b></div>
       <div class="lvl">Lv 1</div>
       <div class="info"></div>
       <div class="xpbar"><i></i></div>
@@ -78,6 +86,8 @@ export class HUD {
     this.hpFill = root.querySelector('.bar > i') as HTMLElement;
     this.hpTxt = root.querySelector('.hptxt') as HTMLElement;
     this.goldEl = root.querySelector('.gold') as HTMLElement;
+    this.potionEl = root.querySelector('.potion') as HTMLElement;
+    this.potionEl.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.game.quaffPotion(); });
     this.infoEl = root.querySelector('.info') as HTMLElement;
     this.lvlEl = root.querySelector('.lvl') as HTMLElement;
     this.xpFill = root.querySelector('.xpbar > i') as HTMLElement;
@@ -117,6 +127,8 @@ export class HUD {
     this.hpFill.style.width = `${ratio * 100}%`;
     this.hpTxt.textContent = `${Math.ceil(p.combat.hp)} / ${p.combat.maxHp}`;
     this.goldEl.textContent = `⦿ ${this.game.goldTotal}`;
+    (this.potionEl.querySelector('b') as HTMLElement).textContent = String(this.game.potions);
+    this.potionEl.classList.toggle('empty', this.game.potions <= 0);
     this.lvlEl.textContent = `Lv ${this.game.character.level}`;
     this.xpFill.style.width = `${Math.min(100, (this.game.character.xp / this.game.xpForNext()) * 100)}%`;
     const area = this.game.currentArea?.name ?? '';

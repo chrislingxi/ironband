@@ -142,6 +142,8 @@ export interface SaveData {
   act4Complete: boolean;
   act5Complete: boolean;
   merc: MercSave | null;
+  potions: number; // 治疗药水数 (旧档无此字段时按满兜底)
+  autoQuaff: boolean; // 低血自动饮 (旧档默认开)
 }
 
 // ---------------------------------------------------------------------------
@@ -187,6 +189,8 @@ export function serializeGame(game: Game, name?: string): SaveData {
     merc: game.merc
       ? { level: game.merc.level, hp: game.merc.hp, maxHp: game.merc.maxHp, dead: game.merc.dead }
       : null,
+    potions: game.potions,
+    autoQuaff: game.autoQuaff,
   };
 }
 
@@ -231,6 +235,8 @@ export function applySave(game: Game, data: SaveData): void {
   game.act3Complete = data.act3Complete ?? false;
   game.act4Complete = data.act4Complete ?? false;
   game.act5Complete = data.act5Complete ?? false;
+  game.potions = data.potions ?? game.potionCap; // 旧档按满兜底
+  game.autoQuaff = data.autoQuaff ?? true;
 
   // --- 雇佣兵: 重建最小状态, 位置等瞬态交由 loadArea 归位 ---
   if (data.merc) {
