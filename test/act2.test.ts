@@ -28,6 +28,29 @@ describe('第二幕内容', () => {
     expect(g.monsters[0].defId).toBe('duriel');
   });
 
+  it('野外区域可不清场自由走到出口前往相邻区 (修复无法进入寒冷平原)', () => {
+    const g = new Game(1);
+    g.loadArea('blood_moor');
+    expect(g.monsters.length).toBeGreaterThan(0); // 仍有怪
+    g.update(1.1, { move: { x: 0, y: 0 } }); // 走过进入冷却 travelCd
+    // 找到通往寒冷平原的出口并把玩家放上去
+    const exit = g.currentArea.exits.find((e) => e.toId === 'cold_plains');
+    expect(exit).toBeTruthy();
+    g.player.pos = { x: exit!.pos.x, y: exit!.pos.y };
+    g.update(1 / 60, { move: { x: 0, y: 0 } });
+    expect(g.currentArea.id).toBe('cold_plains'); // 未清场也已传送
+  });
+
+  it('Boss 区未击败 Boss 时锁定出口 (不可绕过)', () => {
+    const g = new Game(1);
+    g.loadArea('andariel_lair');
+    g.update(1.1, { move: { x: 0, y: 0 } });
+    const exit = g.currentArea.exits[0];
+    g.player.pos = { x: exit.pos.x, y: exit.pos.y };
+    g.update(1 / 60, { move: { x: 0, y: 0 } });
+    expect(g.currentArea.id).toBe('andariel_lair'); // Boss 未死, 出口锁定
+  });
+
   it('击败督瑞尔通关第二幕并解锁下一难度', () => {
     const g = new Game(1);
     // 直接驱动任务完成路径: 清空塔拉夏古墓

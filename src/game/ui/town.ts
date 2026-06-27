@@ -39,7 +39,7 @@ interface TownCallbacks {
 }
 
 // 分页签标识.
-type TownTab = 'shop' | 'gamble' | 'merc' | 'identify' | 'stash';
+export type TownTab = 'shop' | 'gamble' | 'merc' | 'identify' | 'stash';
 
 let styled = false;
 function injectStyle(): void {
@@ -136,9 +136,10 @@ export class TownPanel {
     this.tabBtns = btns;
   }
 
-  show(data: TownData): void {
+  show(data: TownData, tab?: TownTab): void {
     this.open = true;
     this.data = data;
+    if (tab) this.tab = tab;
     this.root.style.display = 'block';
     this.render();
   }
@@ -221,7 +222,7 @@ export class TownPanel {
   // 商店: 上方店内商品 (点击购买), 下方背包 (点击出售).
   private renderShop(d: TownData): void {
     const h1 = document.createElement('h4');
-    h1.textContent = '吉德的货架 (点击购买)';
+    h1.textContent = '查西的货架 (点击购买)';
     this.bodyEl.appendChild(h1);
     const buyList = document.createElement('div');
     buyList.className = 'list';

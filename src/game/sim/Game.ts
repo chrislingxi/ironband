@@ -139,7 +139,10 @@ export class Game {
     this.travelCd = 1.0;
     if (this.currentArea.isTown) this.refreshShop(); // 进城刷新商店
     if (this.merc) this.merc.pos = { x: this.player.pos.x - 1, y: this.player.pos.y - 1 }; // 雇佣兵随主归队
-    this.notices.push(`进入 ${this.currentArea.name}`);
+    // 入区引导: 一条提示同时给出地名与目标 (击杀刷装 / 走蓝色出口 / Boss 锁门)
+    if (bossDefId) this.notices.push(`进入 ${this.currentArea.name} · ⚔ 击败 Boss 方可离开!`);
+    else if (!this.currentArea.isTown) this.notices.push(`进入 ${this.currentArea.name} · 走到蓝色发光出口前往下一区`);
+    else this.notices.push(`进入 ${this.currentArea.name}`);
   }
 
   // 由 character(基础属性+等级+装备) 重算玩家战斗数值. initial=true 时回满血.
@@ -522,8 +525,11 @@ export class Game {
       }
     }
 
-    // ----- 出口传送 (营地或区域已清, 且过冷却) -----
-    if (!p.dead && this.travelCd === 0 && (this.currentArea.isTown || this.monsters.length === 0)) {
+    // ----- 出口传送 -----
+    // D2 风格: 区域间可自由走动, 不强制清场。仅 Boss 区需击败 Boss 方可离开,
+    // 以保证 Boss 战不被绕过 (BOSS_AREAS 在场且 Boss 未死则锁出口)。
+    const bossHere = !!BOSS_AREAS[this.currentArea.id] && this.monsters.length > 0;
+    if (!p.dead && this.travelCd === 0 && !bossHere) {
       for (const ex of this.currentArea.exits) {
         if (dist(p.pos, ex.pos) < 1.6) { this.loadArea(ex.toId); break; }
       }

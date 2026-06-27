@@ -14,7 +14,7 @@ import type { Entity } from '@game/entities/entity.ts';
 import { HUD } from '@game/ui/hud.ts';
 import { InventoryPanel } from '@game/ui/inventory.ts';
 import { SkillTreePanel } from '@game/ui/skilltree.ts';
-import { NPCS } from '@game/world/npcs.ts';
+import { NPCS, type NpcRole } from '@game/world/npcs.ts';
 import { AREAS } from '@game/world/act1.ts';
 import { TitleScreen, type BootChoice } from '@game/ui/titlescreen.ts';
 import { QuestLogPanel } from '@game/ui/questlog.ts';
@@ -122,7 +122,7 @@ async function main() {
   scene.entityLayer.addChild(mercLayer);
   // 区域切换时重建的静态内容
   let lastAreaId = '';
-  let npcMarkers: { name: string; greeting: string; x: number; y: number }[] = [];
+  let npcMarkers: { name: string; greeting: string; role: NpcRole; x: number; y: number }[] = [];
   function syncArea(): void {
     const a = game.currentArea;
     if (a.id === lastAreaId) return;
@@ -150,7 +150,7 @@ async function main() {
       NPCS.forEach((npc, i) => {
         const ang = (i / NPCS.length) * Math.PI * 2;
         const nx = cx + Math.cos(ang) * 6, ny = cy + Math.sin(ang) * 6;
-        npcMarkers.push({ name: npc.name, greeting: npc.greeting, x: nx, y: ny });
+        npcMarkers.push({ name: npc.name, greeting: npc.greeting, role: npc.role, x: nx, y: ny });
         const s = gridToScreen({ x: nx, y: ny });
         const g = buildNpcSprite(npc.role); // Q版长袍立绘 (按身份配色+道具)
         const t = new Text({ text: npc.name, style: { fontFamily: 'Georgia,serif', fontSize: 11, fill: 0xffe08a, stroke: { color: 0x000000, width: 3 } } });
@@ -565,13 +565,29 @@ async function main() {
   document.body.appendChild(noticeEl);
   let noticeUntil = 0;
 
-  // NPC 问候 (营地靠近时显示)
+  // NPC 交互气泡 (营地靠近时显示, 可点击触发该 NPC 的功能)
   const npcEl = document.createElement('div');
   npcEl.style.cssText =
-    'position:absolute;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));max-width:80%;' +
-    'padding:8px 14px;border-radius:10px;background:#0c0c12d8;border:1px solid #6a5a3a;color:#e8e0d0;font-size:13px;' +
-    'text-align:center;pointer-events:none;display:none;z-index:45;';
+    'position:absolute;left:50%;transform:translateX(-50%);bottom:calc(96px + env(safe-area-inset-bottom));max-width:86%;' +
+    'padding:10px 16px;border-radius:12px;background:#0c0c12ee;border:1px solid #c79433;color:#e8e0d0;font-size:13px;' +
+    'text-align:center;pointer-events:auto;display:none;z-index:45;box-shadow:0 4px 16px #000a;cursor:pointer;';
   document.body.appendChild(npcEl);
+  let nearNpcRole: NpcRole | null = null;
+  // 每个身份的交互动作与按钮文案。
+  const NPC_ACTION: Record<NpcRole, { label: string; run: () => void }> = {
+    heal: { label: '治疗 (恢复全部生命)', run: () => {
+      game.player.combat.hp = game.player.combat.maxHp; game.notices.push('阿卡拉治愈了你的伤势');
+    } },
+    vendor: { label: '打开商店', run: () => { closePanels(); town.show(buildTownData(), 'shop'); paused = true; } },
+    gamble: { label: '赌一把', run: () => { closePanels(); town.show(buildTownData(), 'gamble'); paused = true; } },
+    mercenary: { label: '雇佣兵', run: () => { closePanels(); town.show(buildTownData(), 'merc'); paused = true; } },
+    quest: { label: '鉴定物品', run: () => { closePanels(); town.show(buildTownData(), 'identify'); paused = true; } },
+    travel: { label: '传送出行', run: () => { closePanels(); wp.show(listWaypoints(game.discoveredWaypoints, AREAS)); paused = true; } },
+  };
+  npcEl.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (nearNpcRole) { audio.sfx('select'); NPC_ACTION[nearNpcRole].run(); }
+  });
 
   // 阵亡/清场横幅 (点击重生/续战)
   const banner = document.createElement('div');
@@ -658,9 +674,14 @@ async function main() {
           const d = dist(game.player.pos, { x: m.x, y: m.y });
           if (d < nd) { nd = d; near = m; }
         }
-        if (near) { npcEl.style.display = 'block'; npcEl.innerHTML = `<b style="color:#ffe08a">${near.name}</b>：${near.greeting}`; }
-        else npcEl.style.display = 'none';
-      } else npcEl.style.display = 'none';
+        if (near && !paused) {
+          nearNpcRole = near.role;
+          npcEl.style.display = 'block';
+          npcEl.innerHTML =
+            `<b style="color:#ffe08a">${near.name}</b>：${near.greeting}` +
+            `<div style="margin-top:6px;color:#c79433;font-weight:700">▸ ${NPC_ACTION[near.role].label}</div>`;
+        } else { nearNpcRole = null; npcEl.style.display = 'none'; }
+      } else { nearNpcRole = null; npcEl.style.display = 'none'; }
       if (game.state === 'dead') {
         banner.style.display = 'flex';
         const penaltyText = game.difficulty === 'hell'
