@@ -108,6 +108,7 @@ async function main() {
   const goldLayer = new Container();
   const itemLayer = new Container();
   const swingLayer = new Container();
+  const particleLayer = new Container();
   const missileLayer = new Container();
   const mercLayer = new Container();
   const exitLayer = new Container();
@@ -118,6 +119,7 @@ async function main() {
   scene.entityLayer.addChild(goldLayer);
   scene.entityLayer.addChild(itemLayer);
   scene.entityLayer.addChild(swingLayer);
+  scene.entityLayer.addChild(particleLayer);
   scene.entityLayer.addChild(missileLayer);
   scene.entityLayer.addChild(mercLayer);
   // 区域切换时重建的静态内容
@@ -163,7 +165,49 @@ async function main() {
     }
   }
   const damageTexts: { t: Text; life: number }[] = [];
+  // 打击粒子: 受击迸溅 / 击杀爆裂. 屏幕空间, 整体随相机平移。
+  const particles: { g: Graphics; vx: number; vy: number; life: number; max: number; grav: number }[] = [];
+  function burst(sx: number, sy: number, color: number, count: number, power: number, grav: number): void {
+    for (let i = 0; i < count; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = power * (0.4 + Math.random() * 0.6);
+      const r = 1.2 + Math.random() * 2.2;
+      const g = new Graphics().circle(0, 0, r).fill({ color });
+      g.position.set(sx, sy);
+      g.zIndex = 1e9;
+      particleLayer.addChild(g);
+      particles.push({ g, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - power * 0.3, life: 0, max: 0.34 + Math.random() * 0.3, grav });
+    }
+  }
+  // 击杀冲击环: 一圈快速扩张并淡出的亮环 (最易读的"爆头"反馈)。
+  const rings: { g: Graphics; life: number; max: number; from: number; to: number }[] = [];
+  // to = 最终半径 (像素). 环从半径 4 扩张到 to。
+  function ring(sx: number, sy: number, color: number, to: number): void {
+    const g = new Graphics().circle(0, 0, 1).stroke({ color, width: 3, alpha: 1 });
+    g.position.set(sx, sy); g.zIndex = 1e9; particleLayer.addChild(g);
+    rings.push({ g, life: 0, max: 0.34, from: 4, to });
+  }
+  function updateParticles(dt: number): void {
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.life += dt;
+      if (p.life >= p.max) { p.g.destroy(); particles.splice(i, 1); continue; }
+      p.vy += p.grav * dt;
+      p.g.x += p.vx * dt;
+      p.g.y += p.vy * dt;
+      p.g.alpha = 1 - p.life / p.max;
+    }
+    for (let i = rings.length - 1; i >= 0; i--) {
+      const r = rings[i];
+      r.life += dt;
+      if (r.life >= r.max) { r.g.destroy(); rings.splice(i, 1); continue; }
+      const t = r.life / r.max;
+      r.g.scale.set(r.from + (r.to - r.from) * t);
+      r.g.alpha = (1 - t) * 0.9;
+    }
+  }
   let shakeMag = 0; // 屏震强度(衰减)
+  let lastRenderMs = 0; // 上一渲染帧时间戳 (粒子用)
   let hitstop = 0; // 顿帧(秒), >0 时冻结模拟
   let prevGold = 0; // 上帧金币(检测拾取播币音)
   let prevInv = 0; // 上帧背包数(检测拾物)
@@ -259,6 +303,13 @@ async function main() {
       t.zIndex = 1e9;
       scene.entityLayer.addChild(t);
       damageTexts.push({ t, life: 0.8 });
+      // 打击粒子迸溅: 击杀=金红大爆裂, 玩家受击=红, 普通命中=白火花
+      if (ev.killed) {
+        burst(s.x, s.y - 8, 0xffe9a0, 16, 175, 380);
+        burst(s.x, s.y - 8, 0xd8442e, 10, 130, 380);
+        ring(s.x, s.y - 8, 0xffe08a, 30); // 金色冲击环 (扩张到 30px)
+      } else if (ev.toPlayer) { burst(s.x, s.y - 8, 0xff5e4a, 8, 100, 300); ring(s.x, s.y - 8, 0xff5e4a, 20); }
+      else burst(s.x, s.y - 8, 0xffffff, 7, 110, 320);
     }
     game.events.length = 0;
   }
@@ -624,6 +675,11 @@ async function main() {
       }
     },
     (_alpha) => {
+      // 渲染帧时间 (performance.now, 非 Date): 驱动粒子动画
+      const nowP = performance.now();
+      const rdt = lastRenderMs ? Math.min(0.05, (nowP - lastRenderMs) / 1000) : 1 / 60;
+      lastRenderMs = nowP;
+      updateParticles(rdt);
       syncArea(); // 区域切换 → 重建地砖/出口/NPC
       // 同步实体精灵 (清理已死/已移除)
       const live = new Set<number>([game.player.id, ...game.monsters.map((m) => m.id)]);
