@@ -6,7 +6,7 @@ import { gridToScreen, TILE_W, TILE_H } from '../math/iso.ts';
 // 零星撒石块/草点, 营造草地/泥土质感. theme 决定色调.
 // 真实 FLARE/原版 DT1 瓦片接入后可整体替换本函数.
 
-export type GroundTheme = 'wilderness' | 'town' | 'desert';
+export type GroundTheme = 'wilderness' | 'town' | 'desert' | 'hell' | 'snow';
 
 interface Palette {
   base: number[];   // 主色候选 (随机挑一个再扰动)
@@ -36,6 +36,20 @@ const PALETTES: Record<GroundTheme, Palette> = {
     edge: 0x3a2c18,
     speck: [0xa8915a, 0x6a5436, 0x837049, 0xb6a268],
     decor: 'rock',
+  },
+  // 地狱 (第四幕混沌避难所): 焦黑赤岩 + 熔岩亮点
+  hell: {
+    base: [0x2a1410, 0x3a1a12, 0x301512, 0x24100c, 0x42201a],
+    edge: 0x1a0805,
+    speck: [0xff5a20, 0xc83a14, 0x6a2a18, 0xff7a30],
+    decor: 'rock',
+  },
+  // 雪山 (第五幕哈洛加斯): 冷调青白雪地
+  snow: {
+    base: [0x8a98a8, 0x9aa8b6, 0x7e8c9c, 0xa6b4c0, 0x76849a],
+    edge: 0x4a5664,
+    speck: [0xd8e4ee, 0x6a7888, 0xb0bcc8, 0x90a0b0],
+    decor: 'cobble',
   },
 };
 
