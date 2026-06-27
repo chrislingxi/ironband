@@ -48,6 +48,30 @@ export function totalPointsSpent(state: SkillTreeState): number {
   return sum;
 }
 
+// 被动技能加成: 把"精通/铁壁/天生抗性/穿透"等被动技投点折算为战斗增益百分比,
+// 供 deriveCombat 应用 —— 修复"被动技能投了没用"。按 id 模式匹配, 跨职业安全 (缺失记 0)。
+export interface PassiveBonuses {
+  arPerc: number;   // 命中率 +%
+  dmgPerc: number;  // 物理伤害 +%
+  defPerc: number;  // 防御 +%
+  resAll: number;   // 全抗 +点
+}
+export function passiveBonuses(state: SkillTreeState, defs: SkillDef[]): PassiveBonuses {
+  let masteryPts = 0;
+  for (const d of defs) {
+    if (d.passive && d.id.includes('mastery')) masteryPts += pointsIn(d.id, state);
+  }
+  const penetrate = pointsIn('penetrate', state); // 亚马逊穿透 → AR
+  const ironSkin = pointsIn('iron_skin', state);   // 野蛮人铁壁 → 防御
+  const natRes = pointsIn('natural_resistance', state); // 野蛮人天生抗性 → 全抗
+  return {
+    arPerc: masteryPts * 5 + penetrate * 5,
+    dmgPerc: masteryPts * 4,
+    defPerc: ironSkin * 6,
+    resAll: natRes * 4,
+  };
+}
+
 // 协同加成总和: 按 def.synergies 把每个来源技能的已投点数 * perLevel 累加.
 // 语义对标 D2 synergy (例: 冰弹每点为冰川尖刺 +X% 伤害). 返回累加百分比/系数, 由伤害公式使用.
 export function synergyBonus(def: SkillDef, state: SkillTreeState, allDefs: SkillDef[]): number {

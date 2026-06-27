@@ -35,7 +35,7 @@ const FINAL_QUEST = 'baal';
 // 所有 Boss defId (掉落/精英判定/区域独占)。
 const BOSS_IDS = new Set(['andariel', 'duriel', 'mephisto', 'diablo', 'baal']);
 import { CLASS_SKILLS } from '@game/classes/registry.ts';
-import { canInvest, invest, totalPointsSpent, pointsIn, synergyBonus, type SkillTreeState } from '@game/classes/skilltree.ts';
+import { canInvest, invest, totalPointsSpent, pointsIn, synergyBonus, passiveBonuses, type SkillTreeState } from '@game/classes/skilltree.ts';
 import type { Difficulty } from '@game/data/schema.ts';
 import { dist, normalize, type Vec2 } from '@engine/math/vec.ts';
 import { mulberry32, randInt, type RNG } from '@engine/math/rng.ts';
@@ -158,7 +158,8 @@ export class Game {
 
   // 由 character(基础属性+等级+装备) 重算玩家战斗数值. initial=true 时回满血.
   recompute(initial = false): void {
-    const d = deriveCombat(this.character);
+    const passive = passiveBonuses(this.skillTree, CLASS_SKILLS[this.character.cls]);
+    const d = deriveCombat(this.character, passive);
     const p = this.player;
     const ratio = !initial && p.combat.maxHp > 0 ? p.combat.hp / p.combat.maxHp : 1;
     p.combat.maxHp = d.maxHp;

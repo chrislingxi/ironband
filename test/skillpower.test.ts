@@ -14,6 +14,20 @@ function castIceBoltDamage(points: number): number {
   return m!.dmg.reduce((s, d) => s + d.max, 0);
 }
 
+describe('被动技能生效 (合议 S2 收尾)', () => {
+  it('铁壁→防御↑, 精通→命中/伤害↑, 天生抗性→全抗↑', () => {
+    const g = new Game(1, 'barbarian');
+    const def0 = g.player.combat.defense;
+    const ar0 = g.player.combat.attackRating;
+    const fire0 = g.player.combat.resist.fire;
+    g.skillTree = { iron_skin: 5, sword_mastery: 5, natural_resistance: 5 };
+    g.recompute();
+    expect(g.player.combat.defense).toBeGreaterThan(def0);
+    expect(g.player.combat.attackRating).toBeGreaterThan(ar0);
+    expect(g.player.combat.resist.fire).toBeGreaterThan(fire0);
+  });
+});
+
 describe('技能树接通战斗: 投点增强主动技能', () => {
   it('冰弹伤害随投点提升 (0点 < 5点)', () => {
     const d0 = castIceBoltDamage(0);
