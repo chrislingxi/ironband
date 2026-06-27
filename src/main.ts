@@ -181,6 +181,9 @@ async function main() {
     if (e.ai === 'fallen') return 'fallen';
     if (e.ai === 'skeleton') return 'skeleton';
     if (e.ai === 'zombie') return 'zombie';
+    if (e.defId === 'hound') return 'hound';
+    if (e.defId === 'brute') return 'brute';
+    if (e.defId === 'spitter') return 'spitter';
     return undefined;
   }
 

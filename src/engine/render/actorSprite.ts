@@ -101,6 +101,12 @@ export class ActorSprite {
       this.drawAndariel(s, main, lit, dark);
     } else if (sub === 'duriel') {
       this.drawDuriel(s, main, lit, dark);
+    } else if (sub === 'hound') {
+      this.drawHound(s, main, lit, dark);
+    } else if (sub === 'brute') {
+      this.drawBrute(s, main, lit, dark);
+    } else if (sub === 'spitter') {
+      this.drawSpitter(s, main, lit, dark);
     } else {
       // fallback: 通用人形/野兽/施法者
       this.drawGeneric(s, main, lit, dark);
@@ -337,6 +343,66 @@ export class ActorSprite {
     // 腐烂眼睛 (红)
     this.head.circle(-s * 0.15, -s * 0.92, s * 0.09).fill({ color: 0xcc2200 });
     this.head.circle(s * 0.15, -s * 0.92, s * 0.09).fill({ color: 0xcc2200 });
+  }
+
+  // ── 恶犬: 四足低伏 + 獠牙 ──
+  private drawHound(s: number, main: number, lit: number, dark: number): void {
+    const OUTLINE = 0x1a0e06;
+    // 四条腿
+    for (const lx of [-0.55, -0.2, 0.2, 0.55]) {
+      this.body.rect(lx * s, s * 0.25, s * 0.14, s * 0.5).fill({ color: dark }).stroke({ color: OUTLINE, width: 1.5 });
+    }
+    // 横长躯干
+    this.body.ellipse(0, -s * 0.05, s * 0.95, s * 0.5).fill({ color: main }).stroke({ color: OUTLINE, width: 2.5 });
+    this.body.ellipse(-s * 0.2, -s * 0.2, s * 0.5, s * 0.22).fill({ color: lit, alpha: 0.4 });
+    // 鬃毛脊
+    this.body.poly([-s * 0.5, -s * 0.45, -s * 0.2, -s * 0.7, 0.1 * s, -s * 0.45]).fill({ color: dark });
+    // 前伸犬头
+    this.head.ellipse(s * 0.85, -s * 0.15, s * 0.42, s * 0.32).fill({ color: shade(main, 1.05) }).stroke({ color: OUTLINE, width: 2 });
+    this.head.poly([s * 1.15, -s * 0.05, s * 1.4, -s * 0.12, s * 1.15, -s * 0.28]).fill({ color: shade(main, 0.85) }); // 吻部
+    this.head.circle(s * 0.95, -s * 0.28, s * 0.08).fill({ color: 0xffaa20 }); // 凶目
+    this.head.poly([s * 1.18, s * 0.02, s * 1.24, s * 0.12, s * 1.1, s * 0.08]).fill({ color: 0xf0ece0 }); // 獠牙
+  }
+
+  // ── 蛮兽: 魁梧巨汉 + 重拳 ──
+  private drawBrute(s: number, main: number, lit: number, dark: number): void {
+    const OUTLINE = 0x140a06;
+    // 厚重躯干 (梯形)
+    this.body.moveTo(-s * 0.7, -s * 0.7).lineTo(s * 0.7, -s * 0.7).lineTo(s * 0.85, s * 0.5).lineTo(-s * 0.85, s * 0.5).closePath()
+      .fill({ color: main }).stroke({ color: OUTLINE, width: 3 });
+    this.body.poly([-s * 0.7, -s * 0.7, 0, -s * 0.7, 0, s * 0.5, -s * 0.85, s * 0.5]).fill({ color: lit, alpha: 0.28 });
+    // 腰带
+    this.body.rect(-s * 0.82, s * 0.2, s * 1.64, s * 0.2).fill({ color: dark }).stroke({ color: OUTLINE, width: 2 });
+    // 巨拳 (两侧)
+    for (const dir of [-1, 1]) {
+      this.accessory.circle(dir * s * 1.0, s * 0.15, s * 0.34).fill({ color: shade(main, 0.85) }).stroke({ color: OUTLINE, width: 2.5 });
+    }
+    // 小头缩肩
+    this.head.circle(0, -s * 0.78, s * 0.4).fill({ color: shade(main, 1.05) }).stroke({ color: OUTLINE, width: 2.5 });
+    this.head.circle(-s * 0.14, -s * 0.8, s * 0.07).fill({ color: 0x301810 });
+    this.head.circle(s * 0.14, -s * 0.8, s * 0.07).fill({ color: 0x301810 });
+    this.head.moveTo(-s * 0.2, -s * 0.62).lineTo(s * 0.2, -s * 0.62).stroke({ color: OUTLINE, width: 2 }); // 怒口
+  }
+
+  // ── 吐酸怪: 蹲伏蟾形 + 鼓囊毒囊 ──
+  private drawSpitter(s: number, main: number, lit: number, dark: number): void {
+    const OUTLINE = 0x0c1a06;
+    // 宽扁蟾身
+    this.body.ellipse(0, s * 0.1, s * 1.05, s * 0.7).fill({ color: main }).stroke({ color: OUTLINE, width: 2.5 });
+    // 浅色腹部
+    this.body.ellipse(0, s * 0.32, s * 0.7, s * 0.4).fill({ color: lit, alpha: 0.45 });
+    // 背部毒疣
+    for (const [px, py] of [[-0.4, -0.25], [0.1, -0.4], [0.5, -0.18]]) {
+      this.body.circle(px * s, py * s, s * 0.14).fill({ color: shade(main, 1.2) }).stroke({ color: OUTLINE, width: 1.5 });
+    }
+    // 蹲腿
+    this.body.poly([-s * 0.9, s * 0.4, -s * 1.15, s * 0.7, -s * 0.6, s * 0.6]).fill({ color: dark });
+    this.body.poly([s * 0.9, s * 0.4, s * 1.15, s * 0.7, s * 0.6, s * 0.6]).fill({ color: dark });
+    // 阔嘴大头
+    this.head.ellipse(0, -s * 0.5, s * 0.6, s * 0.45).fill({ color: shade(main, 1.05) }).stroke({ color: OUTLINE, width: 2.5 });
+    this.head.moveTo(-s * 0.45, -s * 0.45).lineTo(s * 0.45, -s * 0.45).stroke({ color: OUTLINE, width: 2.5 }); // 阔嘴
+    this.head.circle(-s * 0.22, -s * 0.7, s * 0.12).fill({ color: 0xbaff5a }).stroke({ color: OUTLINE, width: 1.5 }); // 凸眼
+    this.head.circle(s * 0.22, -s * 0.7, s * 0.12).fill({ color: 0xbaff5a }).stroke({ color: OUTLINE, width: 1.5 });
   }
 
   // ── 安达莉尔 Boss ──
