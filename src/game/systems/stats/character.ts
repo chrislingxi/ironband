@@ -42,7 +42,14 @@ export interface Derived {
 const RES_CAP = 75;
 
 // 派生战斗数值 (近似 D2 公式, 可调; 关键是装备显著改变战力)
-export function deriveCombat(ch: Character): Derived {
+/** 被动技能增益 (由技能树折算; 缺省为零)。与 classes/skilltree.PassiveBonuses 同形。 */
+export interface PassiveBonusInput {
+  arPerc?: number;
+  dmgPerc?: number;
+  defPerc?: number;
+  resAll?: number;
+}
+export function deriveCombat(ch: Character, passive: PassiveBonusInput = {}): Derived {
   const bag = emptyBag();
   let armorDef = 0;
   let weapon: ItemInstance | undefined;
@@ -60,17 +67,22 @@ export function deriveCombat(ch: Character): Derived {
 
   const L = LIFE[ch.cls as CharClass] ?? LIFE.barbarian;
   const maxHp = Math.max(20, Math.round(L.base + (vit - L.startVit) * L.perVit + (ch.level - 1) * L.perLevel + (bag.maxhp ?? 0)));
-  const attackRating = Math.round((dex * 5 + (bag.tohit ?? 0)) * (1 + (bag.tohit_perc ?? 0) / 100));
-  const defense = Math.round((armorDef + (bag.defense ?? 0)) * (1 + (bag.defense_perc ?? 0) / 100) + dex / 4);
+  // 被动技能: 精通/穿透→命中, 铁壁→防御, 天生抗性→全抗 (合议 S2)。
+  const attackRating = Math.round((dex * 5 + (bag.tohit ?? 0)) * (1 + ((bag.tohit_perc ?? 0) + (passive.arPerc ?? 0)) / 100));
+  // 铁壁(defPerc)增益作用于总防御(含敏捷贡献), 无甲时也有效。
+  const defense = Math.round(
+    ((armorDef + (bag.defense ?? 0)) * (1 + (bag.defense_perc ?? 0) / 100) + dex / 4) *
+      (1 + (passive.defPerc ?? 0) / 100),
+  );
 
   const wMin = weapon?.base.baseDamage?.[0] ?? 1;
   const wMax = weapon?.base.baseDamage?.[1] ?? 2;
-  const dmgMult = 1 + (bag.dmg_perc ?? 0) / 100 + str / 100; // 力量增伤 ~1%/点
+  const dmgMult = 1 + ((bag.dmg_perc ?? 0) + (passive.dmgPerc ?? 0)) / 100 + str / 100; // 力量+被动精通增伤
   const min = Math.max(1, Math.round((wMin + (bag.mindam ?? 0)) * dmgMult));
   const max = Math.max(min, Math.round((wMax + (bag.maxdam ?? 0)) * dmgMult));
   const damage: DamageInstance[] = [{ type: 'physical', min, max }];
 
-  const resAll = bag.res_all ?? 0;
+  const resAll = (bag.res_all ?? 0) + (passive.resAll ?? 0);
   const resist: Record<DamageType, number> = {
     physical: 0,
     fire: Math.min(RES_CAP, (bag.res_fire ?? 0) + resAll),
