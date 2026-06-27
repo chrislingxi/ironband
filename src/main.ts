@@ -15,17 +15,16 @@ import { InventoryPanel } from '@game/ui/inventory.ts';
 import { SkillTreePanel } from '@game/ui/skilltree.ts';
 import { NPCS } from '@game/world/npcs.ts';
 import { AREAS } from '@game/world/act1.ts';
-import { TitleScreen } from '@game/ui/titlescreen.ts';
+import { TitleScreen, type BootChoice } from '@game/ui/titlescreen.ts';
 import { QuestLogPanel } from '@game/ui/questlog.ts';
 import { TownPanel, type TownData } from '@game/ui/town.ts';
 import { QUESTS } from '@game/world/quests.ts';
 import { buyPrice, sellPrice, gambleCost } from '@game/systems/town/economy.ts';
 import { hireCost, reviveCost } from '@game/systems/merc/merc.ts';
 import { GameAudio } from '@engine/audio/index.ts';
-import { serializeGame, applySave, saveToDB, loadFromDB } from '@game/systems/save/index.ts';
+import { serializeGame, applySave, saveToDB, loadFromDB, listSlots, nextFreeSlot, deleteSlot } from '@game/systems/save/index.ts';
 import { WaypointPanel } from '@game/ui/waypoint.ts';
 import { listWaypoints } from '@game/systems/waypoint/waypoint.ts';
-import type { CharClass } from '@game/data/schema.ts';
 import { dist } from '@engine/math/vec.ts';
 
 const areaName = (id: string): string => AREAS[id]?.name ?? id;
@@ -73,12 +72,33 @@ async function main() {
   window.addEventListener('resize', () => lighting.resize());
   // 地砖由 syncArea() 按当前区域尺寸/主题构建
 
-  // 选职界面 (Promise 化: 选定后再开局)
-  const cls = await new Promise<CharClass>((res) => {
-    const title = new TitleScreen((c) => res(c));
+  // 开局界面 (Promise 化): 存档槽选择 → 续玩 或 新建(选职+命名)
+  const slots = await listSlots();
+  const choice = await new Promise<BootChoice>((res) => {
+    const title = new TitleScreen(slots, nextFreeSlot(slots), (c) => res(c), (id) => { void deleteSlot(id); });
     title.show();
   });
-  const game = new Game(0xC0FFEE, cls); // 构造时自动加载罗格营地
+
+  // 当前激活的存档槽与角色名 (供存/读档按钮复用, 保持续存时不丢名字)
+  let activeSlot = choice.slotId;
+  let activeName: string;
+  let game: Game;
+  if (choice.kind === 'continue') {
+    const data = await loadFromDB(choice.slotId);
+    if (data) {
+      game = new Game(0xC0FFEE, data.cls);
+      applySave(game, data);
+      activeName = data.name;
+    } else {
+      // 理论不会发生 (列表来自已存在的槽); 兜底新建一个野蛮人。
+      game = new Game(0xC0FFEE, 'barbarian');
+      activeName = '野蛮人';
+    }
+  } else {
+    game = new Game(0xC0FFEE, choice.cls); // 构造时自动加载罗格营地
+    activeName = choice.name;
+    void saveToDB(serializeGame(game, activeName), activeSlot); // 立即落一份初始存档, 占住槽位
+  }
 
   // ----- 渲染层 -----
   const sprites = new Map<number, Container>();
@@ -467,10 +487,10 @@ async function main() {
     if (wp.open) { wp.hide(); paused = false; }
     else { closePanels(); wp.show(listWaypoints(game.discoveredWaypoints, AREAS)); paused = true; }
   });
-  // 存档 / 读档
-  topBtn('💾', 120, () => { saveToDB(serializeGame(game)).then(() => game.notices.push('已保存进度')); });
+  // 存档 / 读档 (针对当前激活槽位, 保留角色名)
+  topBtn('💾', 120, () => { saveToDB(serializeGame(game, activeName), activeSlot).then(() => game.notices.push('已保存进度')); });
   topBtn('📂', 170, () => {
-    loadFromDB().then((d) => { if (d) { applySave(game, d); game.notices.push('已读取存档'); } else game.notices.push('暂无存档'); });
+    loadFromDB(activeSlot).then((d) => { if (d) { applySave(game, d); activeName = d.name; game.notices.push('已读取存档'); } else game.notices.push('暂无存档'); });
   });
   let audioOn = true;
   topBtn('🔊', 220, () => { audioOn = !audioOn; audio.setEnabled(audioOn); game.notices.push(audioOn ? '音效开' : '音效关'); });

@@ -1,6 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { Game } from '../src/game/sim/Game.ts';
-import { serializeGame, applySave, exportCode, importCode } from '../src/game/systems/save/index.ts';
+import {
+  serializeGame,
+  applySave,
+  exportCode,
+  importCode,
+  nextFreeSlot,
+  MAX_SLOTS,
+  type SlotMeta,
+} from '../src/game/systems/save/index.ts';
 import { discover, listWaypoints } from '../src/game/systems/waypoint/waypoint.ts';
 import { AREAS } from '../src/game/world/act1.ts';
 
@@ -25,6 +33,21 @@ describe('Phase E: 存档 + 航点', () => {
     expect(back.cls).toBe('amazon');
     expect(back.gold).toBe(1234);
     expect(back.level).toBe(data.level);
+  });
+
+  it('多存档槽: 角色名写入存档, 缺省按职业+等级兜底', () => {
+    const g = new Game(7, 'barbarian');
+    expect(serializeGame(g, '阿强').name).toBe('阿强');
+    expect(serializeGame(g).name).toBe('barbarian-Lv1');
+  });
+
+  it('多存档槽: nextFreeSlot 跳过已占用槽, 满则 null', () => {
+    const mk = (id: string): SlotMeta =>
+      ({ slotId: id, name: id, cls: 'barbarian', level: 1, difficulty: 'normal', areaId: 'rogue_camp' });
+    expect(nextFreeSlot([])).toBe('slot0');
+    expect(nextFreeSlot([mk('slot0'), mk('slot2')])).toBe('slot1');
+    const full = Array.from({ length: MAX_SLOTS }, (_, i) => mk(`slot${i}`));
+    expect(nextFreeSlot(full)).toBeNull();
   });
 
   it('航点: 发现带航点区域并列出, 非航点区不计', () => {
