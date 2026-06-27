@@ -49,6 +49,8 @@ export const AFFIXES: Affix[] = [
   { id: 's_mana', name: '智慧', kind: 'suffix', level: 1, rarity: ['magic', 'rare'], appliesTo: ANY, stat: 'maxmana', range: [5, 15], frequency: 5 },
   { id: 's_leech', name: '嗜血', kind: 'suffix', level: 6, rarity: ['magic', 'rare'], appliesTo: ['weapon', 'ring'], stat: 'lifeleech', range: [2, 6], frequency: 4 },
   { id: 's_vit', name: '健壮', kind: 'suffix', level: 4, rarity: ['magic', 'rare'], appliesTo: ['armor', 'belt', 'amulet'], stat: 'vit', range: [1, 4], frequency: 5 },
+  { id: 's_ias', name: '迅捷', kind: 'suffix', level: 8, rarity: ['magic', 'rare'], appliesTo: ['weapon', 'gloves'], stat: 'ias', range: [10, 40], frequency: 4 },
+  { id: 's_fhr', name: '坚韧', kind: 'suffix', level: 5, rarity: ['magic', 'rare'], appliesTo: ['armor', 'helm', 'belt', 'gloves', 'boots', 'shield'], stat: 'fhr', range: [10, 40], frequency: 4 },
 ];
 
 // 稀有名词库 (原创, 拼装稀有装备名)

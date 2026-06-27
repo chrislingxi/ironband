@@ -29,10 +29,12 @@ describe('物品生成', () => {
     expect(rs.has('rare')).toBe(true);
   });
 
-  it('词缀只落在适配槽位 (dmg_perc 仅武器)', () => {
+  it('滚出的词缀只落在适配槽位 (dmg_perc 仅武器; 暗金固定词缀除外)', () => {
     const rng = mulberry32(555);
     for (let i = 0; i < 500; i++) {
       const it = generateItem(25, rng);
+      // 暗金为固定词缀(可有跨类特性, 如雷拳手套带增伤), 不受随机词缀槽位约束。
+      if (it.rarity === 'unique' || it.rarity === 'set') continue;
       for (const a of it.affixes) {
         if (a.stat === 'dmg_perc') expect(it.base.slot).toBe('weapon');
       }

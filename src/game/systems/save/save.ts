@@ -70,6 +70,9 @@ export interface ItemSave {
   affixes: RolledAffix[];
   name: string;
   identified: boolean;
+  sockets?: number;
+  socketed?: string[];
+  setId?: string;
 }
 
 /** 运行期物品 → 存档物品。base 退化为其 id。 */
@@ -82,6 +85,9 @@ export function itemToSave(it: ItemInstance): ItemSave {
     affixes: it.affixes.map((a) => ({ ...a })),
     name: it.name,
     identified: it.identified,
+    sockets: it.sockets,
+    socketed: it.socketed ? [...it.socketed] : undefined,
+    setId: it.setId,
   };
 }
 
@@ -100,6 +106,9 @@ export function itemFromSave(s: ItemSave): ItemInstance {
     affixes: s.affixes.map((a) => ({ ...a })),
     name: s.name,
     identified: s.identified,
+    sockets: s.sockets,
+    socketed: s.socketed ? [...s.socketed] : undefined,
+    setId: s.setId,
   };
 }
 
@@ -144,6 +153,7 @@ export interface SaveData {
   merc: MercSave | null;
   potions: number; // 治疗药水数 (旧档无此字段时按满兜底)
   autoQuaff: boolean; // 低血自动饮 (旧档默认开)
+  runeBag: Record<string, number>; // 符文背包 (旧档无此字段时按空)
 }
 
 // ---------------------------------------------------------------------------
@@ -191,6 +201,7 @@ export function serializeGame(game: Game, name?: string): SaveData {
       : null,
     potions: game.potions,
     autoQuaff: game.autoQuaff,
+    runeBag: { ...game.runeBag },
   };
 }
 
@@ -237,6 +248,7 @@ export function applySave(game: Game, data: SaveData): void {
   game.act5Complete = data.act5Complete ?? false;
   game.potions = data.potions ?? game.potionCap; // 旧档按满兜底
   game.autoQuaff = data.autoQuaff ?? true;
+  game.runeBag = { ...(data.runeBag ?? {}) };
 
   // --- 雇佣兵: 重建最小状态, 位置等瞬态交由 loadArea 归位 ---
   if (data.merc) {

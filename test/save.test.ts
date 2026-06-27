@@ -77,3 +77,78 @@ describe('Phase E: 存档 + 航点', () => {
     expect(listWaypoints(s, AREAS).some((w) => w.id === 'cold_plains')).toBe(true);
   });
 });
+
+describe('存档健壮性 (F)', () => {
+  it('新增字段全往返: 属性点/药水/自动饮/符文/难度解锁', () => {
+    const g = new Game(21, 'amazon');
+    g.loadArea('blood_moor'); // 离开营地, 否则读档时进城会补满药水
+    g.statPoints = 13;
+    g.potions = 3;
+    g.autoQuaff = false;
+    g.runeBag = { r_tir: 2, r_eld: 1 };
+    g.unlockedDifficulty = 'hell';
+    g.difficulty = 'nightmare';
+    g.act1Complete = g.act2Complete = true;
+    const g2 = new Game(22, 'barbarian');
+    applySave(g2, serializeGame(g));
+    expect(g2.statPoints).toBe(13);
+    expect(g2.potions).toBe(3);
+    expect(g2.autoQuaff).toBe(false);
+    expect(g2.runeBag).toEqual({ r_tir: 2, r_eld: 1 });
+    expect(g2.unlockedDifficulty).toBe('hell');
+    expect(g2.difficulty).toBe('nightmare');
+    expect(g2.act2Complete).toBe(true);
+  });
+
+  it('镶孔/套装物品往返: 孔/符文/setId 保留并仍生效', () => {
+    const g = new Game(23, 'barbarian');
+    const w = makeNormalItem('double_axe');
+    w.sockets = 2;
+    w.socketed = ['r_tir', 'r_eld']; // 寒钢成语
+    g.character.equipment.weapon = w;
+    const ar0 = (g.recompute(true), g.player.combat.attackRating);
+    const g2 = new Game(24, 'amazon');
+    applySave(g2, serializeGame(g));
+    const w2 = g2.character.equipment.weapon!;
+    expect(w2.sockets).toBe(2);
+    expect(w2.socketed).toEqual(['r_tir', 'r_eld']);
+    // 符文之语贡献在新档仍计入 (命中提升)
+    expect(g2.player.combat.attackRating).toBe(ar0);
+  });
+
+  it('旧档兼容: 缺新字段的存档应用不崩并取默认值', () => {
+    const g = new Game(25, 'barbarian');
+    const data = serializeGame(g) as unknown as Record<string, unknown>;
+    // 模拟旧版本存档: 删去后续新增字段
+    delete data.statPoints; delete data.potions; delete data.autoQuaff;
+    delete data.runeBag; delete data.unlockedDifficulty;
+    delete data.act3Complete; delete data.act4Complete; delete data.act5Complete;
+    const g2 = new Game(26, 'amazon');
+    expect(() => applySave(g2, data as never)).not.toThrow();
+    expect(g2.potions).toBe(g2.potionCap); // 旧档按满兜底
+    expect(g2.autoQuaff).toBe(true);
+    expect(g2.runeBag).toEqual({});
+    expect(g2.unlockedDifficulty).toBe(g2.difficulty); // 按当前难度兜底
+    expect(g2.statPoints).toBe(0);
+  });
+
+  it('满背包往返: 数量与基础 id 全保留', () => {
+    const g = new Game(27, 'sorceress');
+    for (let i = 0; i < g.invCap; i++) g.inventory.push(makeNormalItem('short_sword'));
+    const g2 = new Game(28, 'barbarian');
+    applySave(g2, serializeGame(g));
+    expect(g2.inventory.length).toBe(g.invCap);
+    expect(g2.inventory.every((it) => it.base.id === 'short_sword')).toBe(true);
+  });
+
+  it('导出码往返保留镶孔与符文背包', () => {
+    const g = new Game(29, 'barbarian');
+    g.runeBag = { r_nef: 3 };
+    const w = makeNormalItem('chain');
+    w.sockets = 1; w.socketed = ['r_nef'];
+    g.character.equipment.armor = w;
+    const back = importCode(exportCode(serializeGame(g)));
+    expect(back.runeBag).toEqual({ r_nef: 3 });
+    expect(back.equipment.armor.socketed).toEqual(['r_nef']);
+  });
+});

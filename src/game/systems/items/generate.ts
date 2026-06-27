@@ -1,6 +1,7 @@
 import type { ItemBase, Affix, Rarity } from '@game/data/schema.ts';
 import { ITEM_BASES, AFFIXES, RARE_WORDS } from '@game/data/items.ts';
 import { UNIQUES, type UniqueDef } from '@game/data/uniques.ts';
+import { SET_ITEMS, type SetItemDef } from '@game/data/sets.ts';
 import type { ItemInstance, RolledAffix, EquipSlot } from './types.ts';
 import { randInt, type RNG } from '@engine/math/rng.ts';
 
@@ -23,6 +24,25 @@ function makeUnique(u: UniqueDef, ilvl: number): ItemInstance {
     id: `${u.id}_${i}`, kind: i % 2 === 0 ? 'prefix' : 'suffix', stat: a.stat, value: a.value, label: a.label,
   }));
   return { uid: uidSeq++, base, rarity: 'unique', ilvl, affixes, name: u.name, identified: false };
+}
+
+// 套装件: 随等级抽取 (按基础需求等级)。
+function pickSetItem(ilvl: number, rng: RNG): SetItemDef | null {
+  const pool = SET_ITEMS.filter((s) => {
+    const base = ITEM_BASES.find((b) => b.id === s.baseId);
+    return base && base.reqLevel <= ilvl + 2;
+  });
+  if (pool.length === 0) return null;
+  return pool[randInt(rng, 0, pool.length - 1)];
+}
+
+// 由套装定义产出一件套装物品 (固定词缀 + 专名 + setId; 未鉴定)。
+function makeSetItem(s: SetItemDef, ilvl: number): ItemInstance {
+  const base = ITEM_BASES.find((b) => b.id === s.baseId)!;
+  const affixes: RolledAffix[] = s.affixes.map((a, i) => ({
+    id: `${s.id}_${i}`, kind: i % 2 === 0 ? 'prefix' : 'suffix', stat: a.stat, value: a.value, label: a.label,
+  }));
+  return { uid: uidSeq++, base, rarity: 'set', ilvl, affixes, name: s.name, identified: false, setId: s.setId };
 }
 
 function affixApplies(a: Affix, slot: EquipSlot): boolean {
@@ -118,10 +138,23 @@ export function generateItem(mlvl: number, rng: RNG, rarityBoost = 1): ItemInsta
     const u = pickUnique(ilvl, rng);
     if (u) return makeUnique(u, ilvl);
   }
+  // 再掷套装件 (略高于暗金, 鼓励凑套)。
+  const setChance = Math.min(0.1, (0.006 + ilvl * 0.0005) * rarityBoost);
+  if (rng() < setChance) {
+    const s = pickSetItem(ilvl, rng);
+    if (s) return makeSetItem(s, ilvl);
+  }
   const eligible = ITEM_BASES.filter((b) => b.reqLevel <= ilvl + 2);
   const base = (eligible.length ? eligible : ITEM_BASES)[randInt(rng, 0, (eligible.length ? eligible : ITEM_BASES).length - 1)];
   const rarity = rollRarity(rng, ilvl);
   const affixes = rollAffixes(base, ilvl, rarity, rng);
   const identified = rarity === 'normal' || rarity === 'magic'; // 稀有/套装/暗金需鉴定
-  return { uid: uidSeq++, base, rarity, ilvl, affixes, name: makeName(base, rarity, affixes, rng), identified };
+  // 镶孔: 可镶底材(武器/盔甲/头盔/盾)有几率带 1-N 孔 (随 ilvl 略升, 封顶按底材)。
+  const socketable = ['weapon', 'armor', 'helm', 'shield'].includes(base.slot);
+  let sockets = 0;
+  if (socketable && rng() < Math.min(0.35, 0.12 + ilvl * 0.004)) {
+    const cap = base.sockets && base.sockets > 0 ? base.sockets : base.slot === 'weapon' || base.slot === 'armor' ? 3 : 2;
+    sockets = randInt(rng, 1, cap);
+  }
+  return { uid: uidSeq++, base, rarity, ilvl, affixes, name: makeName(base, rarity, affixes, rng), identified, sockets };
 }

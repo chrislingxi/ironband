@@ -1,10 +1,11 @@
 import type { Entity, Corpse } from '@game/entities/entity.ts';
 import { makePlayer, makeMonster } from '@game/entities/factory.ts';
 import type { DamageInstance } from '@game/systems/combat/index.ts';
-import { resolveAttack, rollDamage } from '@game/systems/combat/index.ts';
+import { resolveAttack, rollDamage, attackInterval } from '@game/systems/combat/index.ts';
 import { updateMonsterAI, type AIContext } from '@game/systems/ai/behaviors.ts';
 import { CLASS_KEYS, makeCharacterFor, type ClassSkillKey } from '@game/classes/profiles.ts';
-import { generateItem, type ItemInstance, type EquipSlot } from '@game/systems/items/index.ts';
+import { generateItem, socketRune, type ItemInstance, type EquipSlot } from '@game/systems/items/index.ts';
+import { RUNES, runeById } from '@game/data/runes.ts';
 import { deriveCombat, type Character } from '@game/systems/stats/character.ts';
 import { createMissile, updateMissiles, type Missile } from '@game/systems/missiles/index.ts';
 import { rollEliteAffixes, applyElite } from '@game/systems/elites/index.ts';
@@ -122,6 +123,7 @@ export class Game {
   autoQuaff = true; // 低血自动饮 (移动端 QoL); 可在设置关闭
   private potionCd = 0; // 药水冷却 (秒)
   private lifeLeechPct = 0; // 装备吸血% (recompute 汇总)
+  runeBag: Record<string, number> = {}; // 符文背包 (runeId → 数量); 镶孔消耗
 
   constructor(seed = 1234, cls: CharClass = 'barbarian') {
     this.rng = mulberry32(seed);
@@ -194,8 +196,10 @@ export class Game {
     p.combat.level = this.character.level;
     p.damage = d.damage;
     this.lifeLeechPct = d.lifeleech;
-    // 攻速: 由武器基础挥击间隔决定 (剑快斧慢, D2 武器快慢手感); 徒手 0.55。
-    p.attackInterval = this.character.equipment.weapon?.base.attackSpeed ?? 0.55;
+    p.combat.fhr = d.fhr; // 受身恢复%: 喂入战斗数值, resolveAttack 据此走突破点缩短硬直
+    // 攻速: 武器基础挥击间隔 (剑快斧慢; 徒手 0.55) 经装备 IAS% 走突破点加速。
+    const baseSpeed = this.character.equipment.weapon?.base.attackSpeed ?? 0.55;
+    p.attackInterval = attackInterval(baseSpeed, d.ias);
   }
 
   // 装备背包中第 index 件 (旧装备退回背包), 重算战力
@@ -218,6 +222,29 @@ export class Game {
     delete this.character.equipment[slot];
     this.inventory.push(it);
     this.recompute();
+    return true;
+  }
+
+  // 把符文背包里的某符文镶入一件装备 (背包索引或装备槽)。成功则消耗符文并重算。
+  socketEquipped(slot: EquipSlot, runeId: string): boolean {
+    const it = this.character.equipment[slot];
+    if (!it || (this.runeBag[runeId] ?? 0) <= 0) return false;
+    if (!socketRune(it, runeId)) return false;
+    this.runeBag[runeId] -= 1;
+    if (this.runeBag[runeId] <= 0) delete this.runeBag[runeId];
+    const rune = runeById(runeId);
+    this.recompute();
+    this.notices.push(`镶入 ${rune?.name ?? '符文'}`);
+    return true;
+  }
+
+  socketInventory(index: number, runeId: string): boolean {
+    const it = this.inventory[index];
+    if (!it || (this.runeBag[runeId] ?? 0) <= 0) return false;
+    if (!socketRune(it, runeId)) return false;
+    this.runeBag[runeId] -= 1;
+    if (this.runeBag[runeId] <= 0) delete this.runeBag[runeId];
+    this.notices.push(`镶入 ${runeById(runeId)?.name ?? '符文'}`);
     return true;
   }
 
@@ -580,6 +607,12 @@ export class Game {
         // 治疗药水掉落: 精英/Boss 必掉, 杂怪 14%; 直接补入药水位 (上限封顶)。
         if (this.potions < this.potionCap && (isElite || this.rng() < 0.14)) {
           this.potions = Math.min(this.potionCap, this.potions + (isBoss ? 4 : isElite ? 2 : 1));
+        }
+        // 符文掉落: 杂怪 5% / 精英 30% / Boss 必掉 2 枚, 随机符文进符文背包。
+        const runeDrops = isBoss ? 2 : isElite ? (this.rng() < 0.3 ? 1 : 0) : this.rng() < 0.05 ? 1 : 0;
+        for (let k = 0; k < runeDrops; k++) {
+          const r = RUNES[randInt(this.rng, 0, RUNES.length - 1)];
+          this.runeBag[r.id] = (this.runeBag[r.id] ?? 0) + 1;
         }
         if (this.rng() < (isElite ? 1 : 0.6)) {
           this.gold.push({ id: this.nextGoldId++, pos: { ...e.pos }, amount: randInt(this.rng, isBoss ? 40 : isElite ? 8 : 1, isBoss ? 90 : isElite ? 24 : 6) });
