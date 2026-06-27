@@ -39,6 +39,8 @@ export interface Derived {
   damage: DamageInstance[];
   attrs: { str: number; dex: number; vit: number; energy: number };
   lifeleech: number; // 装备吸血% (命中按物理伤害回血)
+  ias: number; // 攻击速度% (走突破点)
+  fhr: number; // 受身恢复% (走突破点)
 }
 
 const RES_CAP = 75;
@@ -107,5 +109,5 @@ export function deriveCombat(ch: Character, passive: PassiveBonusInput = {}): De
     poison: Math.min(RES_CAP, (bag.res_pois ?? 0) + resAll),
     magic: 0,
   };
-  return { maxHp, attackRating, defense, resist, damage, attrs: { str, dex, vit, energy }, lifeleech: bag.lifeleech ?? 0 };
+  return { maxHp, attackRating, defense, resist, damage, attrs: { str, dex, vit, energy }, lifeleech: bag.lifeleech ?? 0, ias: bag.ias ?? 0, fhr: bag.fhr ?? 0 };
 }

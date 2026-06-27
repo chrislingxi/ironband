@@ -22,7 +22,7 @@ const STAT_TPL: Record<string, string> = {
   defense: '+{v} 防御', defense_perc: '+{v}% 防御', mindam: '+{v} 最小伤害', maxdam: '+{v} 最大伤害',
   dmg_perc: '+{v}% 增强伤害', str: '+{v} 力量', dex: '+{v} 敏捷', vit: '+{v} 体能', energy: '+{v} 精力',
   res_fire: '+{v}% 火抗', res_cold: '+{v}% 冰抗', res_lght: '+{v}% 电抗', res_pois: '+{v}% 毒抗',
-  res_all: '+{v}% 全抗', lifeleech: '{v}% 吸血',
+  res_all: '+{v}% 全抗', lifeleech: '{v}% 吸血', ias: '+{v}% 攻击速度', fhr: '+{v}% 受身恢复',
 };
 function affixText(a: RolledAffix): string {
   return (STAT_TPL[a.stat] ?? `+{v} ${a.stat}`).replace('{v}', String(a.value));

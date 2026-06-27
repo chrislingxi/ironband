@@ -1,7 +1,7 @@
 import type { Entity, Corpse } from '@game/entities/entity.ts';
 import { makePlayer, makeMonster } from '@game/entities/factory.ts';
 import type { DamageInstance } from '@game/systems/combat/index.ts';
-import { resolveAttack, rollDamage } from '@game/systems/combat/index.ts';
+import { resolveAttack, rollDamage, attackInterval } from '@game/systems/combat/index.ts';
 import { updateMonsterAI, type AIContext } from '@game/systems/ai/behaviors.ts';
 import { CLASS_KEYS, makeCharacterFor, type ClassSkillKey } from '@game/classes/profiles.ts';
 import { generateItem, socketRune, type ItemInstance, type EquipSlot } from '@game/systems/items/index.ts';
@@ -196,8 +196,10 @@ export class Game {
     p.combat.level = this.character.level;
     p.damage = d.damage;
     this.lifeLeechPct = d.lifeleech;
-    // 攻速: 由武器基础挥击间隔决定 (剑快斧慢, D2 武器快慢手感); 徒手 0.55。
-    p.attackInterval = this.character.equipment.weapon?.base.attackSpeed ?? 0.55;
+    p.combat.fhr = d.fhr; // 受身恢复%: 喂入战斗数值, resolveAttack 据此走突破点缩短硬直
+    // 攻速: 武器基础挥击间隔 (剑快斧慢; 徒手 0.55) 经装备 IAS% 走突破点加速。
+    const baseSpeed = this.character.equipment.weapon?.base.attackSpeed ?? 0.55;
+    p.attackInterval = attackInterval(baseSpeed, d.ias);
   }
 
   // 装备背包中第 index 件 (旧装备退回背包), 重算战力

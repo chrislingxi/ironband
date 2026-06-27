@@ -10,7 +10,9 @@ export type StatKey =
   | 'mindam' | 'maxdam' | 'dmg_perc' // 伤害 平/增强%
   | 'str' | 'dex' | 'vit' | 'energy'
   | 'res_fire' | 'res_cold' | 'res_lght' | 'res_pois' | 'res_all'
-  | 'lifeleech';                  // 生命偷取 %
+  | 'lifeleech'                   // 生命偷取 %
+  | 'ias'                         // 攻击速度 % (加速攻击, 走突破点)
+  | 'fhr';                        // 受身恢复 % (faster hit recovery, 走突破点)
 
 export interface RolledAffix {
   id: string;
