@@ -123,12 +123,31 @@ function aiBoss(e: Entity, ctx: AIContext): void {
     e.pos.y += dir.y * e.speed * cfg.speedMult * ctx.dt;
     e.moving = true;
   }
-  // 环形毒弹
+  // 招牌弹幕: 按 Boss 的 special 形态发射 (不再都是同一个 16 向环)
   if (cfg.poisonNova && (e.bossNovaCd ?? 0) <= 0) {
-    const n = 16;
-    for (let i = 0; i < n; i++) {
-      const a = (i / n) * Math.PI * 2;
-      ctx.shootDir(e, { x: Math.cos(a), y: Math.sin(a) }, novaDamage, 'bolt', novaColor);
+    const toPlayer = Math.atan2(ctx.player.pos.y - e.pos.y, ctx.player.pos.x - e.pos.x);
+    const fire = (a: number) => ctx.shootDir(e, { x: Math.cos(a), y: Math.sin(a) }, novaDamage, 'bolt', novaColor);
+    switch (boss.special) {
+      case 'fan': { // 暗黑破坏神: 朝玩家 ±0.5rad 的扇形吐息 (9 道)
+        for (let i = 0; i < 9; i++) fire(toPlayer - 0.5 + (i / 8));
+        break;
+      }
+      case 'aimed': { // 梅菲斯特: 朝玩家的密集瞄准弹幕 (5 道窄扇)
+        for (let i = 0; i < 5; i++) fire(toPlayer + (i - 2) * 0.12);
+        break;
+      }
+      case 'charge': { // 督瑞尔: 朝玩家高速冲撞一段 + 一圈冰弹
+        e.pos.x += Math.cos(toPlayer) * 4; e.pos.y += Math.sin(toPlayer) * 4;
+        for (let i = 0; i < 12; i++) fire((i / 12) * Math.PI * 2);
+        break;
+      }
+      case 'storm': { // 巴尔: 双层错位大环 (24 道)
+        for (let i = 0; i < 12; i++) { fire((i / 12) * Math.PI * 2); fire((i / 12) * Math.PI * 2 + Math.PI / 12); }
+        break;
+      }
+      default: { // ring: 安达莉尔等的 16 向环
+        for (let i = 0; i < 16; i++) fire((i / 16) * Math.PI * 2);
+      }
     }
     e.bossNovaCd = cfg.novaCooldown;
   }
