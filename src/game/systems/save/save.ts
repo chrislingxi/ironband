@@ -136,6 +136,7 @@ export interface SaveData {
   bonusSkillPoints: number;
   mercUnlocked: boolean;
   act1Complete: boolean;
+  act2Complete: boolean;
   merc: MercSave | null;
 }
 
@@ -174,6 +175,7 @@ export function serializeGame(game: Game, name?: string): SaveData {
     bonusSkillPoints: game.bonusSkillPoints,
     mercUnlocked: game.mercUnlocked,
     act1Complete: game.act1Complete,
+    act2Complete: game.act2Complete,
     merc: game.merc
       ? { level: game.merc.level, hp: game.merc.hp, maxHp: game.merc.maxHp, dead: game.merc.dead }
       : null,
@@ -216,6 +218,7 @@ export function applySave(game: Game, data: SaveData): void {
   game.bonusSkillPoints = data.bonusSkillPoints;
   game.mercUnlocked = data.mercUnlocked;
   game.act1Complete = data.act1Complete;
+  game.act2Complete = data.act2Complete ?? false;
 
   // --- 雇佣兵: 重建最小状态, 位置等瞬态交由 loadArea 归位 ---
   if (data.merc) {

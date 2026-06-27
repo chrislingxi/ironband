@@ -35,4 +35,12 @@ export const QUESTS: Quest[] = [
     giver: 'cain',
     reward: '通往第二幕的车队就此开启。',
   },
+  {
+    id: 'duriel',
+    name: '痛苦之王',
+    desc: '塔拉夏的古墓被痛苦之王督瑞尔占据。深入沙海尽头的墓室, 终结这头巨兽。',
+    targetArea: 'tal_rasha_tomb',
+    giver: 'cain',
+    reward: '通关本难度, 解锁更高难度的试炼。',
+  },
 ];

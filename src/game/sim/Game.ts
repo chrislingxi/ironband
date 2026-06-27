@@ -20,6 +20,12 @@ import { playerResistPenalty, DIFFICULTIES } from '@game/systems/difficulty.ts';
 
 // 难度中文标签 (通关解锁提示用)。
 const DIFF_LABEL: Record<Difficulty, string> = { normal: '普通', nightmare: '噩梦', hell: '地狱' };
+
+// Boss 区域 → 该区独占的 Boss defId (进区只刷该 Boss)。
+const BOSS_AREAS: Record<string, string> = {
+  andariel_lair: 'andariel',
+  tal_rasha_tomb: 'duriel',
+};
 import { CLASS_SKILLS } from '@game/classes/registry.ts';
 import { canInvest, invest, totalPointsSpent, type SkillTreeState } from '@game/classes/skilltree.ts';
 import type { Difficulty } from '@game/data/schema.ts';
@@ -85,6 +91,7 @@ export class Game {
   bonusSkillPoints = 0; // 任务奖励的额外技能点
   mercUnlocked = false; // 任务奖励: 雇佣兵解锁(Phase D)
   act1Complete = false;
+  act2Complete = false;
   unlockedDifficulty: Difficulty = 'normal'; // 已解锁的最高难度 (通关解锁下一难度)
   shopStock: ItemInstance[] = []; // 商店库存
   merc?: Merc; // 雇佣兵(罗格弓手)
@@ -108,14 +115,15 @@ export class Game {
     this.groundItems = [];
     this.swings = [];
     this.missiles = [];
-    if (this.currentArea.id === 'andariel_lair') {
-      // Boss 区: 只放安达莉尔
-      this.spawnMonster('andariel', this.currentArea.size[0] / 2, this.currentArea.size[1] / 2 - 6);
+    const bossDefId = BOSS_AREAS[this.currentArea.id];
+    if (bossDefId) {
+      // Boss 区: 只放该幕 Boss
+      this.spawnMonster(bossDefId, this.currentArea.size[0] / 2, this.currentArea.size[1] / 2 - 6);
     } else {
       for (const sp of this.currentArea.monsterSpawns) this.spawnMonster(sp.defId, sp.x, sp.y);
     }
     // 精英怪群: 随机把 1-2 只提升为带词缀的精英队长
-    if (!this.currentArea.isTown && this.currentArea.id !== 'andariel_lair' && this.monsters.length > 3) {
+    if (!this.currentArea.isTown && !bossDefId && this.monsters.length > 3) {
       const nElite = 1 + (this.rng() < 0.5 ? 1 : 0);
       for (let i = 0; i < nElite; i++) {
         const cap = this.monsters[randInt(this.rng, 0, this.monsters.length - 1)];
@@ -197,7 +205,12 @@ export class Game {
     else if (questId === 'andariel') {
       this.act1Complete = true;
       this.notices.push('★ 第一幕通关! 安达莉尔已伏诛 ★');
-      // 通关解锁下一难度 (D2 风格: 普通→噩梦→地狱)
+      this.notices.push('沃里夫的车队已开往第二幕 · 鲁高因');
+    }
+    else if (questId === 'duriel') {
+      this.act2Complete = true;
+      this.notices.push('★ 第二幕通关! 痛苦之王督瑞尔已伏诛 ★');
+      // 通关最终幕解锁下一难度 (D2 风格: 普通→噩梦→地狱)
       const order = DIFFICULTIES;
       const cur = order.indexOf(this.unlockedDifficulty);
       if (this.difficulty === this.unlockedDifficulty && cur < order.length - 1) {
@@ -455,7 +468,7 @@ export class Game {
           if (p.combat.hp <= 0) p.dead = true;
         }
         this.corpses.push({ pos: { ...e.pos }, defId: e.defId, color: e.color, size: e.size, ageMs: 0 });
-        const isBoss = e.defId === 'andariel';
+        const isBoss = e.defId === 'andariel' || e.defId === 'duriel';
         const isElite = !!e.elite || isBoss;
         if (this.rng() < (isElite ? 1 : 0.6)) {
           this.gold.push({ id: this.nextGoldId++, pos: { ...e.pos }, amount: randInt(this.rng, isBoss ? 40 : isElite ? 8 : 1, isBoss ? 90 : isElite ? 24 : 6) });
