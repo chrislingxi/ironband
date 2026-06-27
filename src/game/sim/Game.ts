@@ -203,7 +203,8 @@ export class Game {
   }
 
   spawnMonster(defId: string, x: number, y: number): void {
-    this.monsters.push(makeMonster(defId, x, y, this.rng, this.difficulty));
+    // 传入区域 monLevel: 怪物等级与经验按所在区域缩放 (深幕怪更高级、给更多经验)。
+    this.monsters.push(makeMonster(defId, x, y, this.rng, this.difficulty, this.currentArea.monLevel));
   }
 
   // 可用技能点 = 等级-1 + 任务奖励 - 已投 (D2: 每级1点)
@@ -573,12 +574,15 @@ export class Game {
     this.dodgeUntilMs = 0;
 
     switch (this.difficulty) {
-      case 'normal':
-        // 普通: 原地复活, 满血, 无惩罚
+      case 'normal': {
+        // 普通: 区域入口复活满血 + 轻微金币惩罚 (避免无成本无脑送死磨 Boss)
+        const goldLoss = Math.floor(this.goldTotal * 0.05);
+        this.goldTotal = Math.max(0, this.goldTotal - goldLoss);
         p.combat.hp = p.combat.maxHp;
         this.loadArea(this.currentArea.id);
-        this.notices.push('已复活 (普通难度无惩罚)');
+        this.notices.push(goldLoss > 0 ? `已复活 (普通: 失去 ${goldLoss} 金币)` : '已复活');
         break;
+      }
 
       case 'nightmare': {
         // 噩梦: 扣10%金币, 50% HP, 重生于区域入口

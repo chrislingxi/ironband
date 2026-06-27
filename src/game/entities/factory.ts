@@ -46,7 +46,7 @@ export function makePlayer(): Entity {
   };
 }
 
-export function makeMonster(defId: string, x: number, y: number, rng: RNG, diff: Difficulty = 'normal'): Entity {
+export function makeMonster(defId: string, x: number, y: number, rng: RNG, diff: Difficulty = 'normal', areaLevel?: number): Entity {
   const m = ALL_MONSTERS[defId];
   if (!m) throw new Error(`unknown monster: ${defId}`);
   const [hpMin, hpMax] = m.hp[diff];
@@ -57,21 +57,32 @@ export function makeMonster(defId: string, x: number, y: number, rng: RNG, diff:
     resist[t] = m.resist[t]![diff];
   }
   const ranged = !!m.flags?.ranged;
-  const dmgType: DamageType = ranged ? 'fire' : 'physical';
+  // 远程伤害类型取自怪物自身元素 (吐酸怪=毒等), 不再一律火伤。
+  const dmgType: DamageType = ranged ? (m.rangedType ?? 'fire') : 'physical';
   const dmg: DamageInstance[] = [{ type: dmgType, min: m.damage[diff][0], max: m.damage[diff][1] }];
   const ph = PLACEHOLDER[defId] ?? { color: 0xaaaaaa, size: 12 };
+
+  // 有效等级: 取怪物自身等级与所在区域 monLevel 的较大者 —— 修复"深幕怪仍是低等级、
+  // 既不更难也不给经验"的根因 (同一骷髅在第一幕和第五幕原本都是 3 级)。Boss 保持高自带等级。
+  const lvl = Math.max(m.level[diff], areaLevel ?? 0);
+  // 经验按有效等级统一缩放, 公式自洽匹配 xpForNext 的 1.6 指数 (任意等级约 32 同级杀/级);
+  // Boss 给约 60% 一级。跨幕/跨难度随 monLevel 自动放大。
+  const typeWeight = Math.max(0.7, Math.min(2.0, m.exp.normal / 6));
+  const xpReward = m.flags?.boss
+    ? Math.round(50 * Math.pow(lvl, 1.6))
+    : Math.round(2.5 * Math.pow(lvl, 1.6) * typeWeight);
   return {
     id: freshId(), kind: 'monster', defId, ai: m.ai as Entity['ai'],
     pos: { x, y }, facing: Math.PI, speed: m.speed, radius: m.radius,
     combat: makeCombatant({
-      level: m.level[diff], hp, maxHp: hp,
+      level: lvl, hp, maxHp: hp,
       attackRating: m.attackRating[diff], defense: m.defense[diff],
       resist, fhr: 0, hitRecoveryFrames: 9,
     }),
     damage: dmg,
     attackRange: ranged ? 9 : 0.9,
     attackInterval: ranged ? 1.8 : 1.1, attackCd: randInt(rng, 0, 60) / 100,
-    xpReward: m.exp[diff],
+    xpReward,
     hitFlash: 0, fleeing: false, moving: false, dead: false,
     color: ph.color, size: ph.size,
   };

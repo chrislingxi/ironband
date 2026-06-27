@@ -30,6 +30,7 @@ export const MONSTERS_EXT: Record<string, MonStat> = {
     attackRating: pd(40, 580, 2350), defense: pd(3, 360, 1250),
     damage: pd([1, 3], [9, 18], [38, 66]), // 远程毒液 (持续伤害量级偏低)
     resist: { poison: pd(75, 75, 90) }, exp: pd(7, 400, 3000), speed: 2.4, radius: 0.4,
+    rangedType: 'poison', // 吐酸怪打毒伤 (视觉绿毒一致), 不再误为火伤
     flags: { ranged: true },
   },
   // 恶犬: 低血群冲, 高速直扑. 用 skeleton 直扑近战 AI 但 speed 拉高.
