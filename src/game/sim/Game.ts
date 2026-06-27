@@ -3,7 +3,8 @@ import { makePlayer, makeMonster } from '@game/entities/factory.ts';
 import type { DamageInstance } from '@game/systems/combat/index.ts';
 import { resolveAttack, rollDamage, attackInterval } from '@game/systems/combat/index.ts';
 import { updateMonsterAI, type AIContext } from '@game/systems/ai/behaviors.ts';
-import { CLASS_KEYS, CASTABLE_SKILLS, defaultLoadout, castableById, makeCharacterFor, type ClassSkillKey } from '@game/classes/profiles.ts';
+import { CASTABLE_SKILLS, defaultLoadout, castableById, makeCharacterFor, type ClassSkillKey } from '@game/classes/profiles.ts';
+import { BASIC_ATTACK } from '@game/classes/exec.ts';
 import { generateItem, socketRune, type ItemInstance, type EquipSlot } from '@game/systems/items/index.ts';
 import { RUNES, runeById } from '@game/data/runes.ts';
 import { deriveCombat, type Character } from '@game/systems/stats/character.ts';
@@ -156,28 +157,39 @@ export class Game {
     this.loadArea('rogue_encampment'); // 从罗格营地起步
   }
 
-  // 取某技能槽当前绑定的技能行为 (从可装备池按 id 解析; 回退默认键)。
-  skillKey(slot: number): ClassSkillKey {
+  // 取某技能槽当前绑定的技能行为 (空槽返回 undefined; 槽0缺省普通攻击)。
+  skillKey(slot: number): ClassSkillKey | undefined {
     const cls = this.character.cls as CharClass;
     const id = this.assignedSkills[slot];
-    return (id ? castableById(cls, id) : undefined) ?? CLASS_KEYS[cls][slot];
+    const key = castableById(cls, id);
+    if (key) return key;
+    return slot === 0 ? BASIC_ATTACK : undefined; // 槽0永远至少是普通攻击
   }
 
-  // 某技能是否可装备: 默认起手4键始终可装; 其余需在其技能树 id 投过点 (学过才能上)。
+  // 某技能是否可装备到技能键: 普通攻击专属槽0; 其余主动技需在其技能树投过点 (学过才能上)。
   canAssignSkill(id: string): boolean {
+    if (id === BASIC_ATTACK.id) return false; // 普通攻击固定在槽0, 不参与指派
     const cls = this.character.cls as CharClass;
     const key = castableById(cls, id);
     if (!key) return false;
-    if (defaultLoadout(cls).includes(id)) return true;
     const treeId = key.treeSkillId ?? key.id;
     return pointsIn(treeId, this.skillTree) > 0;
   }
 
-  // 把技能 id 绑定到某槽 (0-3)。技能须可装备。
+  // 把技能 id 绑定到某槽 (仅 1-3; 槽0锁定普通攻击)。技能须已学。
   assignSkill(slot: number, id: string): boolean {
-    if (slot < 0 || slot > 3 || !this.canAssignSkill(id)) return false;
+    if (slot < 1 || slot > 3 || !this.canAssignSkill(id)) return false;
+    // 同一技能不能占两个槽: 若已在别处, 先清掉
+    for (let s = 1; s <= 3; s++) if (this.assignedSkills[s] === id) this.assignedSkills[s] = '';
     this.assignedSkills[slot] = id;
     this.skillCd[slot] = 0;
+    return true;
+  }
+
+  // 清空某技能槽 (1-3)。
+  clearSkillSlot(slot: number): boolean {
+    if (slot < 1 || slot > 3) return false;
+    this.assignedSkills[slot] = '';
     return true;
   }
 
@@ -902,6 +914,7 @@ export class Game {
     const p = this.player;
     if (p.dead || this.timeMs < p.combat.stunUntilMs || this.skillCd[slot] > 0) return false;
     const key = this.skillKey(slot);
+    if (!key) return false; // 空槽
     const aim = this.nearestMonster(p.pos, 16);
     if (aim) p.facing = Math.atan2(aim.pos.y - p.pos.y, aim.pos.x - p.pos.x);
     const dmg = this.scaleDamage(key.damageMult * this.skillPower(key), key.damageType);

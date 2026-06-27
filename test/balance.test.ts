@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { Game } from '../src/game/sim/Game.ts';
-import { CLASS_KEYS } from '../src/game/classes/profiles.ts';
 import { makeNormalItem } from '../src/game/systems/items/index.ts';
 import type { ItemInstance, RolledAffix, StatKey } from '../src/game/systems/items/types.ts';
 import type { CharClass } from '../src/game/data/schema.ts';
@@ -25,9 +24,15 @@ function hero(cls: CharClass, level: number): Game {
   base.vit += Math.floor(pts * 0.30);
   base[primary] += Math.ceil(pts * 0.55);
   const sp = level - 1;
-  const k0 = CLASS_KEYS[cls][0], k1 = CLASS_KEYS[cls][1];
-  g.skillTree[k0.treeSkillId ?? k0.id] = Math.min(20, sp);
-  g.skillTree[k1.treeSkillId ?? k1.id] = Math.min(20, Math.max(0, sp - 20));
+  // 学两个主力主动技并挂到槽1/2 (槽0=普通攻击)
+  const mains: Record<CharClass, [string, string]> = {
+    barbarian: ['bash', 'frenzy'], amazon: ['magic_arrow', 'multiple_shot'], sorceress: ['fire_ball', 'glacial_spike'],
+  };
+  const [m0, m1] = mains[cls];
+  g.skillTree[m0] = Math.min(20, sp);
+  g.skillTree[m1] = Math.min(20, Math.max(1, sp - 20));
+  g.assignSkill(1, m0);
+  g.assignSkill(2, m1);
   const eq = g.character.equipment;
   eq.weapon = withAffixes(makeNormalItem('double_axe'), [['dmg_perc', 60], ['maxdam', 30], ['lifeleech', 6], ['tohit', 200]]);
   eq.armor = withAffixes(makeNormalItem('chain'), [['defense', 120], ['res_all', 30], ['maxhp', 60]]);

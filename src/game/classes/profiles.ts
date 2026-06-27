@@ -13,6 +13,8 @@ import type { Character } from '@game/systems/stats/character.ts';
 import { makeBarbarian } from '@game/systems/stats/character.ts';
 import { makeNormalItem } from '@game/systems/items/index.ts';
 import type { CharClass, DamageType } from '@game/data/schema.ts';
+import { CLASS_SKILLS } from '@game/classes/registry.ts';
+import { SKILL_EXEC, BASIC_ATTACK } from '@game/classes/exec.ts';
 
 // Character.cls 当前被声明为字面量 'barbarian'. 为了复用同一形状承载三个职业,
 // 这里定义一个把 cls 放宽到 CharClass 的别名 — 字段与 Character 完全一致,
@@ -71,188 +73,38 @@ export interface ClassSkillKey {
   duration?: number; // 效果持续时长 (秒, shout/dodge/teleport 使用)
 }
 
-// 每个职业的 4 个技能键 (顺序对应 4 个技能槽位).
-// damageMult 控制相对强度: 近战受武器加成大故偏低, 法术自带倍率故偏高.
-// 第4技能为特色主动技: 野蛮人=呐喊(防御提升), 亚马逊=翻滚(无敌帧), 法师=传送(闪现).
-export const CLASS_KEYS: Record<CharClass, [ClassSkillKey, ClassSkillKey, ClassSkillKey, ClassSkillKey]> = {
-  // 野蛮人 — 与现有 BARB_SKILLS 一致: 猛击 / 双挥 / 战嚎.
-  barbarian: [
-    {
-      id: 'bash',
-      name: '猛击',
-      icon: '🗡',
-      cooldown: 0.9,
-      kind: 'melee',
-      damageMult: 1.6, // 单体重击
-      damageType: 'physical',
-      stun: 0.4, // 强击退/短震慑
-    },
-    {
-      id: 'double_swing',
-      name: '双挥',
-      icon: '⚔',
-      cooldown: 1.4,
-      kind: 'arc',
-      damageMult: 1.1, // 横扫多目标, 单体略低
-      damageType: 'physical',
-      radius: 1.5,
-    },
-    {
-      id: 'war_cry',
-      name: '战嚎',
-      icon: '💢',
-      cooldown: 5,
-      kind: 'aoe',
-      damageMult: 0.9, // 环身 AoE, 主控场
-      damageType: 'physical',
-      radius: 3,
-      stun: 1.2, // 震慑
-    },
-    {
-      id: 'shout',
-      name: '呐喊',
-      icon: '📣',
-      cooldown: 8,
-      kind: 'shout', // 特殊: 临时防御提升
-      damageMult: 0,
-      damageType: 'physical',
-      duration: 5, // 持续5秒
-    },
-  ],
-
-  // 亚马逊 — 物理/魔法投射: 魔法箭 / 多重箭 / 投枪.
-  amazon: [
-    {
-      id: 'magic_arrow',
-      name: '魔法箭',
-      icon: '🏹',
-      cooldown: 0.5,
-      kind: 'projectile',
-      damageMult: 1.0, // 单发, 短冷却, 主力点射
-      damageType: 'magic',
-      missileKind: 'arrow',
-    },
-    {
-      id: 'multi_shot',
-      treeSkillId: 'multiple_shot',
-      name: '多重箭',
-      icon: '🎯',
-      cooldown: 1.6,
-      kind: 'spread',
-      damageMult: 0.8, // 扇形覆盖, 单发偏低
-      damageType: 'physical',
-      missileKind: 'arrow',
-      count: 5, // 5 发扇形
-    },
-    {
-      id: 'jab_spear',
-      treeSkillId: 'jab',
-      name: '投枪',
-      icon: '🔱',
-      cooldown: 1.2,
-      kind: 'projectile',
-      damageMult: 2.2, // 高伤单发
-      damageType: 'physical',
-      missileKind: 'bolt',
-    },
-    {
-      id: 'dodge_roll',
-      name: '翻滚',
-      icon: '🌀',
-      cooldown: 6,
-      kind: 'dodge', // 特殊: 无敌帧冲刺
-      damageMult: 0,
-      damageType: 'physical',
-      duration: 0.4, // 无敌帧0.4秒, 位移2格
-    },
-  ],
-
-  // 法师 — 三系法术: 冰弹(冷,减速) / 火球(火,落点爆炸) / 闪电新星(电,环身).
-  sorceress: [
-    {
-      id: 'ice_bolt',
-      name: '冰弹',
-      icon: '❄',
-      cooldown: 0.7,
-      kind: 'projectile',
-      damageMult: 1.2,
-      damageType: 'cold',
-      missileKind: 'iceball',
-      stun: 1.5, // 冷伤减速/短冻结
-    },
-    {
-      id: 'fire_ball',
-      name: '火球',
-      icon: '🔥',
-      cooldown: 1.3,
-      kind: 'aoe',
-      damageMult: 1.8, // 落点爆炸群伤
-      damageType: 'fire',
-      missileKind: 'fireball',
-      radius: 2.5, // 爆炸半径
-    },
-    {
-      id: 'lightning_nova',
-      treeSkillId: 'nova',
-      name: '闪电新星',
-      icon: '⚡',
-      cooldown: 2.6,
-      kind: 'nova',
-      damageMult: 1.4, // 环身放射
-      damageType: 'lightning',
-      missileKind: 'nova',
-      radius: 4,
-    },
-    {
-      id: 'teleport',
-      name: '传送',
-      icon: '🌌',
-      cooldown: 5,
-      kind: 'teleport', // 特殊: 闪现至摇杆方向
-      damageMult: 0,
-      damageType: 'magic',
-      radius: 3, // 传送距离(格)
-    },
-  ],
-};
-
-// 额外可装备主动技 (扩充技能池, 让技能树投点能真正打出去)。
-// 每个都映射到一个技能树 id (treeSkillId), 投点经 skillPower 缩放; 复用现有 kind 执行形态。
-// 与 CLASS_KEYS 合并构成"可绑定到技能键的技能池", 玩家在技能树面板自由指派到 4 个槽。
-const EXTRA_SKILLS: Record<CharClass, ClassSkillKey[]> = {
-  barbarian: [
-    { id: 'whirlwind', name: '旋风斩', icon: '🌪', cooldown: 2.0, kind: 'arc', damageMult: 1.4, damageType: 'physical', radius: 2.2 },
-    { id: 'frenzy', name: '狂热', icon: '😤', cooldown: 0.7, kind: 'melee', damageMult: 1.5, damageType: 'physical' },
-    { id: 'berserk', name: '狂暴', icon: '🔴', cooldown: 1.6, kind: 'melee', damageMult: 2.2, damageType: 'magic' },
-  ],
-  amazon: [
-    { id: 'cold_arrow', name: '冰冻箭', icon: '🧊', cooldown: 0.7, kind: 'projectile', damageMult: 1.1, damageType: 'cold', missileKind: 'arrow', stun: 1.0 },
-    { id: 'strafe', name: '扫射', icon: '💢', cooldown: 1.4, kind: 'spread', damageMult: 0.9, damageType: 'physical', missileKind: 'arrow', count: 4 },
-    { id: 'lightning_fury', name: '闪电之怒', icon: '🌩', cooldown: 2.2, kind: 'nova', damageMult: 1.5, damageType: 'lightning', missileKind: 'nova', radius: 4 },
-  ],
-  sorceress: [
-    { id: 'charged_bolt', name: '闪电球', icon: '🔵', cooldown: 0.9, kind: 'spread', damageMult: 1.0, damageType: 'lightning', missileKind: 'bolt', count: 5 },
-    { id: 'blizzard', name: '暴风雪', icon: '🌨', cooldown: 2.6, kind: 'aoe', damageMult: 1.9, damageType: 'cold', missileKind: 'iceball', radius: 3 },
-    { id: 'meteor', name: '陨石', icon: '☄', cooldown: 3.2, kind: 'aoe', damageMult: 2.4, damageType: 'fire', missileKind: 'fireball', radius: 3 },
-  ],
-};
-
-// 可绑定到技能键的完整技能池 = 默认4键 + 扩充技能。
-export const CASTABLE_SKILLS: Record<CharClass, ClassSkillKey[]> = {
-  barbarian: [...CLASS_KEYS.barbarian, ...EXTRA_SKILLS.barbarian],
-  amazon: [...CLASS_KEYS.amazon, ...EXTRA_SKILLS.amazon],
-  sorceress: [...CLASS_KEYS.sorceress, ...EXTRA_SKILLS.sorceress],
-};
-
-// 默认技能键装载 (4 个槽的初始技能 id)。
-export function defaultLoadout(cls: CharClass): string[] {
-  return CLASS_KEYS[cls].map((k) => k.id);
+// ── 可施放技能池 (从技能树 + 执行档动态构建) ──
+// 每个"主动"技能(非被动且在 SKILL_EXEC 有执行档)都成为可绑定到技能键的技能。
+// 默认槽0 = 普通攻击; 槽1-3 需从技能树学习后指派 (1普攻 + 3技能树槽)。
+function buildCastable(cls: CharClass): ClassSkillKey[] {
+  const out: ClassSkillKey[] = [BASIC_ATTACK];
+  for (const def of CLASS_SKILLS[cls]) {
+    if (def.passive) continue;
+    const exec = SKILL_EXEC[def.id];
+    if (!exec) continue;
+    out.push({ id: def.id, treeSkillId: def.id, name: def.name, icon: def.icon, ...exec });
+  }
+  return out;
 }
 
-// 在技能池中按 id 查一个可装备技能。
+// 可绑定到技能键的完整技能池 (含普通攻击 + 全部已实现主动技)。
+export const CASTABLE_SKILLS: Record<CharClass, ClassSkillKey[]> = {
+  barbarian: buildCastable('barbarian'),
+  amazon: buildCastable('amazon'),
+  sorceress: buildCastable('sorceress'),
+};
+
+// 默认装载: 槽0 普通攻击, 槽1-3 留空 (空字符串), 由玩家从技能树指派。
+export function defaultLoadout(_cls: CharClass): string[] {
+  return [BASIC_ATTACK.id, '', '', ''];
+}
+
+// 在技能池中按 id 查一个可装备技能 (空槽返回 undefined)。
 export function castableById(cls: CharClass, id: string): ClassSkillKey | undefined {
+  if (!id) return undefined;
   return CASTABLE_SKILLS[cls].find((k) => k.id === id);
 }
+
 
 // 按职业分派到对应起手构造器.
 export function makeCharacterFor(cls: CharClass): Character {

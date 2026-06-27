@@ -103,7 +103,7 @@ export class HUD {
       const meta = this.game.skillKey(i); // 初始图标/名称 (实时由 update 刷新, 支持改键)
       const btn = document.createElement('div');
       btn.className = i === 3 ? 'skill skill-4' : 'skill';
-      btn.innerHTML = `<span class="ic">${meta.icon}</span><canvas class="cd-arc" width="62" height="62"></canvas><div class="cd"></div><div class="nm">${meta.name}</div>`;
+      btn.innerHTML = `<span class="ic">${meta?.icon ?? '·'}</span><canvas class="cd-arc" width="62" height="62"></canvas><div class="cd"></div><div class="nm">${meta?.name ?? '空'}</div>`;
       btn.style.gridRow = String(row);
       btn.style.gridColumn = String(col);
       const fire = (e: Event) => { e.preventDefault(); e.stopPropagation(); onSkill(i); };
@@ -136,11 +136,12 @@ export class HUD {
         ? `${area} · 安全区`
         : `${area} · 剩余怪物 ${this.game.monsters.length}`;
     this.skills.forEach((s) => {
-      const key = this.game.skillKey(s.slot); // 实时解析当前绑定 (支持改键)
-      if (s.ic.textContent !== key.icon) s.ic.textContent = key.icon;
-      if (s.nm.textContent !== key.name) s.nm.textContent = key.name;
+      const key = this.game.skillKey(s.slot); // 实时解析当前绑定 (支持改键; 空槽 undefined)
+      const icon = key?.icon ?? '·', name = key?.name ?? '空';
+      if (s.ic.textContent !== icon) s.ic.textContent = icon;
+      if (s.nm.textContent !== name) s.nm.textContent = name;
       const cd = this.game.skillCd[s.slot];
-      const maxCd = key.cooldown;
+      const maxCd = key?.cooldown ?? 1;
       if (cd > 0.05) {
         s.cd.style.opacity = '1';
         s.cd.textContent = cd.toFixed(1);

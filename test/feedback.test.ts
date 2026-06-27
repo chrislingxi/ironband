@@ -23,11 +23,12 @@ describe('战斗反馈事件', () => {
 
   it('命中事件带元素类型 (法师冰弹=cold)', () => {
     const g = new Game(1, 'sorceress');
+    g.skillTree = { ice_bolt: 1 }; g.assignSkill(1, 'ice_bolt');
     g.spawnMonster('skeleton', g.player.pos.x + 3, g.player.pos.y);
     g.monsters[0].combat.maxHp = g.monsters[0].combat.hp = 9999; // 保活看命中
     let sawCold = false;
     for (let i = 0; i < 120; i++) {
-      g.useSkill(0); // 冰弹
+      g.useSkill(1); // 冰弹
       g.update(1 / 60, { move: { x: 0, y: 0 } });
       if (g.events.some((e) => e.dmgType === 'cold' && e.amount > 0)) sawCold = true;
     }
@@ -52,12 +53,13 @@ describe('战斗反馈事件', () => {
 
   it('免疫: 抗性≥100 的元素伤害归零并标记 immune', () => {
     const g = new Game(1, 'sorceress');
+    g.skillTree = { ice_bolt: 1 }; g.assignSkill(1, 'ice_bolt');
     g.spawnMonster('skeleton', g.player.pos.x + 3, g.player.pos.y);
     g.monsters[0].combat.resist.cold = 100; // 冰免疫
     g.monsters[0].combat.maxHp = g.monsters[0].combat.hp = 9999;
     let sawImmune = false;
     for (let i = 0; i < 120; i++) {
-      g.useSkill(0);
+      g.useSkill(1);
       g.update(1 / 60, { move: { x: 0, y: 0 } });
       if (g.events.some((e) => e.immune)) sawImmune = true;
     }

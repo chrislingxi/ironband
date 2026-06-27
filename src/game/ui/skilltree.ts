@@ -39,6 +39,10 @@ function injectStyle(): void {
   #skt .chip { font-size:12px; padding:4px 9px; border-radius:7px; border:1px solid #4a4a58; background:#16161e; color:#cbd; }
   #skt .chip.on { border-color:#ffd76b; background:#3a2c14; color:#fff; font-weight:700; }
   #skt .chip.dis { opacity:.3; }
+  #skt .assign { margin-left:6px; display:inline-flex; gap:3px; }
+  #skt .assign b { display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; border-radius:4px;
+    border:1px solid #6a5a3a; background:#1a1a24; color:#cbd; font-size:11px; font-weight:700; cursor:pointer; }
+  #skt .assign b.on { background:#3a2c14; border-color:#ffd76b; color:#fff; }
   `;
   const t = document.createElement('style');
   t.textContent = css;
@@ -109,34 +113,29 @@ export class SkillTreePanel {
     this.body.appendChild(tabs);
   }
 
-  // 技能键装载区: 4 槽 × 可绑定技能池 (已学才可上, 当前绑定高亮)。
+  // 技能键装载概览: 槽0=普通攻击(锁定), 槽1-3=当前绑定或"空"(可一键清空)。
+  // 指派操作在下方技能树每行的 [1][2][3] 按钮完成 (已学主动技才出现)。
   private loadoutSection(): HTMLElement {
     const g = this.game;
-    const pool = g.castablePool();
     const wrap = document.createElement('div');
     wrap.className = 'load';
-    wrap.innerHTML = `<h4>⚔ 技能键装载 (点技能绑定到对应槽)</h4>`;
+    wrap.innerHTML = `<h4>⚔ 技能键 (槽0=普通攻击; 槽1-3在下方技能上点 ①②③ 装载)</h4>`;
+    const row = document.createElement('div');
+    row.className = 'slotrow';
     for (let slot = 0; slot < 4; slot++) {
-      const row = document.createElement('div');
-      row.className = 'slotrow';
-      row.innerHTML = `<span class="slotlbl">槽 ${slot + 1}</span>`;
-      const chips = document.createElement('div');
-      chips.className = 'chips';
-      for (const key of pool) {
-        const cur = g.assignedSkills[slot] === key.id;
-        const can = g.canAssignSkill(key.id);
-        const chip = document.createElement('span');
-        chip.className = 'chip' + (cur ? ' on' : '') + (!can ? ' dis' : '');
-        chip.textContent = `${key.icon} ${key.name}`;
-        if (can) chip.addEventListener('pointerdown', (e) => {
-          e.preventDefault(); e.stopPropagation();
-          if (g.assignSkill(slot, key.id)) this.refresh();
-        });
-        chips.appendChild(chip);
+      const key = g.skillKey(slot);
+      const cell = document.createElement('span');
+      cell.className = 'chip' + (slot === 0 ? ' on' : '');
+      cell.innerHTML = key ? `${slot === 0 ? '🔒' : slot} ${key.icon}${key.name}` : `${slot} <span style="opacity:.5">空</span>`;
+      if (slot >= 1 && key) {
+        const x = document.createElement('span');
+        x.textContent = ' ✕'; x.style.cssText = 'color:#d88;cursor:pointer';
+        x.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); g.clearSkillSlot(slot); this.refresh(); });
+        cell.appendChild(x);
       }
-      row.appendChild(chips);
-      wrap.appendChild(row);
+      row.appendChild(cell);
     }
+    wrap.appendChild(row);
     return wrap;
   }
 
@@ -147,10 +146,20 @@ export class SkillTreePanel {
     const locked = lvl === 0 && !investable;
     const row = document.createElement('div');
     row.className = 'sk' + (locked ? ' locked' : '');
+    // 已学的主动技 (可施放) 显示 ①②③ 装载按钮
+    const canCast = !def.passive && g.canAssignSkill(def.id);
+    const assignBtns = canCast
+      ? `<span class="assign">${[1, 2, 3].map((s) => `<b data-slot="${s}" class="${g.assignedSkills[s] === def.id ? 'on' : ''}">${s}</b>`).join('')}</span>`
+      : '';
     row.innerHTML =
       `<div class="ic">${def.icon}</div>` +
-      `<div class="nm">${def.name}<br><small>需 Lv${requiredLevel(def)}${def.prereqs.length ? ' · 前置:' + def.prereqs.length + '项' : ''}</small></div>` +
+      `<div class="nm">${def.name}${assignBtns}<br><small>需 Lv${requiredLevel(def)}${def.prereqs.length ? ' · 前置:' + def.prereqs.length + '项' : ''}</small></div>` +
       `<div class="lv">${lvl}/${def.maxLevel}</div>`;
+    // 绑定装载按钮
+    row.querySelectorAll('.assign b').forEach((el) => el.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (g.assignSkill(Number((el as HTMLElement).dataset.slot), def.id)) this.refresh();
+    }));
     const add = document.createElement('button');
     add.className = 'add';
     add.textContent = '+';
