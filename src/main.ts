@@ -6,7 +6,7 @@ import { gridToScreen, screenToGrid, depthKey } from '@engine/math/iso.ts';
 import { normalize } from '@engine/math/vec.ts';
 import { mulberry32 } from '@engine/math/rng.ts';
 import { buildGround } from '@engine/render/groundTiles.ts';
-import { createActorSprite, type ActorSprite, type ActorKind } from '@engine/render/actorSprite.ts';
+import { createActorSprite, type ActorSprite, type ActorKind, type ActorSubKind } from '@engine/render/actorSprite.ts';
 import { Lighting } from '@engine/render/lighting.ts';
 import { Game } from '@game/sim/Game.ts';
 import type { Entity } from '@game/entities/entity.ts';
@@ -56,7 +56,7 @@ async function main() {
   const app = new Application();
   // iOS Safari 的 WebGPU 不稳定 → 强制 WebGL; 失败再退默认(自动选择)
   const initOpts = {
-    background: '#0a0a0f', resizeTo: window, antialias: true,
+    background: '#1a0f0a', resizeTo: window, antialias: true,
     resolution: Math.min(window.devicePixelRatio || 1, 2), autoDensity: true,
   };
   try {
@@ -153,14 +153,24 @@ async function main() {
     return 'humanoid';
   }
 
+  function actorSubKind(e: Entity): ActorSubKind {
+    if (e.kind === 'player') return game.character.cls as ActorSubKind;
+    if (e.defId === 'andariel') return 'andariel';
+    if (e.ai === 'fallen') return 'fallen';
+    if (e.ai === 'skeleton') return 'skeleton';
+    if (e.ai === 'zombie') return 'zombie';
+    return undefined;
+  }
+
   function makeSprite(e: Entity): Container {
     const c = new Container();
-    const actor = createActorSprite({ kind: actorKind(e), color: e.color, size: e.size });
+    const actor = createActorSprite({ kind: actorKind(e), color: e.color, size: e.size, subKind: actorSubKind(e) });
     actors.set(e.id, actor);
     c.addChild(actor.container);
     // 精英描边光环 + 名牌
     if (e.elite) {
-      const ring = new Graphics().ellipse(0, e.size * 0.5, e.size * 1.35, e.size * 0.72).stroke({ color: e.elite.color, width: 3, alpha: 0.9 });
+      const ring = new Graphics().ellipse(0, e.size * 0.5, e.size * 1.5, e.size * 0.8).stroke({ color: e.elite.color, width: 4, alpha: 0.9 });
+      ring.label = 'eliteRing';
       c.addChild(ring);
       const nm = new Text({ text: e.elite.name, style: { fontFamily: 'Georgia,serif', fontSize: 11, fill: e.elite.color, stroke: { color: 0x000000, width: 3 } } });
       nm.anchor.set(0.5, 1); nm.position.set(0, -e.size - 20);
@@ -168,7 +178,7 @@ async function main() {
     }
     // 血条 (受伤才显)
     const hpbg = new Graphics().rect(-14, -e.size - 16, 28, 4).fill({ color: 0x000000, alpha: 0.6 });
-    const hp = new Graphics().rect(-13, -e.size - 15, 26, 2).fill({ color: 0x6ee08a });
+    const hp = new Graphics().rect(-13, -e.size - 15, 26, 2).fill({ color: 0xcc2200 });
     hpbg.label = 'hpbg'; hp.label = 'hp';
     hpbg.visible = false;
     c.addChild(hpbg, hp);
@@ -198,7 +208,10 @@ async function main() {
     const damaged = ratio < 0.999;
     hpbg.visible = hp.visible = damaged;
     hp.scale.x = ratio;
-    hp.tint = ratio > 0.5 ? 0x6ee08a : ratio > 0.25 ? 0xe0c020 : 0xe23a3a;
+    hp.tint = ratio > 0.5 ? 0x44cc44 : ratio > 0.25 ? 0xe0c020 : 0xff2200;
+    // Elite 光环脉冲
+    const ring = c.getChildByLabel('eliteRing') as Graphics | null;
+    if (ring) ring.alpha = 0.55 + 0.45 * Math.abs(Math.sin(performance.now() / 400));
   }
 
   function spawnDamageText(): void {
@@ -293,10 +306,43 @@ async function main() {
     missileLayer.removeChildren();
     for (const m of game.missiles) {
       const s = gridToScreen(m.pos);
-      const rad = m.kind === 'fireball' || m.kind === 'nova' ? 8 : 5;
-      const g = new Graphics().circle(0, 0, rad).fill({ color: m.color }).stroke({ color: 0x000000, width: 1 });
-      // 拖尾
-      g.circle(-m.vel.x * 6, -m.vel.y * 3, rad * 0.6).fill({ color: m.color, alpha: 0.4 });
+      const g = new Graphics();
+      // 速度方向 (用于定向绘制)
+      const vx = m.vel.x, vy = m.vel.y;
+      const vlen = Math.hypot(vx, vy) || 1;
+      const nx = vx / vlen, ny = vy / vlen; // 归一化朝向
+      const angle = Math.atan2(ny, nx);
+
+      if (m.kind === 'arrow') {
+        // 箭: 细长菱形 (4:1 纵横比)
+        g.rotation = angle;
+        g.poly([16, 0, 2, 3, -6, 0, 2, -3]).fill({ color: m.color }).stroke({ color: 0x3a2800, width: 1 });
+        // 拖尾 (半透明)
+        g.poly([-6, 0, -18, 2, -18, -2]).fill({ color: m.color, alpha: 0.35 });
+      } else if (m.kind === 'fireball') {
+        // 火球: 橙色圆 + 光晕 + 拖尾
+        g.circle(0, 0, 9).fill({ color: 0xff8800 }).stroke({ color: 0xff3300, width: 2 });
+        g.circle(0, 0, 14).fill({ color: 0xff6600, alpha: 0.25 }); // 外光晕
+        // 火焰拖尾 (逆速度方向)
+        g.circle(-nx * 10, -ny * 10, 6).fill({ color: 0xff4400, alpha: 0.5 });
+        g.circle(-nx * 18, -ny * 18, 4).fill({ color: 0xff2200, alpha: 0.3 });
+      } else if (m.kind === 'iceball') {
+        // 冰弹: 蓝白色菱形碎片
+        g.rotation = angle;
+        g.poly([10, 0, 2, 4, -5, 0, 2, -4]).fill({ color: 0xd0f0ff }).stroke({ color: 0x4080cc, width: 1 });
+        g.poly([10, 0, 5, 1.5, 6, 4]).fill({ color: 0xffffff, alpha: 0.6 }); // 冰晶高光
+        // 霜迹拖尾
+        g.circle(-nx * 8, -ny * 8, 4).fill({ color: 0x8fd6ff, alpha: 0.4 });
+      } else if (m.kind === 'nova' || m.kind === 'bolt') {
+        // 闪电: 黄色小球 + 电光
+        g.circle(0, 0, 6).fill({ color: 0xffff40 }).stroke({ color: 0xffcc00, width: 1 });
+        g.circle(-nx * 7, -ny * 7, 4).fill({ color: 0xffee00, alpha: 0.5 });
+      } else {
+        // 默认: 简单圆
+        const rad = 5;
+        g.circle(0, 0, rad).fill({ color: m.color }).stroke({ color: 0x000000, width: 1 });
+        g.circle(-vx * 6, -vy * 3, rad * 0.6).fill({ color: m.color, alpha: 0.4 });
+      }
       g.position.set(s.x, s.y - 8);
       g.zIndex = 1e8;
       missileLayer.addChild(g);
