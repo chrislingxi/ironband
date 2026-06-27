@@ -57,8 +57,8 @@ export function makeMonster(defId: string, x: number, y: number, rng: RNG, diff:
     resist[t] = m.resist[t]![diff];
   }
   const ranged = !!m.flags?.ranged;
-  // 远程伤害类型取自怪物自身元素 (吐酸怪=毒等), 不再一律火伤。
-  const dmgType: DamageType = ranged ? (m.rangedType ?? 'fire') : 'physical';
+  // 远程伤害类型取自怪物自身元素 (吐酸怪=毒/萨满=火); 缺省物理 (弓手=物理箭, 不再误判火)。
+  const dmgType: DamageType = ranged ? (m.rangedType ?? 'physical') : 'physical';
   const dmg: DamageInstance[] = [{ type: dmgType, min: m.damage[diff][0], max: m.damage[diff][1] }];
   const ph = PLACEHOLDER[defId] ?? { color: 0xaaaaaa, size: 12 };
 

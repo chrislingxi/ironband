@@ -21,7 +21,7 @@ export const MONSTERS_EXT: Record<string, MonStat> = {
     level: pd(4, 40, 72), hp: pd([24, 32], [120, 160], [380, 480]),
     attackRating: pd(50, 640, 2600), defense: pd(10, 420, 1450),
     damage: pd([4, 8], [20, 36], [70, 120]), // 高伤近战重击
-    resist: { physical: pd(0, 0, 10) }, exp: pd(14, 620, 4200), speed: 1.4, radius: 0.7,
+    resist: { physical: pd(0, 0, 10), cold: pd(0, 40, 100) }, exp: pd(14, 620, 4200), speed: 1.4, radius: 0.7, // 地狱: 冰免疫
   },
   // 吐毒虫: 远程毒, 低血. 复用 archer 远程框架, 伤害归为毒系 (damageType 由技能/behaviors 处理).
   spitter: {

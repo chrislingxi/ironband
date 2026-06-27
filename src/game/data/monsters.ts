@@ -10,14 +10,14 @@ export const MONSTERS: Record<string, MonStat> = {
     level: pd(2, 38, 70), hp: pd([10, 14], [60, 80], [200, 260]),
     attackRating: pd(40, 600, 2400), defense: pd(8, 400, 1400),
     damage: pd([1, 3], [10, 20], [40, 70]),
-    resist: {}, exp: pd(6, 380, 3000), speed: 3, radius: 0.45,
+    resist: { lightning: pd(0, 30, 100) }, exp: pd(6, 380, 3000), speed: 3, radius: 0.45, // 地狱: 闪电免疫
   },
   zombie: {
     id: 'zombie', name: '行尸', sprite: 'zombie', ai: 'zombie',
     level: pd(1, 37, 69), hp: pd([13, 18], [70, 95], [230, 300]),
     attackRating: pd(30, 520, 2200), defense: pd(0, 360, 1300),
     damage: pd([1, 4], [12, 24], [44, 78]),
-    resist: { poison: pd(50, 50, 50) }, exp: pd(5, 360, 2900), speed: 1.6, radius: 0.5,
+    resist: { poison: pd(50, 75, 100) }, exp: pd(5, 360, 2900), speed: 1.6, radius: 0.5, // 地狱: 毒免疫
   },
   fallen: {
     id: 'fallen', name: '堕落者', sprite: 'fallen', ai: 'fallen',
@@ -31,7 +31,8 @@ export const MONSTERS: Record<string, MonStat> = {
     level: pd(3, 39, 71), hp: pd([9, 13], [55, 75], [190, 250]),
     attackRating: pd(35, 560, 2300), defense: pd(5, 380, 1350),
     damage: pd([2, 4], [14, 26], [48, 82]), // 火球
-    resist: { fire: pd(50, 50, 75) }, exp: pd(10, 500, 3600), speed: 3, radius: 0.45,
+    resist: { fire: pd(50, 75, 100) }, exp: pd(10, 500, 3600), speed: 3, radius: 0.45, // 地狱: 火免疫
+    rangedType: 'fire', // 萨满火球
     flags: { ranged: true },
   },
 };

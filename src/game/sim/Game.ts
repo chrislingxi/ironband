@@ -104,6 +104,7 @@ export class Game {
   stashCap = 48;
   swings: Swing[] = []; // 挥砍弧光 (打击感)
   events: CombatEvent[] = []; // 每帧渲染后清空
+  castFx: { pos: Vec2; radius: number; color: number }[] = []; // 技能落点冲击环 (渲染后清空)
   notices: string[] = []; // UI 提示(升级等), 渲染后清空
   goldTotal = 0;
   timeMs = 0;
@@ -141,6 +142,9 @@ export class Game {
   private potionCd = 0; // 药水冷却 (秒)
   private lifeLeechPct = 0; // 装备吸血% (recompute 汇总)
   runeBag: Record<string, number> = {}; // 符文背包 (runeId → 数量); 镶孔消耗
+  private chillUntilMs = 0; // 被寒冷附魔精英命中后的减速截止 (玩家移速×0.5)
+  private bagFullWarned = false; // 背包满提示节流 (有空位时重置)
+  get isChilled(): boolean { return this.timeMs < this.chillUntilMs; } // 玩家是否处于减速
 
   constructor(seed = 1234, cls: CharClass = 'barbarian') {
     this.rng = mulberry32(seed);
@@ -198,15 +202,25 @@ export class Game {
     } else {
       for (const sp of this.currentArea.monsterSpawns) this.spawnMonster(sp.defId, sp.x, sp.y);
     }
-    // 精英怪群: 随机把 1-2 只提升为带词缀的精英队长
+    // 精英怪群: 把若干只提升为带词缀的精英队长, 并在其周围生成同类随从(minion pack)。
+    // 难度越高: 队长越多、词缀越多 (D2 地狱遍地双词缀精英)。
     if (!this.currentArea.isTown && !bossDefId && this.monsters.length > 3) {
-      const nElite = 1 + (this.rng() < 0.5 ? 1 : 0);
+      const diffTier = this.difficulty === 'hell' ? 2 : this.difficulty === 'nightmare' ? 1 : 0;
+      const nElite = 1 + (this.rng() < 0.5 ? 1 : 0) + diffTier; // 普通1-2 / 噩梦2-3 / 地狱3-4
+      const minAffix = 1 + diffTier; // 地狱起步3词缀
+      const maxAffix = 2 + diffTier;
       for (let i = 0; i < nElite; i++) {
         const cap = this.monsters[randInt(this.rng, 0, this.monsters.length - 1)];
         if (cap.elite) continue;
-        const meta = applyElite(cap, rollEliteAffixes(this.rng, randInt(this.rng, 1, 2)));
+        const meta = applyElite(cap, rollEliteAffixes(this.rng, randInt(this.rng, minAffix, maxAffix)));
         cap.elite = meta;
         cap.size = Math.round(cap.size * 1.3);
+        // minion pack: 队长周围生成 2-4 只同类随从 (吃队长光环)
+        const nMinion = randInt(this.rng, 2, 4);
+        for (let k = 0; k < nMinion; k++) {
+          const ang = (k / nMinion) * Math.PI * 2;
+          this.spawnMonster(cap.defId, cap.pos.x + Math.cos(ang) * 1.5, cap.pos.y + Math.sin(ang) * 1.5);
+        }
       }
     }
     this.player.pos = { x: this.currentArea.size[0] / 2, y: this.currentArea.size[1] / 2 };
@@ -406,7 +420,19 @@ export class Game {
     if (idx < 0) return false;
     this.goldTotal += sellPrice(this.inventory[idx]);
     this.inventory.splice(idx, 1);
+    this.bagFullWarned = false;
     return true;
+  }
+
+  // 一键回收: 卖出全部普通(白)与魔法(蓝)装备, 保留稀有/套装/暗金。返回卖出件数。
+  sellJunk(): number {
+    let gold = 0, n = 0;
+    this.inventory = this.inventory.filter((it) => {
+      if (it.identified && (it.rarity === 'normal' || it.rarity === 'magic')) { gold += sellPrice(it); n++; return false; }
+      return true;
+    });
+    if (n > 0) { this.goldTotal += gold; this.bagFullWarned = false; this.notices.push(`回收 ${n} 件普通/魔法装备 (+⦿${gold})`); }
+    return n;
   }
   gamble(): boolean {
     const cost = gambleCost(this.character.level);
@@ -475,10 +501,24 @@ export class Game {
     this.loadArea(this.currentArea.id);
   }
 
+  // 光环精英(战旗统帅)在场: 附近同群怪攻击增伤 (D2 光环威胁放大器)。
+  private auraMultiplier(attacker: Entity): number {
+    if (attacker.kind !== 'monster') return 1;
+    for (const e of this.monsters) {
+      if (e === attacker || e.dead) continue;
+      if (!(e as { aura?: boolean }).aura) continue;
+      if (dist(e.pos, attacker.pos) < 6) return 1.25;
+    }
+    return 1;
+  }
+
   private attack = (attacker: Entity, defender: Entity, dmg: DamageInstance[]): void => {
     // 暴击/致命: 玩家攻击有几率双倍物理伤害 (基础5% + 亚马逊critical_strike每点3%)。
     let useDmg = dmg;
     let crit = false;
+    // 光环增伤 (怪物受战旗统帅光环加成)
+    const aura = this.auraMultiplier(attacker);
+    if (aura !== 1) useDmg = useDmg.map((d) => ({ ...d, min: Math.round(d.min * aura), max: Math.round(d.max * aura) }));
     if (attacker === this.player && this.rng() < this.playerCritChance()) {
       crit = true;
       useDmg = dmg.map((d) => (d.type === 'physical' ? { ...d, min: d.min * 2, max: d.max * 2 } : d));
@@ -490,6 +530,10 @@ export class Game {
       return;
     }
     defender.hitFlash = 1;
+    // 寒冷附魔精英(霜噬之息)命中玩家 → 减速
+    if (defender === this.player && (attacker as { onHitChill?: boolean }).onHitChill) {
+      this.chillUntilMs = Math.max(this.chillUntilMs, this.timeMs + 1500);
+    }
     const dmgType = dominantDamageType(r.damageByType);
     const immune = r.totalDamage === 0 && useDmg.length > 0;
     this.events.push({
@@ -506,7 +550,7 @@ export class Game {
       const dx = defender.pos.x - attacker.pos.x;
       const dy = defender.pos.y - attacker.pos.y;
       const d = Math.hypot(dx, dy) || 1;
-      const kb = 0.18;
+      const kb = crit ? 0.55 : 0.3; // 击退增强, 暴击更猛 (重击连退感)
       defender.pos.x += (dx / d) * kb;
       defender.pos.y += (dy / d) * kb;
     }
@@ -608,10 +652,11 @@ export class Game {
     if (!p.dead && !stunned) {
       const mv = input.move;
       const mag = Math.hypot(mv.x, mv.y);
+      const chillFactor = now < this.chillUntilMs ? 0.5 : 1; // 寒冷附魔精英命中后减速
       if (mag > 0.05) {
         const d = normalize(mv);
-        p.pos.x += d.x * p.speed * dt * Math.min(1, mag);
-        p.pos.y += d.y * p.speed * dt * Math.min(1, mag);
+        p.pos.x += d.x * p.speed * chillFactor * dt * Math.min(1, mag);
+        p.pos.y += d.y * p.speed * chillFactor * dt * Math.min(1, mag);
         p.facing = Math.atan2(d.y, d.x);
         p.moving = true;
       } else {
@@ -726,12 +771,12 @@ export class Game {
     }
     this.gold = this.gold.filter((g) => g.amount > 0);
 
-    // 磁吸拾取地面物品 (背包未满)
+    // 磁吸拾取地面物品 (背包未满); 满了给一次提示 (防止"踩着不捡"困惑)
     if (!p.dead) {
       this.groundItems = this.groundItems.filter((gi) => {
-        if (dist(gi.pos, p.pos) < 1.2 && this.inventory.length < this.invCap) {
-          this.inventory.push(gi.item);
-          return false;
+        if (dist(gi.pos, p.pos) < 1.2) {
+          if (this.inventory.length < this.invCap) { this.inventory.push(gi.item); this.bagFullWarned = false; return false; }
+          if (!this.bagFullWarned) { this.notices.push('⚠ 背包已满! 回营地出售或丢弃'); this.bagFullWarned = true; }
         }
         return true;
       });
@@ -896,6 +941,7 @@ export class Game {
       }
     }
     this.swings.push({ pos: { ...p.pos }, facing: p.facing, ageMs: 0, kind: 'skill' });
+    this.castFx.push({ pos: { ...p.pos }, radius: r, color: this.missileColor(key.damageType) }); // 落点冲击环
   }
 
   private missileSpeed(kind: NonNullable<ClassSkillKey['missileKind']>): number {
@@ -937,6 +983,7 @@ export class Game {
       this.spawnMissile({ x: Math.cos(a), y: Math.sin(a) }, key, dmg);
     }
     this.swings.push({ pos: { ...this.player.pos }, facing: this.player.facing, ageMs: 0, kind: 'skill' });
+    this.castFx.push({ pos: { ...this.player.pos }, radius: key.radius ?? 4, color: this.missileColor(key.damageType) }); // 新星冲击环
   }
 
   // 呐喊: 临时大幅提升防御
@@ -977,12 +1024,16 @@ export class Game {
   private dealMissileDamage(target: Entity, m: Missile): void {
     // 翻滚无敌帧: 玩家免疫敌方投射物伤害
     if (target.kind === 'player' && this.timeMs < this.dodgeUntilMs) return;
-    const { byType, total } = rollDamage(m.dmg, target.combat.resist, this.rng);
+    // 法术暴击: 玩家投射物有几率暴击 (元素职业也有暴击反馈)
+    let dmgRoll = m.dmg;
+    let crit = false;
+    if (m.fromPlayer && this.rng() < this.playerCritChance()) { crit = true; dmgRoll = m.dmg.map((d) => ({ ...d, min: d.min * 2, max: d.max * 2 })); }
+    const { byType, total } = rollDamage(dmgRoll, target.combat.resist, this.rng);
     target.combat.hp = Math.max(0, target.combat.hp - total);
     target.hitFlash = 1;
     const killed = target.combat.hp <= 0;
     const immune = total === 0 && m.dmg.length > 0; // 抗性≥100 → 免疫
-    this.events.push({ pos: { ...target.pos }, amount: total, killed, toPlayer: target.kind === 'player', dmgType: dominantDamageType(byType), immune });
+    this.events.push({ pos: { ...target.pos }, amount: total, killed, toPlayer: target.kind === 'player', dmgType: dominantDamageType(byType), immune, crit });
     if (!killed && m.kind === 'iceball') target.combat.stunUntilMs = Math.max(target.combat.stunUntilMs, this.timeMs + 1000);
     if (killed) {
       target.dead = true;

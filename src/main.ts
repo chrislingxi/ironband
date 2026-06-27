@@ -178,7 +178,7 @@ async function main() {
       });
     }
   }
-  const damageTexts: { t: Text; life: number }[] = [];
+  const damageTexts: { t: Text; life: number; vy: number; pop: number }[] = [];
   const flashedSwings = new WeakSet<object>(); // 已放过施法迸发的挥砍 (防重复)
   // 打击粒子: 受击迸溅 / 击杀爆裂. 屏幕空间, 整体随相机平移。
   const particles: { g: Graphics; vx: number; vy: number; life: number; max: number; grav: number }[] = [];
@@ -228,6 +228,12 @@ async function main() {
     }
   }
   let shakeMag = 0; // 屏震强度(衰减)
+  let redHit = 0; // 受击红屏强度(衰减)
+  // 红屏 vignette: 受击脉冲 + 低血常驻警示
+  const redVig = document.createElement('div');
+  redVig.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:70;opacity:0;' +
+    'background:radial-gradient(ellipse at center, transparent 45%, #c0101099 100%);transition:opacity .08s;';
+  document.body.appendChild(redVig);
   let lastRenderMs = 0; // 上一渲染帧时间戳 (粒子用)
   let hitstop = 0; // 顿帧(秒), >0 时冻结模拟
   let prevGold = 0; // 上帧金币(检测拾取播币音)
@@ -335,7 +341,9 @@ async function main() {
       t.position.set(s.x, s.y - 18);
       t.zIndex = 1e9;
       scene.entityLayer.addChild(t);
-      damageTexts.push({ t, life: ev.miss || ev.heal || ev.xp || ev.immune ? 0.6 : 0.8 });
+      // 弹跳上抛: 初速向上, 暴击/击杀字号 pop 放大回落
+      t.scale.set(ev.crit ? 1.5 : ev.killed ? 1.25 : 1);
+      damageTexts.push({ t, life: ev.miss || ev.heal || ev.xp || ev.immune ? 0.6 : 0.8, vy: -1.6, pop: ev.crit || ev.killed ? 1 : 0 });
       // 粒子: miss/回血/经验 不迸溅; 击杀=金红大爆裂; 玩家受击=红; 元素命中=元素色; 物理=白
       if (ev.miss || ev.heal || ev.xp || ev.immune) { /* 无迸溅 */ }
       else if (ev.killed) {
@@ -562,6 +570,7 @@ async function main() {
   const town = new TownPanel({
     onBuy: (uid) => { game.buyItem(uid); town.refresh(buildTownData()); },
     onSell: (uid) => { game.sellItem(uid); town.refresh(buildTownData()); },
+    onSellJunk: () => { game.sellJunk(); town.refresh(buildTownData()); },
     onGamble: () => { game.gamble(); town.refresh(buildTownData()); },
     onIdentify: (uid) => { game.identifyItem(uid); town.refresh(buildTownData()); },
     onHireMerc: () => { game.hireMerc(); town.refresh(buildTownData()); },
@@ -780,9 +789,14 @@ async function main() {
       game.update(dt, { move });
       // 事件驱动: 击杀→顿帧+强屏震; 玩家受击→屏震
       for (const ev of game.events) {
+        if (ev.miss || ev.heal || ev.xp) continue; // 非伤害事件不震屏/不红屏
         if (ev.killed) { hitstop = Math.max(hitstop, 0.05); shakeMag = Math.max(shakeMag, 7); }
-        else if (ev.toPlayer) shakeMag = Math.max(shakeMag, 6);
-        else shakeMag = Math.max(shakeMag, 2.5);
+        else if (ev.toPlayer) {
+          // 受击屏震+红屏按伤害占比缩放 (重击更震更红)
+          const frac = Math.min(1, ev.amount / Math.max(1, game.player.combat.maxHp));
+          shakeMag = Math.max(shakeMag, 4 + frac * 18);
+          redHit = Math.max(redHit, Math.min(0.7, 0.18 + frac * 2));
+        } else shakeMag = Math.max(shakeMag, 2.5);
       }
     },
     (_alpha) => {
@@ -818,12 +832,20 @@ async function main() {
       prevGold = game.goldTotal;
       prevInv = game.inventory.length;
       prevState = game.state;
+      // 技能落点冲击环 (按技能半径放大; 格→像素约 ×24)
+      for (const fx of game.castFx) {
+        const s = gridToScreen(fx.pos);
+        ring(s.x, s.y, fx.color, fx.radius * 24);
+      }
+      game.castFx.length = 0;
       spawnDamageText();
       // 伤害数字漂浮淡出
       for (const d of damageTexts) {
         d.life -= 1 / 60;
-        d.t.position.y -= 0.6;
+        d.vy += 0.14; // 重力: 上抛后回落
+        d.t.position.y += d.vy;
         d.t.alpha = Math.max(0, d.life / 0.8);
+        if (d.pop > 0) { d.pop = Math.max(0, d.pop - 0.12); d.t.scale.set(1 + d.pop * 0.5); } // pop 缩放回落
       }
       for (let i = damageTexts.length - 1; i >= 0; i--) {
         if (damageTexts[i].life <= 0) { damageTexts[i].t.destroy(); damageTexts.splice(i, 1); }
@@ -884,6 +906,11 @@ async function main() {
         scene.world.position.y += (Math.random() - 0.5) * shakeMag * 2;
         shakeMag *= 0.85;
       }
+      // 红屏: 受击脉冲衰减 + 低于25%血常驻警示脉冲
+      redHit *= 0.86;
+      const hpRatio = game.player.combat.hp / Math.max(1, game.player.combat.maxHp);
+      const lowPulse = !game.player.dead && hpRatio < 0.25 ? 0.12 + 0.10 * (0.5 + 0.5 * Math.sin(performance.now() / 180)) : 0;
+      redVig.style.opacity = String(Math.min(0.7, Math.max(redHit, lowPulse)));
     },
   );
   loop.start();

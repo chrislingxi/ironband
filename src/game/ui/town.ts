@@ -29,6 +29,7 @@ export interface TownData {
 interface TownCallbacks {
   onBuy: (uid: number) => void;
   onSell: (uid: number) => void;
+  onSellJunk: () => void;
   onGamble: () => void;
   onIdentify: (uid: number) => void;
   onHireMerc: () => void;
@@ -238,6 +239,10 @@ export class TownPanel {
     const h2 = document.createElement('h4');
     h2.textContent = '出售背包 (点击售出)';
     this.bodyEl.appendChild(h2);
+    // 一键回收: 卖出全部白/蓝装备 (保留稀有/套装/暗金)
+    if (d.inventory.some((it) => it.identified && (it.rarity === 'normal' || it.rarity === 'magic'))) {
+      this.bodyEl.appendChild(this.makeRow('🧹 一键回收普通/魔法装备', 'normal', '批量出售', () => this.cb.onSellJunk()));
+    }
     const sellList = document.createElement('div');
     sellList.className = 'list';
     if (d.inventory.length === 0) {
