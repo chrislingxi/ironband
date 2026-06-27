@@ -49,6 +49,8 @@ export function makeSorceress(): Character {
 // 一个"技能键"的行为描述 — Game.useSkill 据此泛化执行.
 export interface ClassSkillKey {
   id: string; // 技能稳定标识 (用于资产/日志/存档)
+  /** 对应技能树里的技能 id (用于按投点缩放伤害); 缺省取 id 本身。 */
+  treeSkillId?: string;
   name: string; // 显示名 (对标 D2 专名)
   icon: string; // UI 图标
   cooldown: number; // 冷却 (秒)
@@ -132,6 +134,7 @@ export const CLASS_KEYS: Record<CharClass, [ClassSkillKey, ClassSkillKey, ClassS
     },
     {
       id: 'multi_shot',
+      treeSkillId: 'multiple_shot',
       name: '多重箭',
       icon: '🎯',
       cooldown: 1.6,
@@ -143,6 +146,7 @@ export const CLASS_KEYS: Record<CharClass, [ClassSkillKey, ClassSkillKey, ClassS
     },
     {
       id: 'jab_spear',
+      treeSkillId: 'jab',
       name: '投枪',
       icon: '🔱',
       cooldown: 1.2,
@@ -189,6 +193,7 @@ export const CLASS_KEYS: Record<CharClass, [ClassSkillKey, ClassSkillKey, ClassS
     },
     {
       id: 'lightning_nova',
+      treeSkillId: 'nova',
       name: '闪电新星',
       icon: '⚡',
       cooldown: 2.6,
