@@ -227,7 +227,7 @@ async function main() {
 
   function actorKind(e: Entity): ActorKind {
     if (e.kind === 'player') return 'humanoid';
-    if (e.defId === 'andariel' || e.defId === 'duriel') return 'caster';
+    if (e.defId === 'andariel' || e.defId === 'duriel' || e.defId === 'mephisto') return 'caster';
     if (e.ai === 'shaman') return 'caster';
     if (e.ai === 'zombie' || e.ai === 'fallen' || e.defId === 'brute' || e.defId === 'hound' || e.defId === 'spitter') return 'beast';
     return 'humanoid';
@@ -235,7 +235,7 @@ async function main() {
 
   function actorSubKind(e: Entity): ActorSubKind {
     if (e.kind === 'player') return game.character.cls as ActorSubKind;
-    if (e.defId === 'andariel') return 'andariel';
+    if (e.defId === 'andariel' || e.defId === 'mephisto') return 'andariel'; // 梅菲斯特暂复用Boss立绘(真图 mon/mephisto.png 将覆盖)
     if (e.defId === 'duriel') return 'duriel';
     if (e.ai === 'fallen') return 'fallen';
     if (e.ai === 'skeleton') return 'skeleton';

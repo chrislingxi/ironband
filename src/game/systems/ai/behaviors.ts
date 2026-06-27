@@ -2,8 +2,8 @@ import type { Entity, Corpse } from '@game/entities/entity.ts';
 import type { DamageInstance } from '@game/systems/combat/index.ts';
 import { dist, normalize, type Vec2 } from '@engine/math/vec.ts';
 import type { RNG } from '@engine/math/rng.ts';
-import { andarielPhase, ANDARIEL_PHASES, bossPoisonDamage } from '@game/systems/boss/andariel.ts';
-import { DURIEL_PHASES, bossColdDamage } from '@game/systems/boss/duriel.ts';
+import { andarielPhase } from '@game/systems/boss/andariel.ts';
+import { BOSS_CONFIG } from '@game/systems/boss/configs.ts';
 
 // AI 上下文 — Game 注入. 行为只通过此面与世界交互 (便于测试/并行).
 export interface AIContext {
@@ -102,12 +102,12 @@ function aiArcher(e: Entity, ctx: AIContext): void {
 
 // 安达莉尔 Boss: 三阶段(追击近战毒爪 + 阶段性环形毒弹 + 召唤随从).
 function aiBoss(e: Entity, ctx: AIContext): void {
-  // 按 Boss 身份选阶段表与环爆元素 (安达莉尔=毒, 督瑞尔=冰).
-  const isDuriel = e.defId === 'duriel';
+  // 按 Boss 身份查配置表 (阶段/环爆元素), 缺省回退安达莉尔配置。
+  const boss = BOSS_CONFIG[e.defId] ?? BOSS_CONFIG.andariel;
   const phase = andarielPhase(e.combat.hp, e.combat.maxHp);
-  const cfg = (isDuriel ? DURIEL_PHASES : ANDARIEL_PHASES)[phase];
-  const novaColor = isDuriel ? 0x6ad0ff : 0x9be04a;
-  const novaDamage = isDuriel ? bossColdDamage() : bossPoisonDamage();
+  const cfg = boss.phases[phase];
+  const novaColor = boss.novaColor;
+  const novaDamage = boss.novaDamage();
   e.bossNovaCd = Math.max(0, (e.bossNovaCd ?? 0) - ctx.dt);
   e.bossSummonCd = Math.max(0, (e.bossSummonCd ?? 0) - ctx.dt);
   const d = dist(e.pos, ctx.player.pos);

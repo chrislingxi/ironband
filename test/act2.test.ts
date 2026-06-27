@@ -51,13 +51,12 @@ describe('第二幕内容', () => {
     expect(g.currentArea.id).toBe('andariel_lair'); // Boss 未死, 出口锁定
   });
 
-  it('击败督瑞尔通关第二幕并解锁下一难度', () => {
+  it('击败督瑞尔通关第二幕 (非最终幕, 暂不解锁难度)', () => {
     const g = new Game(1);
-    // 直接驱动任务完成路径: 清空塔拉夏古墓
     g.loadArea('tal_rasha_tomb');
     g.monsters = []; // 模拟 Boss 已被清
     g.update(1 / 60, { move: { x: 0, y: 0 } });
     expect(g.act2Complete).toBe(true);
-    expect(g.unlockedDifficulty).toBe('nightmare');
+    expect(g.unlockedDifficulty).toBe('normal'); // 解锁挪到最终幕梅菲斯特
   });
 });
