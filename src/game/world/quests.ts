@@ -49,6 +49,22 @@ export const QUESTS: Quest[] = [
     desc: '憎恨之王梅菲斯特盘踞在库拉斯特城底的仇恨监狱。穿过丛林与崔凡克, 将他击杀。',
     targetArea: 'durance_of_hate',
     giver: 'cain',
+    reward: '泰瑞尔的红门将通往第四幕。',
+  },
+  {
+    id: 'diablo',
+    name: '恐惧之王',
+    desc: '暗黑破坏神在混沌避难所撕开了通往地狱的裂口。穿过烈焰之河, 击碎这头恐惧之王。',
+    targetArea: 'chaos_sanctuary',
+    giver: 'cain',
+    reward: '红门将通往最终的第五幕。',
+  },
+  {
+    id: 'baal',
+    name: '毁灭之王',
+    desc: '毁灭之王巴尔已抵达世界石要塞之巅。翻越亚瑞特雪山, 终结这最后的恶魔。',
+    targetArea: 'worldstone_keep',
+    giver: 'cain',
     reward: '通关本难度, 解锁更高难度的试炼。',
   },
 ];

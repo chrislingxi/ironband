@@ -28,12 +28,12 @@ describe('第三幕内容', () => {
     expect(g.monsters[0].defId).toBe('mephisto');
   });
 
-  it('击败梅菲斯特通关第三幕 (最终幕) 并解锁下一难度', () => {
+  it('击败梅菲斯特通关第三幕 (非最终幕, 暂不解锁)', () => {
     const g = new Game(1);
     g.loadArea('durance_of_hate');
     g.monsters = []; // 模拟 Boss 已清
     g.update(1 / 60, { move: { x: 0, y: 0 } });
     expect(g.act3Complete).toBe(true);
-    expect(g.unlockedDifficulty).toBe('nightmare');
+    expect(g.unlockedDifficulty).toBe('normal'); // 解锁挪到最终幕巴尔
   });
 });

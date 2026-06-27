@@ -227,7 +227,7 @@ async function main() {
 
   function actorKind(e: Entity): ActorKind {
     if (e.kind === 'player') return 'humanoid';
-    if (e.defId === 'andariel' || e.defId === 'duriel' || e.defId === 'mephisto') return 'caster';
+    if (e.defId === 'andariel' || e.defId === 'duriel' || e.defId === 'mephisto' || e.defId === 'diablo' || e.defId === 'baal') return 'caster';
     if (e.ai === 'shaman') return 'caster';
     if (e.ai === 'zombie' || e.ai === 'fallen' || e.defId === 'brute' || e.defId === 'hound' || e.defId === 'spitter') return 'beast';
     return 'humanoid';
@@ -235,8 +235,9 @@ async function main() {
 
   function actorSubKind(e: Entity): ActorSubKind {
     if (e.kind === 'player') return game.character.cls as ActorSubKind;
-    if (e.defId === 'andariel' || e.defId === 'mephisto') return 'andariel'; // 梅菲斯特暂复用Boss立绘(真图 mon/mephisto.png 将覆盖)
+    // 各幕 Boss 暂复用现有 Boss 立绘 (真图 mon/<id>.png 将覆盖); 督瑞尔有专属矢量
     if (e.defId === 'duriel') return 'duriel';
+    if (e.defId === 'andariel' || e.defId === 'mephisto' || e.defId === 'diablo' || e.defId === 'baal') return 'andariel';
     if (e.ai === 'fallen') return 'fallen';
     if (e.ai === 'skeleton') return 'skeleton';
     if (e.ai === 'zombie') return 'zombie';

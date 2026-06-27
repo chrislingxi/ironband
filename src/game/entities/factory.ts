@@ -5,9 +5,14 @@ import { MONSTERS_EXT } from '@game/data/monsters2.ts';
 import { ANDARIEL } from '@game/systems/boss/andariel.ts';
 import { DURIEL } from '@game/systems/boss/duriel.ts';
 import { MEPHISTO } from '@game/systems/boss/mephisto.ts';
+import { DIABLO } from '@game/systems/boss/diablo.ts';
+import { BAAL } from '@game/systems/boss/baal.ts';
 import type { MonStat } from '@game/data/schema.ts';
 
-const ALL_MONSTERS: Record<string, MonStat> = { ...MONSTERS, ...MONSTERS_EXT, andariel: ANDARIEL, duriel: DURIEL, mephisto: MEPHISTO };
+const ALL_MONSTERS: Record<string, MonStat> = {
+  ...MONSTERS, ...MONSTERS_EXT,
+  andariel: ANDARIEL, duriel: DURIEL, mephisto: MEPHISTO, diablo: DIABLO, baal: BAAL,
+};
 import type { Difficulty, DamageType } from '@game/data/schema.ts';
 import type { DamageInstance } from '@game/systems/combat/index.ts';
 import { randInt, type RNG } from '@engine/math/rng.ts';
@@ -24,6 +29,8 @@ const PLACEHOLDER: Record<string, { color: number; size: number }> = {
   andariel: { color: 0xb01818, size: 30 },
   duriel: { color: 0x8ab0c8, size: 32 }, // 寒冷苍白, 体型最大
   mephisto: { color: 0x7a5ad0, size: 31 }, // 憎恨之王, 紫电色
+  diablo: { color: 0xd83020, size: 34 },   // 恐惧之王, 烈焰赤红
+  baal: { color: 0x6a8a4a, size: 36 },     // 毁灭之王, 终极, 体型最大
 };
 
 export function makePlayer(): Entity {

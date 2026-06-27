@@ -26,10 +26,14 @@ const BOSS_AREAS: Record<string, string> = {
   andariel_lair: 'andariel',
   tal_rasha_tomb: 'duriel',
   durance_of_hate: 'mephisto',
+  chaos_sanctuary: 'diablo',
+  worldstone_keep: 'baal',
 };
 
-// 当前最终幕的通关任务 id: 完成它解锁下一难度 (加幕时上移到新终幕 Boss)。
-const FINAL_QUEST = 'mephisto';
+// 最终幕的通关任务 id: 完成它解锁下一难度 (五幕已齐, 终为巴尔)。
+const FINAL_QUEST = 'baal';
+// 所有 Boss defId (掉落/精英判定/区域独占)。
+const BOSS_IDS = new Set(['andariel', 'duriel', 'mephisto', 'diablo', 'baal']);
 import { CLASS_SKILLS } from '@game/classes/registry.ts';
 import { canInvest, invest, totalPointsSpent, type SkillTreeState } from '@game/classes/skilltree.ts';
 import type { Difficulty } from '@game/data/schema.ts';
@@ -97,6 +101,8 @@ export class Game {
   act1Complete = false;
   act2Complete = false;
   act3Complete = false;
+  act4Complete = false;
+  act5Complete = false;
   unlockedDifficulty: Difficulty = 'normal'; // 已解锁的最高难度 (通关解锁下一难度)
   shopStock: ItemInstance[] = []; // 商店库存
   merc?: Merc; // 雇佣兵(罗格弓手)
@@ -223,6 +229,16 @@ export class Game {
     else if (questId === 'mephisto') {
       this.act3Complete = true;
       this.notices.push('★ 第三幕通关! 憎恨之王梅菲斯特已伏诛 ★');
+      this.notices.push('泰瑞尔的红门已通往第四幕 · 万神殿要塞');
+    }
+    else if (questId === 'diablo') {
+      this.act4Complete = true;
+      this.notices.push('★ 第四幕通关! 暗黑破坏神已伏诛 ★');
+      this.notices.push('红门已通往第五幕 · 哈洛加斯');
+    }
+    else if (questId === 'baal') {
+      this.act5Complete = true;
+      this.notices.push('★★ 全剧终! 毁灭之王巴尔已伏诛 ★★');
     }
     else this.notices.push('任务完成');
 
@@ -484,7 +500,7 @@ export class Game {
           if (p.combat.hp <= 0) p.dead = true;
         }
         this.corpses.push({ pos: { ...e.pos }, defId: e.defId, color: e.color, size: e.size, ageMs: 0 });
-        const isBoss = e.defId === 'andariel' || e.defId === 'duriel' || e.defId === 'mephisto';
+        const isBoss = BOSS_IDS.has(e.defId);
         const isElite = !!e.elite || isBoss;
         if (this.rng() < (isElite ? 1 : 0.6)) {
           this.gold.push({ id: this.nextGoldId++, pos: { ...e.pos }, amount: randInt(this.rng, isBoss ? 40 : isElite ? 8 : 1, isBoss ? 90 : isElite ? 24 : 6) });
