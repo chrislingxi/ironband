@@ -70,7 +70,19 @@ async function main() {
 
   const scene = new IsoScene(app);
   const lighting = new Lighting(app); // 哥特暗角光照(玩家居中)
-  window.addEventListener('resize', () => lighting.resize());
+  // 视口适配: iOS Safari 上软键盘弹出/收起、地址栏伸缩只会触发 visualViewport 的 resize,
+  // 不一定触发 window 的 resize。Pixi 的 resizeTo:window 只监听 window resize, 于是命名输入框
+  // 聚焦弹起键盘后再进入游戏时, 画布尺寸会卡在键盘弹起时的缩小值, 表现为"只渲染半屏"。
+  // 这里统一按可视视口尺寸重置画布并重画光照, 覆盖键盘/地址栏/旋转等各种视口变化。
+  function fitToViewport(): void {
+    const vw = Math.round(window.visualViewport?.width ?? window.innerWidth);
+    const vh = Math.round(window.visualViewport?.height ?? window.innerHeight);
+    if (vw > 0 && vh > 0) app.renderer.resize(vw, vh);
+    lighting.resize();
+  }
+  window.addEventListener('resize', fitToViewport);
+  window.addEventListener('orientationchange', fitToViewport);
+  window.visualViewport?.addEventListener('resize', fitToViewport);
   // 地砖由 syncArea() 按当前区域尺寸/主题构建
 
   // 开局界面 (Promise 化): 存档槽选择 → 续玩 或 新建(选职+命名)
@@ -681,6 +693,9 @@ async function main() {
       }
     },
   );
+  // 关键: 标题/命名流程可能因软键盘弹起把画布缩小了 → 进入游戏前强制按当前可视视口重置一次,
+  // 避免首帧渲染在缩小的画布上 (iOS 键盘收起未必触发 window resize)。
+  fitToViewport();
   loop.start();
 
   (window as unknown as { __iron: unknown }).__iron = { app, game, scene, joy };
