@@ -116,6 +116,12 @@ export class Game {
   shopStock: ItemInstance[] = []; // 商店库存
   merc?: Merc; // 雇佣兵(罗格弓手)
   discoveredWaypoints: WaypointState = new Set(); // 已发现航点
+  // 续航 (D2 核心): 治疗药水 + 装备吸血 + 微量回血。无此三者 Boss 战不可持续。
+  potions = 4; // 当前治疗药水数
+  potionCap = 8; // 携带上限 (营地补满)
+  autoQuaff = true; // 低血自动饮 (移动端 QoL); 可在设置关闭
+  private potionCd = 0; // 药水冷却 (秒)
+  private lifeLeechPct = 0; // 装备吸血% (recompute 汇总)
 
   constructor(seed = 1234, cls: CharClass = 'barbarian') {
     this.rng = mulberry32(seed);
@@ -157,7 +163,7 @@ export class Game {
     this.player.combat.stunUntilMs = 0;
     this.state = this.currentArea.isTown || this.monsters.length === 0 ? 'cleared' : 'playing';
     this.travelCd = 1.0;
-    if (this.currentArea.isTown) this.refreshShop(); // 进城刷新商店
+    if (this.currentArea.isTown) { this.refreshShop(); this.potions = this.potionCap; } // 进城刷新商店 + 补满药水
     if (this.merc) this.merc.pos = { x: this.player.pos.x - 1, y: this.player.pos.y - 1 }; // 雇佣兵随主归队
     // 入区引导: 一条提示同时给出地名与目标 (击杀刷装 / 走蓝色出口 / Boss 锁门)
     if (bossDefId) this.notices.push(`进入 ${this.currentArea.name} · ⚔ 击败 Boss 方可离开!`);
@@ -187,6 +193,7 @@ export class Game {
     };
     p.combat.level = this.character.level;
     p.damage = d.damage;
+    this.lifeLeechPct = d.lifeleech;
     // 攻速: 由武器基础挥击间隔决定 (剑快斧慢, D2 武器快慢手感); 徒手 0.55。
     p.attackInterval = this.character.equipment.weapon?.base.attackSpeed ?? 0.55;
   }
@@ -406,11 +413,28 @@ export class Game {
       defender.pos.x += (dx / d) * kb;
       defender.pos.y += (dy / d) * kb;
     }
+    // 装备吸血: 玩家命中按造成伤害回血 (近战续航主力)。
+    if (attacker === this.player && this.lifeLeechPct > 0 && !r.killed) {
+      const heal = Math.round((r.totalDamage * this.lifeLeechPct) / 100);
+      if (heal > 0) attacker.combat.hp = Math.min(attacker.combat.maxHp, attacker.combat.hp + heal);
+    }
     if (r.killed) {
       defender.dead = true;
       if (attacker === this.player && defender.kind === 'monster') this.grantXp(defender.xpReward);
     }
   };
+
+  // 饮一瓶治疗药水: 回 40% 最大生命, 1s 冷却防连点。
+  quaffPotion(): boolean {
+    const p = this.player;
+    if (this.potions <= 0 || this.potionCd > 0 || p.dead) return false;
+    if (p.combat.hp >= p.combat.maxHp) return false;
+    this.potions -= 1;
+    this.potionCd = 1.0;
+    p.combat.hp = Math.min(p.combat.maxHp, p.combat.hp + Math.round(p.combat.maxHp * 0.4));
+    this.notices.push('💊 治疗药水');
+    return true;
+  }
 
   // 升级曲线 (随等级渐陡)
   xpForNext(level = this.character.level): number {
@@ -467,8 +491,14 @@ export class Game {
     // ----- 玩家 -----
     p.attackCd = Math.max(0, p.attackCd - dt);
     this.travelCd = Math.max(0, this.travelCd - dt);
+    this.potionCd = Math.max(0, this.potionCd - dt);
     for (let i = 0; i < 4; i++) this.skillCd[i] = Math.max(0, this.skillCd[i] - dt);
     p.hitFlash = Math.max(0, p.hitFlash - dt * 4);
+    // 续航: 微量自然回血 (0.5%/s) + 低于 35% 时自动饮药 (移动端 QoL)。
+    if (!p.dead && p.combat.hp > 0 && p.combat.hp < p.combat.maxHp) {
+      p.combat.hp = Math.min(p.combat.maxHp, p.combat.hp + p.combat.maxHp * 0.005 * dt);
+    }
+    if (this.autoQuaff && !p.dead && p.combat.hp < p.combat.maxHp * 0.35) this.quaffPotion();
     const stunned = now < p.combat.stunUntilMs;
     if (!p.dead && !stunned) {
       const mv = input.move;
@@ -547,6 +577,10 @@ export class Game {
         this.corpses.push({ pos: { ...e.pos }, defId: e.defId, color: e.color, size: e.size, ageMs: 0 });
         const isBoss = BOSS_IDS.has(e.defId);
         const isElite = !!e.elite || isBoss;
+        // 治疗药水掉落: 精英/Boss 必掉, 杂怪 14%; 直接补入药水位 (上限封顶)。
+        if (this.potions < this.potionCap && (isElite || this.rng() < 0.14)) {
+          this.potions = Math.min(this.potionCap, this.potions + (isBoss ? 4 : isElite ? 2 : 1));
+        }
         if (this.rng() < (isElite ? 1 : 0.6)) {
           this.gold.push({ id: this.nextGoldId++, pos: { ...e.pos }, amount: randInt(this.rng, isBoss ? 40 : isElite ? 8 : 1, isBoss ? 90 : isElite ? 24 : 6) });
         }
