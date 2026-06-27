@@ -323,9 +323,9 @@ async function main() {
   const bagBtn = document.createElement('div');
   bagBtn.textContent = '🎒';
   bagBtn.style.cssText =
-    'position:absolute;left:calc(14px + env(safe-area-inset-left));bottom:calc(30px + env(safe-area-inset-bottom));' +
-    'width:54px;height:54px;border-radius:12px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
-    'align-items:center;justify-content:center;font-size:26px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
+    'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(60px + env(safe-area-inset-top));' +
+    'width:48px;height:48px;border-radius:11px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
+    'align-items:center;justify-content:center;font-size:23px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
   const skillPanel = new SkillTreePanel(game, () => { skillPanel.hide(); paused = false; });
   function closePanels(): void { panel.hide(); skillPanel.hide(); questLog.hide(); town.hide(); wp.hide(); paused = false; }
   bagBtn.addEventListener('pointerdown', (e) => {
@@ -339,9 +339,9 @@ async function main() {
   const skillBtn = document.createElement('div');
   skillBtn.textContent = '📖';
   skillBtn.style.cssText =
-    'position:absolute;left:calc(78px + env(safe-area-inset-left));bottom:calc(30px + env(safe-area-inset-bottom));' +
-    'width:54px;height:54px;border-radius:12px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
-    'align-items:center;justify-content:center;font-size:26px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
+    'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(114px + env(safe-area-inset-top));' +
+    'width:48px;height:48px;border-radius:11px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
+    'align-items:center;justify-content:center;font-size:23px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
   skillBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();
     if (skillPanel.open) closePanels();
@@ -354,9 +354,9 @@ async function main() {
   const questBtn = document.createElement('div');
   questBtn.textContent = '📜';
   questBtn.style.cssText =
-    'position:absolute;left:calc(142px + env(safe-area-inset-left));bottom:calc(30px + env(safe-area-inset-bottom));' +
-    'width:54px;height:54px;border-radius:12px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
-    'align-items:center;justify-content:center;font-size:26px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
+    'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(168px + env(safe-area-inset-top));' +
+    'width:48px;height:48px;border-radius:11px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
+    'align-items:center;justify-content:center;font-size:23px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
   questBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();
     if (questLog.open) { questLog.hide(); paused = false; }
@@ -389,9 +389,9 @@ async function main() {
   const townBtn = document.createElement('div');
   townBtn.textContent = '🏛';
   townBtn.style.cssText =
-    'position:absolute;left:calc(206px + env(safe-area-inset-left));bottom:calc(30px + env(safe-area-inset-bottom));' +
-    'width:54px;height:54px;border-radius:12px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
-    'align-items:center;justify-content:center;font-size:24px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
+    'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(222px + env(safe-area-inset-top));' +
+    'width:48px;height:48px;border-radius:11px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
+    'align-items:center;justify-content:center;font-size:22px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
   townBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();
     if (!game.currentArea.isTown) { game.notices.push('营地服务仅在罗格营地可用'); return; }
@@ -431,12 +431,31 @@ async function main() {
 
   // 小地图 (区域俯瞰: 玩家/怪/出口/雇佣兵)
   const mm = document.createElement('canvas');
-  mm.width = 140; mm.height = 104;
+  mm.width = 124; mm.height = 88;
   mm.style.cssText =
-    'position:absolute;left:50%;transform:translateX(-50%);top:calc(8px + env(safe-area-inset-top));' +
-    'width:140px;height:104px;border:1px solid #6a5a3a99;background:#0009;border-radius:6px;pointer-events:none;z-index:35;';
+    'position:absolute;left:50%;transform:translateX(-50%);top:calc(58px + env(safe-area-inset-top));' +
+    'width:124px;height:88px;border:1px solid #6a5a3a99;background:#0009;border-radius:6px;pointer-events:none;z-index:35;';
   document.body.appendChild(mm);
   const mmctx = mm.getContext('2d');
+
+  // 出口方向箭头 (野外指向最近出口, 解决"出口太远找不到")
+  const exitArrow = document.createElement('div');
+  exitArrow.textContent = '➤';
+  exitArrow.style.cssText =
+    'position:absolute;left:50%;top:50%;font-size:30px;color:#9af0ff;text-shadow:0 0 10px #3ad6ff;' +
+    'pointer-events:none;z-index:38;display:none;will-change:transform;';
+  document.body.appendChild(exitArrow);
+  function syncExitArrow(): void {
+    if (game.currentArea.isTown || !game.currentArea.exits.length) { exitArrow.style.display = 'none'; return; }
+    let near = game.currentArea.exits[0], nd = Infinity;
+    for (const ex of game.currentArea.exits) { const d = dist(game.player.pos, ex.pos); if (d < nd) { nd = d; near = ex; } }
+    if (nd <= 4) { exitArrow.style.display = 'none'; return; }
+    const ps = gridToScreen(game.player.pos), es = gridToScreen(near.pos);
+    const ang = Math.atan2(es.y - ps.y, es.x - ps.x);
+    const r = Math.min(app.renderer.width, app.renderer.height) * 0.33;
+    exitArrow.style.display = 'block';
+    exitArrow.style.transform = `translate(-50%,-50%) translate(${Math.cos(ang) * r}px, ${Math.sin(ang) * r}px) rotate(${ang}rad)`;
+  }
   function syncMinimap(): void {
     if (!mmctx) return;
     mmctx.clearRect(0, 0, 140, 104);
@@ -536,6 +555,7 @@ async function main() {
       }
       hud.update();
       syncMinimap();
+      syncExitArrow();
       if (game.notices.length) {
         noticeEl.textContent = game.notices[game.notices.length - 1];
         noticeEl.style.opacity = '1';
