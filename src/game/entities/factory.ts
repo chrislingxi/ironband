@@ -21,6 +21,7 @@ const PLACEHOLDER: Record<string, { color: number; size: number }> = {
   spitter: { color: 0x7ac04a, size: 10 },
   hound: { color: 0x9a6a3a, size: 10 },
   andariel: { color: 0xb01818, size: 30 },
+  duriel: { color: 0x8ab0c8, size: 32 }, // 寒冷苍白, 体型最大
 };
 
 export function makePlayer(): Entity {
