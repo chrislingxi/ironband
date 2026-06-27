@@ -104,6 +104,7 @@ export class Game {
   stashCap = 48;
   swings: Swing[] = []; // 挥砍弧光 (打击感)
   events: CombatEvent[] = []; // 每帧渲染后清空
+  castFx: { pos: Vec2; radius: number; color: number }[] = []; // 技能落点冲击环 (渲染后清空)
   notices: string[] = []; // UI 提示(升级等), 渲染后清空
   goldTotal = 0;
   timeMs = 0;
@@ -526,7 +527,7 @@ export class Game {
       const dx = defender.pos.x - attacker.pos.x;
       const dy = defender.pos.y - attacker.pos.y;
       const d = Math.hypot(dx, dy) || 1;
-      const kb = 0.18;
+      const kb = crit ? 0.55 : 0.3; // 击退增强, 暴击更猛 (重击连退感)
       defender.pos.x += (dx / d) * kb;
       defender.pos.y += (dy / d) * kb;
     }
@@ -917,6 +918,7 @@ export class Game {
       }
     }
     this.swings.push({ pos: { ...p.pos }, facing: p.facing, ageMs: 0, kind: 'skill' });
+    this.castFx.push({ pos: { ...p.pos }, radius: r, color: this.missileColor(key.damageType) }); // 落点冲击环
   }
 
   private missileSpeed(kind: NonNullable<ClassSkillKey['missileKind']>): number {
@@ -958,6 +960,7 @@ export class Game {
       this.spawnMissile({ x: Math.cos(a), y: Math.sin(a) }, key, dmg);
     }
     this.swings.push({ pos: { ...this.player.pos }, facing: this.player.facing, ageMs: 0, kind: 'skill' });
+    this.castFx.push({ pos: { ...this.player.pos }, radius: key.radius ?? 4, color: this.missileColor(key.damageType) }); // 新星冲击环
   }
 
   // 呐喊: 临时大幅提升防御

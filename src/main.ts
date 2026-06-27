@@ -178,7 +178,7 @@ async function main() {
       });
     }
   }
-  const damageTexts: { t: Text; life: number }[] = [];
+  const damageTexts: { t: Text; life: number; vy: number; pop: number }[] = [];
   const flashedSwings = new WeakSet<object>(); // 已放过施法迸发的挥砍 (防重复)
   // 打击粒子: 受击迸溅 / 击杀爆裂. 屏幕空间, 整体随相机平移。
   const particles: { g: Graphics; vx: number; vy: number; life: number; max: number; grav: number }[] = [];
@@ -341,7 +341,9 @@ async function main() {
       t.position.set(s.x, s.y - 18);
       t.zIndex = 1e9;
       scene.entityLayer.addChild(t);
-      damageTexts.push({ t, life: ev.miss || ev.heal || ev.xp || ev.immune ? 0.6 : 0.8 });
+      // 弹跳上抛: 初速向上, 暴击/击杀字号 pop 放大回落
+      t.scale.set(ev.crit ? 1.5 : ev.killed ? 1.25 : 1);
+      damageTexts.push({ t, life: ev.miss || ev.heal || ev.xp || ev.immune ? 0.6 : 0.8, vy: -1.6, pop: ev.crit || ev.killed ? 1 : 0 });
       // 粒子: miss/回血/经验 不迸溅; 击杀=金红大爆裂; 玩家受击=红; 元素命中=元素色; 物理=白
       if (ev.miss || ev.heal || ev.xp || ev.immune) { /* 无迸溅 */ }
       else if (ev.killed) {
@@ -829,12 +831,20 @@ async function main() {
       prevGold = game.goldTotal;
       prevInv = game.inventory.length;
       prevState = game.state;
+      // 技能落点冲击环 (按技能半径放大; 格→像素约 ×24)
+      for (const fx of game.castFx) {
+        const s = gridToScreen(fx.pos);
+        ring(s.x, s.y, fx.color, fx.radius * 24);
+      }
+      game.castFx.length = 0;
       spawnDamageText();
       // 伤害数字漂浮淡出
       for (const d of damageTexts) {
         d.life -= 1 / 60;
-        d.t.position.y -= 0.6;
+        d.vy += 0.14; // 重力: 上抛后回落
+        d.t.position.y += d.vy;
         d.t.alpha = Math.max(0, d.life / 0.8);
+        if (d.pop > 0) { d.pop = Math.max(0, d.pop - 0.12); d.t.scale.set(1 + d.pop * 0.5); } // pop 缩放回落
       }
       for (let i = damageTexts.length - 1; i >= 0; i--) {
         if (damageTexts[i].life <= 0) { damageTexts[i].t.destroy(); damageTexts.splice(i, 1); }
