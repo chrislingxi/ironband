@@ -1,5 +1,6 @@
 import type { ItemInstance, EquipSlot } from '@game/systems/items/index.ts';
-import { emptyBag, accumulateItem, accumulateSockets } from '@game/systems/items/index.ts';
+import { emptyBag, accumulateItem, accumulateSockets, addStat } from '@game/systems/items/index.ts';
+import { SETS } from '@game/data/sets.ts';
 import { makeNormalItem } from '@game/systems/items/index.ts';
 import type { DamageType, CharClass } from '@game/data/schema.ts';
 import type { DamageInstance } from '@game/systems/combat/index.ts';
@@ -61,6 +62,19 @@ export function deriveCombat(ch: Character, passive: PassiveBonusInput = {}): De
     accumulateSockets(bag, it); // 镶嵌符文 + 符文之语贡献
     if (it.base.baseDefense) armorDef += Math.floor((it.base.baseDefense[0] + it.base.baseDefense[1]) / 2);
     if (it.base.slot === 'weapon') weapon = it;
+  }
+  // 套装加成: 统计每套已穿件数, 应用所有 count ≤ 已穿数 的档位加成 (递进叠加)。
+  const setCount: Record<string, number> = {};
+  for (const key of Object.keys(ch.equipment) as EquipSlot[]) {
+    const sid = ch.equipment[key]?.setId;
+    if (sid) setCount[sid] = (setCount[sid] ?? 0) + 1;
+  }
+  for (const set of SETS) {
+    const have = setCount[set.id] ?? 0;
+    if (have < 2) continue;
+    for (const tier of set.bonuses) {
+      if (have >= tier.count) for (const m of tier.mods) addStat(bag, m.stat, m.value);
+    }
   }
   const str = ch.base.str + (bag.str ?? 0);
   const dex = ch.base.dex + (bag.dex ?? 0);

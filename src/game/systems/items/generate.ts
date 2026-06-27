@@ -1,6 +1,7 @@
 import type { ItemBase, Affix, Rarity } from '@game/data/schema.ts';
 import { ITEM_BASES, AFFIXES, RARE_WORDS } from '@game/data/items.ts';
 import { UNIQUES, type UniqueDef } from '@game/data/uniques.ts';
+import { SET_ITEMS, type SetItemDef } from '@game/data/sets.ts';
 import type { ItemInstance, RolledAffix, EquipSlot } from './types.ts';
 import { randInt, type RNG } from '@engine/math/rng.ts';
 
@@ -23,6 +24,25 @@ function makeUnique(u: UniqueDef, ilvl: number): ItemInstance {
     id: `${u.id}_${i}`, kind: i % 2 === 0 ? 'prefix' : 'suffix', stat: a.stat, value: a.value, label: a.label,
   }));
   return { uid: uidSeq++, base, rarity: 'unique', ilvl, affixes, name: u.name, identified: false };
+}
+
+// 套装件: 随等级抽取 (按基础需求等级)。
+function pickSetItem(ilvl: number, rng: RNG): SetItemDef | null {
+  const pool = SET_ITEMS.filter((s) => {
+    const base = ITEM_BASES.find((b) => b.id === s.baseId);
+    return base && base.reqLevel <= ilvl + 2;
+  });
+  if (pool.length === 0) return null;
+  return pool[randInt(rng, 0, pool.length - 1)];
+}
+
+// 由套装定义产出一件套装物品 (固定词缀 + 专名 + setId; 未鉴定)。
+function makeSetItem(s: SetItemDef, ilvl: number): ItemInstance {
+  const base = ITEM_BASES.find((b) => b.id === s.baseId)!;
+  const affixes: RolledAffix[] = s.affixes.map((a, i) => ({
+    id: `${s.id}_${i}`, kind: i % 2 === 0 ? 'prefix' : 'suffix', stat: a.stat, value: a.value, label: a.label,
+  }));
+  return { uid: uidSeq++, base, rarity: 'set', ilvl, affixes, name: s.name, identified: false, setId: s.setId };
 }
 
 function affixApplies(a: Affix, slot: EquipSlot): boolean {
@@ -117,6 +137,12 @@ export function generateItem(mlvl: number, rng: RNG, rarityBoost = 1): ItemInsta
   if (rng() < uniqueChance) {
     const u = pickUnique(ilvl, rng);
     if (u) return makeUnique(u, ilvl);
+  }
+  // 再掷套装件 (略高于暗金, 鼓励凑套)。
+  const setChance = Math.min(0.1, (0.006 + ilvl * 0.0005) * rarityBoost);
+  if (rng() < setChance) {
+    const s = pickSetItem(ilvl, rng);
+    if (s) return makeSetItem(s, ilvl);
   }
   const eligible = ITEM_BASES.filter((b) => b.reqLevel <= ilvl + 2);
   const base = (eligible.length ? eligible : ITEM_BASES)[randInt(rng, 0, (eligible.length ? eligible : ITEM_BASES).length - 1)];

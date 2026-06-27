@@ -2,6 +2,7 @@ import type { Game } from '@game/sim/Game.ts';
 import type { ItemInstance, RolledAffix, EquipSlot } from '@game/systems/items/index.ts';
 import { openSockets, matchRuneword } from '@game/systems/items/index.ts';
 import { runeById } from '@game/data/runes.ts';
+import { setById } from '@game/data/sets.ts';
 import { deriveCombat } from '@game/systems/stats/character.ts';
 
 // 镶嵌位置: 装备槽 或 背包索引 (供 showTip 决定调用哪个镶孔方法)。
@@ -31,6 +32,17 @@ function itemTip(it: ItemInstance): string {
   if (it.base.baseDamage) lines.push(`<span style="opacity:.7">伤害 ${it.base.baseDamage[0]}-${it.base.baseDamage[1]}</span>`);
   if (it.base.baseDefense) lines.push(`<span style="opacity:.7">防御 ${it.base.baseDefense[0]}-${it.base.baseDefense[1]}</span>`);
   for (const a of it.affixes) lines.push(`<span style="color:#7a9cff">${affixText(a)}</span>`);
+  // 套装: 显示所属套装与各档加成 (绿字)
+  if (it.setId) {
+    const set = setById(it.setId);
+    if (set) {
+      lines.push(`<span style="color:#33cc33;font-weight:700">套装: ${set.name}</span>`);
+      for (const tier of set.bonuses) {
+        const mods = tier.mods.map((m) => affixText({ stat: m.stat, value: m.value } as RolledAffix)).join(', ');
+        lines.push(`<span style="color:#2a9e2a">${tier.count}件: ${mods}</span>`);
+      }
+    }
+  }
   // 镶孔: ●已镶(符文名) / ○空孔
   if (it.sockets && it.sockets > 0) {
     const filled = (it.socketed ?? []).map((id) => `<span style="color:#c8945a">●${runeById(id)?.name ?? '?'}</span>`);

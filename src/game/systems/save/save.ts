@@ -72,6 +72,7 @@ export interface ItemSave {
   identified: boolean;
   sockets?: number;
   socketed?: string[];
+  setId?: string;
 }
 
 /** 运行期物品 → 存档物品。base 退化为其 id。 */
@@ -86,6 +87,7 @@ export function itemToSave(it: ItemInstance): ItemSave {
     identified: it.identified,
     sockets: it.sockets,
     socketed: it.socketed ? [...it.socketed] : undefined,
+    setId: it.setId,
   };
 }
 
@@ -106,6 +108,7 @@ export function itemFromSave(s: ItemSave): ItemInstance {
     identified: s.identified,
     sockets: s.sockets,
     socketed: s.socketed ? [...s.socketed] : undefined,
+    setId: s.setId,
   };
 }
 

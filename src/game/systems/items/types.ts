@@ -31,6 +31,7 @@ export interface ItemInstance {
   durability?: number; // 当前耐久度 (仅 Hell 难度跟踪; 0 = 破损失去属性)
   sockets?: number; // 孔数 (0/undefined = 无孔)
   socketed?: string[]; // 已镶符文 id (按镶入顺序)
+  setId?: string; // 所属套装 id (set 稀有度物品); 用于套装加成统计
 }
 
 // 各属性合计 (装备贡献 + 基础)
