@@ -441,6 +441,10 @@ async function main() {
       })),
       gambleCost: gambleCost(game.character.level),
       merc: { hired: !!game.merc, dead: !!game.merc?.dead, hireCost: hireCost(), reviveCost: reviveCost(game.merc?.level ?? game.character.level) },
+      stash: game.stash.map((i) => ({
+        uid: i.uid, name: i.identified ? i.name : i.base.name,
+        rarity: i.identified ? i.rarity : 'normal',
+      })),
     };
   }
   const town = new TownPanel({
@@ -450,6 +454,8 @@ async function main() {
     onIdentify: (uid) => { game.identifyItem(uid); town.refresh(buildTownData()); },
     onHireMerc: () => { game.hireMerc(); town.refresh(buildTownData()); },
     onReviveMerc: () => { game.reviveMerc(); town.refresh(buildTownData()); },
+    onDeposit: (uid) => { game.depositToStash(uid); town.refresh(buildTownData()); },
+    onWithdraw: (uid) => { game.withdrawFromStash(uid); town.refresh(buildTownData()); },
     onClose: () => { town.hide(); paused = false; },
   });
   const townBtn = document.createElement('div');

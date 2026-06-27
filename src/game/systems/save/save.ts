@@ -126,6 +126,7 @@ export interface SaveData {
   base: Character['base'];
   equipment: Record<string, ItemSave>; // 槽位名 → 装备
   inventory: ItemSave[];
+  stash: ItemSave[]; // 共享仓库 (旧档无此字段, 读取时按空处理)
   skillTree: SkillTreeState;
   gold: number;
   difficulty: Difficulty;
@@ -162,6 +163,7 @@ export function serializeGame(game: Game, name?: string): SaveData {
     base: { ...ch.base },
     equipment,
     inventory: game.inventory.map(itemToSave),
+    stash: game.stash.map(itemToSave),
     skillTree: { ...game.skillTree },
     gold: game.goldTotal,
     difficulty: game.difficulty,
@@ -197,8 +199,9 @@ export function applySave(game: Game, data: SaveData): void {
   }
   ch.equipment = equipment;
 
-  // --- 背包 ---
+  // --- 背包 / 仓库 (旧档可能无 stash 字段) ---
   game.inventory = data.inventory.map(itemFromSave);
+  game.stash = (data.stash ?? []).map(itemFromSave);
 
   // --- 技能树 / 金币 / 难度 ---
   game.skillTree = { ...data.skillTree };

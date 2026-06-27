@@ -11,6 +11,7 @@ import {
 } from '../src/game/systems/save/index.ts';
 import { discover, listWaypoints } from '../src/game/systems/waypoint/waypoint.ts';
 import { AREAS } from '../src/game/world/act1.ts';
+import { makeNormalItem } from '../src/game/systems/items/generate.ts';
 
 describe('Phase E: 存档 + 航点', () => {
   it('序列化→应用 保留职业/等级/金币', () => {
@@ -33,6 +34,23 @@ describe('Phase E: 存档 + 航点', () => {
     expect(back.cls).toBe('amazon');
     expect(back.gold).toBe(1234);
     expect(back.level).toBe(data.level);
+  });
+
+  it('共享仓库: 背包↔仓库存取, 并随存档往返', () => {
+    const g = new Game(11, 'sorceress');
+    const item = makeNormalItem('short_sword');
+    g.inventory.push(item);
+    expect(g.depositToStash(item.uid)).toBe(true);
+    expect(g.stash.some((i) => i.uid === item.uid)).toBe(true);
+    expect(g.inventory.some((i) => i.uid === item.uid)).toBe(false);
+    // 往返存档: 仓库物品保留
+    const g2 = new Game(12, 'barbarian');
+    applySave(g2, serializeGame(g));
+    expect(g2.stash.length).toBe(1);
+    expect(g2.stash[0].base.id).toBe('short_sword');
+    // 取回背包
+    expect(g2.withdrawFromStash(g2.stash[0].uid)).toBe(true);
+    expect(g2.stash.length).toBe(0);
   });
 
   it('多存档槽: 角色名写入存档, 缺省按职业+等级兜底', () => {

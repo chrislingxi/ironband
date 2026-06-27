@@ -58,6 +58,8 @@ export class Game {
   groundItems: GroundItem[] = []; // 地面掉落
   inventory: ItemInstance[] = []; // 背包 (单格)
   invCap = 32;
+  stash: ItemInstance[] = []; // 共享仓库 (营地存取, 随角色存档)
+  stashCap = 48;
   swings: Swing[] = []; // 挥砍弧光 (打击感)
   events: CombatEvent[] = []; // 每帧渲染后清空
   notices: string[] = []; // UI 提示(升级等), 渲染后清空
@@ -224,6 +226,20 @@ export class Game {
     if (!it || it.identified || this.goldTotal < identifyCost()) return false;
     this.goldTotal -= identifyCost();
     it.identified = true;
+    return true;
+  }
+  /** 背包 → 仓库 (仓库满则失败)。 */
+  depositToStash(uid: number): boolean {
+    const idx = this.inventory.findIndex((i) => i.uid === uid);
+    if (idx < 0 || this.stash.length >= this.stashCap) return false;
+    this.stash.push(this.inventory.splice(idx, 1)[0]);
+    return true;
+  }
+  /** 仓库 → 背包 (背包满则失败)。 */
+  withdrawFromStash(uid: number): boolean {
+    const idx = this.stash.findIndex((i) => i.uid === uid);
+    if (idx < 0 || this.inventory.length >= this.invCap) return false;
+    this.inventory.push(this.stash.splice(idx, 1)[0]);
     return true;
   }
   hireMerc(): boolean {

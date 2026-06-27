@@ -22,6 +22,7 @@ export interface TownData {
   inventory: { uid: number; name: string; rarity: string; sellPrice: number; identified: boolean }[];
   gambleCost: number;
   merc: { hired: boolean; dead: boolean; hireCost: number; reviveCost: number };
+  stash: { uid: number; name: string; rarity: string }[]; // 仓库内物品
 }
 
 // 回调集合: 各操作连到 game 对应方法.
@@ -32,11 +33,13 @@ interface TownCallbacks {
   onIdentify: (uid: number) => void;
   onHireMerc: () => void;
   onReviveMerc: () => void;
+  onDeposit: (uid: number) => void; // 背包→仓库
+  onWithdraw: (uid: number) => void; // 仓库→背包
   onClose: () => void;
 }
 
 // 分页签标识.
-type TownTab = 'shop' | 'gamble' | 'merc' | 'identify';
+type TownTab = 'shop' | 'gamble' | 'merc' | 'identify' | 'stash';
 
 let styled = false;
 function injectStyle(): void {
@@ -115,6 +118,7 @@ export class TownPanel {
       { key: 'gamble', label: '赌博' },
       { key: 'merc', label: '雇佣兵' },
       { key: 'identify', label: '鉴定' },
+      { key: 'stash', label: '仓库' },
     ];
     const btns = {} as Record<TownTab, HTMLElement>;
     for (const def of tabDefs) {
@@ -164,7 +168,39 @@ export class TownPanel {
       case 'gamble': this.renderGamble(d); break;
       case 'merc': this.renderMerc(d); break;
       case 'identify': this.renderIdentify(d); break;
+      case 'stash': this.renderStash(d); break;
     }
+  }
+
+  // 仓库 (守秘人): 上方背包 (点击存入), 下方仓库 (点击取出)。物品随角色存档保存。
+  private renderStash(d: TownData): void {
+    const h1 = document.createElement('h4');
+    h1.textContent = '存入仓库 (点击背包物品)';
+    this.bodyEl.appendChild(h1);
+    const depo = document.createElement('div');
+    depo.className = 'list';
+    if (d.inventory.length === 0) {
+      depo.innerHTML = '<div class="empty">背包空空。</div>';
+    } else {
+      for (const it of d.inventory) {
+        depo.appendChild(this.makeRow(it.name, it.rarity, '存入 ⇩', () => this.cb.onDeposit(it.uid)));
+      }
+    }
+    this.bodyEl.appendChild(depo);
+
+    const h2 = document.createElement('h4');
+    h2.textContent = '取出仓库 (点击仓库物品)';
+    this.bodyEl.appendChild(h2);
+    const list = document.createElement('div');
+    list.className = 'list';
+    if (d.stash.length === 0) {
+      list.innerHTML = '<div class="empty">仓库是空的。</div>';
+    } else {
+      for (const it of d.stash) {
+        list.appendChild(this.makeRow(it.name, it.rarity, '取出 ⇧', () => this.cb.onWithdraw(it.uid)));
+      }
+    }
+    this.bodyEl.appendChild(list);
   }
 
   // 一行: 物品名(稀有度配色) + 右侧价格. act=true 时可点击.
