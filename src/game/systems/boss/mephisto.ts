@@ -15,7 +15,7 @@ export const MEPHISTO: MonStat = {
   hp: pd([1300, 1500], [4200, 4700], [11000, 12500]),
   attackRating: pd(520, 2100, 5200),
   defense: pd(180, 1200, 3100),
-  damage: pd([30, 48], [110, 160], [300, 410]),
+  damage: pd([30, 48], [110, 160], [155, 210]),
   // 闪电/冰免疫倾向, 火抗低 (火法克制)。
   resist: {
     lightning: pd(75, 90, 100),

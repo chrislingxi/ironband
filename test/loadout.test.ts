@@ -29,10 +29,10 @@ describe('技能栏 (1普攻 + 3技能树槽)', () => {
     expect(g.canAssignSkill('blizzard')).toBe(true);
     expect(g.assignSkill(1, 'blizzard')).toBe(true);
     expect(g.skillKey(1)?.name).toBe('暴风雪');
-    // 能真正施放 (暴风雪是 aoe → 产生冲击环)
-    g.castFx.length = 0;
+    // 能真正施放 (暴风雪是投射法术 → 产生飞射物)
+    g.spawnMonster('skeleton', g.player.pos.x + 3, g.player.pos.y);
     g.useSkill(1);
-    expect(g.castFx.length).toBeGreaterThan(0);
+    expect(g.missiles.length).toBeGreaterThan(0);
   });
 
   it('同一技能不占两个槽 (换槽自动清旧)', () => {

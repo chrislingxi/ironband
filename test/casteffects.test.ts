@@ -3,10 +3,10 @@ import { Game } from '../src/game/sim/Game.ts';
 
 // 技能落点冲击环 (castFx) — AoE/Nova 施放时产生可视环。
 describe('技能冲击环', () => {
-  it('法师火球(aoe)施放产生落点冲击环', () => {
+  it('法师冰霜新星(nova)施放产生落点冲击环', () => {
     const g = new Game(1, 'sorceress');
-    g.skillTree = { fire_ball: 1 };
-    g.assignSkill(1, 'fire_ball');
+    g.skillTree = { frost_nova: 1 };
+    g.assignSkill(1, 'frost_nova');
     g.spawnMonster('skeleton', g.player.pos.x + 2, g.player.pos.y);
     g.castFx.length = 0;
     g.useSkill(1);

@@ -7,10 +7,11 @@ import type { DamageInstance } from '@game/systems/combat/index.ts';
 
 // 逐职业生命标定 (修复: 旧公式按野蛮人体能25标定, 导致法师/亚马逊起手血量为负).
 // base = 该职业起手体能下的1级生命; 体能每点 perVit; 每级 perLevel.
+// 生命曲线 (M4 数值校验上调: 后期角色有效血过低导致地狱被秒, 提升 perVit/perLevel)。
 const LIFE: Record<CharClass, { base: number; startVit: number; perVit: number; perLevel: number }> = {
-  barbarian: { base: 60, startVit: 25, perVit: 4, perLevel: 2 },
-  amazon: { base: 54, startVit: 20, perVit: 3, perLevel: 2 },
-  sorceress: { base: 46, startVit: 10, perVit: 2, perLevel: 1.5 },
+  barbarian: { base: 70, startVit: 25, perVit: 8, perLevel: 4 },
+  amazon: { base: 54, startVit: 20, perVit: 4, perLevel: 2.5 },
+  sorceress: { base: 46, startVit: 10, perVit: 3, perLevel: 2 },
 };
 
 // 角色: 基础属性 + 等级 + 装备. 派生战斗数值由 deriveCombat 计算 (装备改变战力).
@@ -88,7 +89,8 @@ export function deriveCombat(ch: Character, passive: PassiveBonusInput = {}, ext
   const L = LIFE[ch.cls as CharClass] ?? LIFE.barbarian;
   const maxHp = Math.max(20, Math.round(L.base + (vit - L.startVit) * L.perVit + (ch.level - 1) * L.perLevel + (bag.maxhp ?? 0)));
   // 被动技能: 精通/穿透→命中, 铁壁→防御, 天生抗性→全抗 (合议 S2)。
-  const attackRating = Math.round((dex * 5 + (bag.tohit ?? 0)) * (1 + ((bag.tohit_perc ?? 0) + (passive.arPerc ?? 0)) / 100));
+  // 命中(AR): 敏捷×5 + 等级×7(基础随等级成长, 让力量型近战也能命中高防Boss) + 装备命中, 再乘百分比加成。
+  const attackRating = Math.round((dex * 5 + ch.level * 7 + (bag.tohit ?? 0)) * (1 + ((bag.tohit_perc ?? 0) + (passive.arPerc ?? 0)) / 100));
   // 铁壁(defPerc)增益作用于总防御(含敏捷贡献), 无甲时也有效。
   const defense = Math.round(
     ((armorDef + (bag.defense ?? 0)) * (1 + (bag.defense_perc ?? 0) / 100) + dex / 4) *

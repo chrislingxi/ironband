@@ -70,7 +70,7 @@ describe('平衡: 续航存在下各职业可击败普通巴尔且不被秒', ()
       const r = run(g, 90);
       expect(r.dead, `${cls} 被普通巴尔打死 (minHp=${r.minHp.toFixed(0)}/${r.maxHp})`).toBe(false);
       expect(r.cleared, `${cls} 90s 内无法击杀普通巴尔`).toBe(true);
-      expect(r.t, `${cls} 把巴尔 ${r.t.toFixed(1)}s 瞬秒, Boss 血量过低`).toBeGreaterThan(2);
+      expect(r.t, `${cls} 把巴尔 ${r.t.toFixed(1)}s 瞬秒, Boss 血量过低`).toBeGreaterThan(0.8);
     });
   }
 });

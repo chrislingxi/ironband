@@ -683,7 +683,7 @@ export class Game {
     if (!p.dead && p.combat.hp > 0 && p.combat.hp < p.combat.maxHp) {
       p.combat.hp = Math.min(p.combat.maxHp, p.combat.hp + p.combat.maxHp * 0.005 * dt);
     }
-    if (this.autoQuaff && !p.dead && p.combat.hp < p.combat.maxHp * 0.35) this.quaffPotion();
+    if (this.autoQuaff && !p.dead && p.combat.hp < p.combat.maxHp * 0.45) this.quaffPotion();
     const stunned = now < p.combat.stunUntilMs;
     if (!p.dead && !stunned) {
       const mv = input.move;
@@ -917,7 +917,7 @@ export class Game {
     if (!key) return false; // 空槽
     const aim = this.nearestMonster(p.pos, 16);
     if (aim) p.facing = Math.atan2(aim.pos.y - p.pos.y, aim.pos.x - p.pos.x);
-    const dmg = this.scaleDamage(key.damageMult * this.skillPower(key), key.damageType);
+    const dmg = this.skillDamage(key);
     switch (key.kind) {
       case 'melee': this.execMelee(key, dmg); break;
       case 'arc': this.execArc(key, dmg); break;
@@ -937,6 +937,24 @@ export class Game {
     return this.player.damage.map((d) => ({
       type: type ?? d.type, min: Math.max(1, Math.round(d.min * mult)), max: Math.max(1, Math.round(d.max * mult)),
     }));
+  }
+
+  // 技能伤害: 元素法术用技能自身基础伤害(随技能等级+synergy, 与武器解耦 = D2 法系);
+  // 物理/武器技能用武器伤害×倍率×skillPower (近战吃武器/力量, 受装备驱动)。
+  private skillDamage(key: ClassSkillKey): DamageInstance[] {
+    const type = key.damageType ?? 'physical';
+    const treeId = key.treeSkillId ?? key.id;
+    const defs = CLASS_SKILLS[this.character.cls];
+    const def = defs.find((d) => d.id === treeId);
+    if (type !== 'physical' && def?.baseDamage) {
+      const lvl = Math.max(1, pointsIn(treeId, this.skillTree));
+      const syn = synergyBonus(def, this.skillTree, defs);
+      const [mn, mx] = def.baseDamage(lvl);
+      // 法术放大因子: 技能基础伤害量级远小于怪物HP经济, 统一放大以匹配 (M4 校验标定)。
+      const K = 14;
+      return [{ type, min: Math.max(1, Math.round(mn * (1 + syn) * K)), max: Math.max(1, Math.round(mx * (1 + syn) * K)) }];
+    }
+    return this.scaleDamage(key.damageMult * this.skillPower(key), type);
   }
 
   private inArc(e: Entity, facing: number, range: number, halfAngle: number): boolean {
