@@ -998,12 +998,16 @@ export class Game {
   private dealMissileDamage(target: Entity, m: Missile): void {
     // 翻滚无敌帧: 玩家免疫敌方投射物伤害
     if (target.kind === 'player' && this.timeMs < this.dodgeUntilMs) return;
-    const { byType, total } = rollDamage(m.dmg, target.combat.resist, this.rng);
+    // 法术暴击: 玩家投射物有几率暴击 (元素职业也有暴击反馈)
+    let dmgRoll = m.dmg;
+    let crit = false;
+    if (m.fromPlayer && this.rng() < this.playerCritChance()) { crit = true; dmgRoll = m.dmg.map((d) => ({ ...d, min: d.min * 2, max: d.max * 2 })); }
+    const { byType, total } = rollDamage(dmgRoll, target.combat.resist, this.rng);
     target.combat.hp = Math.max(0, target.combat.hp - total);
     target.hitFlash = 1;
     const killed = target.combat.hp <= 0;
     const immune = total === 0 && m.dmg.length > 0; // 抗性≥100 → 免疫
-    this.events.push({ pos: { ...target.pos }, amount: total, killed, toPlayer: target.kind === 'player', dmgType: dominantDamageType(byType), immune });
+    this.events.push({ pos: { ...target.pos }, amount: total, killed, toPlayer: target.kind === 'player', dmgType: dominantDamageType(byType), immune, crit });
     if (!killed && m.kind === 'iceball') target.combat.stunUntilMs = Math.max(target.combat.stunUntilMs, this.timeMs + 1000);
     if (killed) {
       target.dead = true;

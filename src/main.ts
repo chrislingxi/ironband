@@ -228,6 +228,12 @@ async function main() {
     }
   }
   let shakeMag = 0; // 屏震强度(衰减)
+  let redHit = 0; // 受击红屏强度(衰减)
+  // 红屏 vignette: 受击脉冲 + 低血常驻警示
+  const redVig = document.createElement('div');
+  redVig.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:70;opacity:0;' +
+    'background:radial-gradient(ellipse at center, transparent 45%, #c0101099 100%);transition:opacity .08s;';
+  document.body.appendChild(redVig);
   let lastRenderMs = 0; // 上一渲染帧时间戳 (粒子用)
   let hitstop = 0; // 顿帧(秒), >0 时冻结模拟
   let prevGold = 0; // 上帧金币(检测拾取播币音)
@@ -780,9 +786,14 @@ async function main() {
       game.update(dt, { move });
       // 事件驱动: 击杀→顿帧+强屏震; 玩家受击→屏震
       for (const ev of game.events) {
+        if (ev.miss || ev.heal || ev.xp) continue; // 非伤害事件不震屏/不红屏
         if (ev.killed) { hitstop = Math.max(hitstop, 0.05); shakeMag = Math.max(shakeMag, 7); }
-        else if (ev.toPlayer) shakeMag = Math.max(shakeMag, 6);
-        else shakeMag = Math.max(shakeMag, 2.5);
+        else if (ev.toPlayer) {
+          // 受击屏震+红屏按伤害占比缩放 (重击更震更红)
+          const frac = Math.min(1, ev.amount / Math.max(1, game.player.combat.maxHp));
+          shakeMag = Math.max(shakeMag, 4 + frac * 18);
+          redHit = Math.max(redHit, Math.min(0.7, 0.18 + frac * 2));
+        } else shakeMag = Math.max(shakeMag, 2.5);
       }
     },
     (_alpha) => {
@@ -884,6 +895,11 @@ async function main() {
         scene.world.position.y += (Math.random() - 0.5) * shakeMag * 2;
         shakeMag *= 0.85;
       }
+      // 红屏: 受击脉冲衰减 + 低于25%血常驻警示脉冲
+      redHit *= 0.86;
+      const hpRatio = game.player.combat.hp / Math.max(1, game.player.combat.maxHp);
+      const lowPulse = !game.player.dead && hpRatio < 0.25 ? 0.12 + 0.10 * (0.5 + 0.5 * Math.sin(performance.now() / 180)) : 0;
+      redVig.style.opacity = String(Math.min(0.7, Math.max(redHit, lowPulse)));
     },
   );
   loop.start();
