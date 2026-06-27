@@ -131,7 +131,9 @@ async function main() {
     let h = 2166136261;
     for (let i = 0; i < a.id.length; i++) h = (Math.imul(h ^ a.id.charCodeAt(i), 16777619)) >>> 0;
     scene.ground.removeChildren();
-    buildGround(scene.ground, a.size[0], a.size[1], mulberry32(h), a.isTown ? 'town' : 'wilderness');
+    // 主题: 城镇暖石 / 第二幕沙漠 / 其余荒野绿
+    const groundTheme = a.isTown ? 'town' : AREAS[a.id]?.act === 2 ? 'desert' : 'wilderness';
+    buildGround(scene.ground, a.size[0], a.size[1], mulberry32(h), groundTheme);
     // 出口标记
     exitLayer.removeChildren();
     for (const ex of a.exits) {
