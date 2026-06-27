@@ -171,6 +171,7 @@ async function main() {
     }
   }
   const damageTexts: { t: Text; life: number }[] = [];
+  const flashedSwings = new WeakSet<object>(); // 已放过施法迸发的挥砍 (防重复)
   // 打击粒子: 受击迸溅 / 击杀爆裂. 屏幕空间, 整体随相机平移。
   const particles: { g: Graphics; vx: number; vy: number; life: number; max: number; grav: number }[] = [];
   function burst(sx: number, sy: number, color: number, count: number, power: number, grav: number): void {
@@ -184,6 +185,12 @@ async function main() {
       particleLayer.addChild(g);
       particles.push({ g, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - power * 0.3, life: 0, max: 0.34 + Math.random() * 0.3, grav });
     }
+  }
+  // 投射物拖尾: 在弹道当前位置留一团柔光, 原地淡出 → 形成发光残影。
+  function trailPuff(sx: number, sy: number, color: number, r: number): void {
+    const g = new Graphics().circle(0, 0, r).fill({ color, alpha: 0.6 });
+    g.position.set(sx, sy); g.zIndex = 1e9 - 1; particleLayer.addChild(g);
+    particles.push({ g, vx: 0, vy: 0, life: 0, max: 0.22, grav: 0 });
   }
   // 击杀冲击环: 一圈快速扩张并淡出的亮环 (最易读的"爆头"反馈)。
   const rings: { g: Graphics; life: number; max: number; from: number; to: number }[] = [];
@@ -352,9 +359,25 @@ async function main() {
         g.lineTo(Math.cos(a) * reach, Math.sin(a) * reach * 0.5);
       }
       g.closePath().fill({ color: sw.kind === 'skill' ? 0xffe08a : 0xffffff, alpha: alpha * 0.5 });
+      // 技能弧叠一层更亮的内弧 + 起手中心辉光, 显得更"满"
+      if (sw.kind === 'skill') {
+        g.moveTo(0, 0);
+        for (let i = 0; i <= steps; i++) {
+          const a = a0 + ((a1 - a0) * i) / steps;
+          g.lineTo(Math.cos(a) * reach * 0.6, Math.sin(a) * reach * 0.5 * 0.6);
+        }
+        g.closePath().fill({ color: 0xffffff, alpha: alpha * 0.55 });
+        g.circle(0, 0, 10 * (1 - prog)).fill({ color: 0xfff0b0, alpha: alpha * 0.5 });
+      }
       g.position.set(s.x, s.y - 6);
       g.zIndex = depthKey(sw.pos) + 0.5;
       swingLayer.addChild(g);
+      // 起手一次性施法迸发 (每个 swing 只放一次)
+      if (sw.kind === 'skill' && !flashedSwings.has(sw)) {
+        flashedSwings.add(sw);
+        burst(s.x, s.y - 6, 0xffe9a0, 12, 150, 200);
+        ring(s.x, s.y - 6, 0xfff0b0, 40);
+      }
     }
   }
 
@@ -392,6 +415,9 @@ async function main() {
     missileLayer.removeChildren();
     for (const m of game.missiles) {
       const s = gridToScreen(m.pos);
+      // 发光拖尾: 每帧在弹道处留一团柔光残影 (法术/箭矢都更"酷")
+      const trailCol = m.kind === 'fireball' ? 0xff7a20 : m.kind === 'iceball' ? 0x7ad0ff : m.kind === 'bolt' ? m.color : 0xffe0a0;
+      trailPuff(s.x, s.y - 6, trailCol, m.kind === 'arrow' ? 2.4 : 4.5);
       const g = new Graphics();
       // 速度方向 (用于定向绘制)
       const vx = m.vel.x, vy = m.vel.y;
