@@ -1,6 +1,26 @@
 import { describe, it, expect } from 'vitest';
 import { Game } from '../src/game/sim/Game.ts';
 
+describe('难度解锁门控', () => {
+  it('开局仅普通解锁, 切到未解锁难度被拒绝', () => {
+    const g = new Game(1);
+    expect(g.isDifficultyUnlocked('normal')).toBe(true);
+    expect(g.isDifficultyUnlocked('nightmare')).toBe(false);
+    expect(g.isDifficultyUnlocked('hell')).toBe(false);
+    g.setDifficulty('hell');
+    expect(g.difficulty).toBe('normal'); // 未解锁, 不切换
+  });
+
+  it('解锁噩梦后可切换, 但地狱仍锁', () => {
+    const g = new Game(1);
+    g.unlockedDifficulty = 'nightmare';
+    g.setDifficulty('nightmare');
+    expect(g.difficulty).toBe('nightmare');
+    g.setDifficulty('hell');
+    expect(g.difficulty).toBe('nightmare'); // 地狱未解锁
+  });
+});
+
 describe('Game 战斗沙盒', () => {
   it('玩家自动攻击会击杀贴身的弱怪并产出尸体', () => {
     const g = new Game(7);

@@ -72,9 +72,11 @@ export class SkillTreePanel {
     diff.className = 'diff';
     for (const d of DIFFICULTIES) {
       const b = document.createElement('button');
-      b.textContent = DIFF_LABEL[d];
+      const unlocked = g.isDifficultyUnlocked(d);
+      b.textContent = unlocked ? DIFF_LABEL[d] : `🔒 ${DIFF_LABEL[d]}`;
       if (d === g.difficulty) b.classList.add('on');
-      b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); g.setDifficulty(d); this.refresh(); });
+      if (!unlocked) { b.classList.add('locked'); b.disabled = true; b.title = '通关上一难度后解锁'; }
+      else b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); g.setDifficulty(d); this.refresh(); });
       diff.appendChild(b);
     }
     top.appendChild(diff);
