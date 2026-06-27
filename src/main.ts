@@ -19,6 +19,7 @@ import { NPCS, type NpcRole } from '@game/world/npcs.ts';
 import { AREAS } from '@game/world/act1.ts';
 import { TitleScreen, type BootChoice } from '@game/ui/titlescreen.ts';
 import { QuestLogPanel } from '@game/ui/questlog.ts';
+import { maybeShowTutorial, showTutorial } from '@game/ui/tutorial.ts';
 import { TownPanel, type TownData } from '@game/ui/town.ts';
 import { QUESTS } from '@game/world/quests.ts';
 import { buyPrice, sellPrice, gambleCost } from '@game/systems/town/economy.ts';
@@ -229,6 +230,7 @@ async function main() {
   let hitstop = 0; // 顿帧(秒), >0 时冻结模拟
   let prevGold = 0; // 上帧金币(检测拾取播币音)
   let prevInv = 0; // 上帧背包数(检测拾物)
+  let prevState = game.state; // 上帧状态(检测阵亡转换播死亡音)
 
   function actorKind(e: Entity): ActorKind {
     if (e.kind === 'player') return 'humanoid';
@@ -480,7 +482,7 @@ async function main() {
   }
 
   const joy = new Joystick(document.body);
-  const hud = new HUD(game, (slot) => game.useSkill(slot));
+  const hud = new HUD(game, (slot) => { const ok = game.useSkill(slot); if (ok) audio.sfx('skill'); return ok; });
 
   // 背包/装备面板 (打开时暂停模拟)
   let paused = false;
@@ -603,6 +605,8 @@ async function main() {
   });
   let audioOn = true;
   topBtn('🔊', 3, () => { audioOn = !audioOn; audio.setEnabled(audioOn); game.notices.push(audioOn ? '音效开' : '音效关'); });
+  // 帮助: 重看新手引导 (暂停模拟, 关闭后恢复)
+  topBtn('❓', 4, () => { paused = true; showTutorial(() => { paused = false; }); });
   // ☰ 菜单开关: 折叠/展开上述次级按钮 (默认折叠, 只占一个角)
   let menuOpen = false;
   function menuToggle(open?: boolean): void {
@@ -761,8 +765,10 @@ async function main() {
       if (game.notices.some((n) => n.includes('升级'))) audio.sfx('levelup');
       if (game.goldTotal > prevGold) audio.sfx('coin');
       if (game.inventory.length > prevInv) audio.sfx('pickup');
+      if (game.state === 'dead' && prevState !== 'dead') audio.sfx('death');
       prevGold = game.goldTotal;
       prevInv = game.inventory.length;
+      prevState = game.state;
       spawnDamageText();
       // 伤害数字漂浮淡出
       for (const d of damageTexts) {
@@ -832,6 +838,9 @@ async function main() {
     },
   );
   loop.start();
+
+  // 首次启动: 弹出新手引导(暂停模拟), 看完/跳过后恢复。
+  if (maybeShowTutorial(() => { paused = false; })) paused = true;
 
   (window as unknown as { __iron: unknown }).__iron = { app, game, scene, joy };
 }
