@@ -14,16 +14,16 @@ export function discover(
   if (areas[areaId]?.waypoint) state.add(areaId);
 }
 
-// 列出"已发现且确含航点"的区域, 按传入 areas 的键序返回 {id,name}.
-// 双重校验 waypoint, 防止外部往 state 塞入非航点 id.
+// 列出"已发现且确含航点"的区域, 按传入 areas 的键序返回 {id,name,act,isTown}.
+// 双重校验 waypoint, 防止外部往 state 塞入非航点 id。act/isTown 供面板按幕分组与"回城"标记。
 export function listWaypoints(
   state: WaypointState,
-  areas: Record<string, { name: string; waypoint?: boolean }>,
-): { id: string; name: string }[] {
-  const out: { id: string; name: string }[] = [];
+  areas: Record<string, { name: string; waypoint?: boolean; act?: number; isTown?: boolean }>,
+): { id: string; name: string; act: number; isTown: boolean }[] {
+  const out: { id: string; name: string; act: number; isTown: boolean }[] = [];
   for (const id of Object.keys(areas)) {
     const area = areas[id];
-    if (area.waypoint && state.has(id)) out.push({ id, name: area.name });
+    if (area.waypoint && state.has(id)) out.push({ id, name: area.name, act: area.act ?? 1, isTown: !!area.isTown });
   }
   return out;
 }

@@ -216,6 +216,44 @@ export const CLASS_KEYS: Record<CharClass, [ClassSkillKey, ClassSkillKey, ClassS
   ],
 };
 
+// 额外可装备主动技 (扩充技能池, 让技能树投点能真正打出去)。
+// 每个都映射到一个技能树 id (treeSkillId), 投点经 skillPower 缩放; 复用现有 kind 执行形态。
+// 与 CLASS_KEYS 合并构成"可绑定到技能键的技能池", 玩家在技能树面板自由指派到 4 个槽。
+const EXTRA_SKILLS: Record<CharClass, ClassSkillKey[]> = {
+  barbarian: [
+    { id: 'whirlwind', name: '旋风斩', icon: '🌪', cooldown: 2.0, kind: 'arc', damageMult: 1.4, damageType: 'physical', radius: 2.2 },
+    { id: 'frenzy', name: '狂热', icon: '😤', cooldown: 0.7, kind: 'melee', damageMult: 1.5, damageType: 'physical' },
+    { id: 'berserk', name: '狂暴', icon: '🔴', cooldown: 1.6, kind: 'melee', damageMult: 2.2, damageType: 'magic' },
+  ],
+  amazon: [
+    { id: 'cold_arrow', name: '冰冻箭', icon: '🧊', cooldown: 0.7, kind: 'projectile', damageMult: 1.1, damageType: 'cold', missileKind: 'arrow', stun: 1.0 },
+    { id: 'strafe', name: '扫射', icon: '💢', cooldown: 1.4, kind: 'spread', damageMult: 0.9, damageType: 'physical', missileKind: 'arrow', count: 4 },
+    { id: 'lightning_fury', name: '闪电之怒', icon: '🌩', cooldown: 2.2, kind: 'nova', damageMult: 1.5, damageType: 'lightning', missileKind: 'nova', radius: 4 },
+  ],
+  sorceress: [
+    { id: 'charged_bolt', name: '闪电球', icon: '🔵', cooldown: 0.9, kind: 'spread', damageMult: 1.0, damageType: 'lightning', missileKind: 'bolt', count: 5 },
+    { id: 'blizzard', name: '暴风雪', icon: '🌨', cooldown: 2.6, kind: 'aoe', damageMult: 1.9, damageType: 'cold', missileKind: 'iceball', radius: 3 },
+    { id: 'meteor', name: '陨石', icon: '☄', cooldown: 3.2, kind: 'aoe', damageMult: 2.4, damageType: 'fire', missileKind: 'fireball', radius: 3 },
+  ],
+};
+
+// 可绑定到技能键的完整技能池 = 默认4键 + 扩充技能。
+export const CASTABLE_SKILLS: Record<CharClass, ClassSkillKey[]> = {
+  barbarian: [...CLASS_KEYS.barbarian, ...EXTRA_SKILLS.barbarian],
+  amazon: [...CLASS_KEYS.amazon, ...EXTRA_SKILLS.amazon],
+  sorceress: [...CLASS_KEYS.sorceress, ...EXTRA_SKILLS.sorceress],
+};
+
+// 默认技能键装载 (4 个槽的初始技能 id)。
+export function defaultLoadout(cls: CharClass): string[] {
+  return CLASS_KEYS[cls].map((k) => k.id);
+}
+
+// 在技能池中按 id 查一个可装备技能。
+export function castableById(cls: CharClass, id: string): ClassSkillKey | undefined {
+  return CASTABLE_SKILLS[cls].find((k) => k.id === id);
+}
+
 // 按职业分派到对应起手构造器.
 export function makeCharacterFor(cls: CharClass): Character {
   switch (cls) {

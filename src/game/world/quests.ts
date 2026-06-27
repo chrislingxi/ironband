@@ -4,7 +4,8 @@
 export interface Quest {
   id: string;
   name: string;
-  desc: string; // 原创任务说明
+  objective: string; // 一行目标短句 (任务日志默认显示, 瞄一眼就懂)
+  desc: string; // 原创任务说明 (剧情, 默认折叠)
   targetArea: string; // 目标区域 id
   giver: string; // 发布任务的 NPC id
   reward: string; // 奖励描述
@@ -14,6 +15,7 @@ export const QUESTS: Quest[] = [
   {
     id: 'den_of_evil',
     name: '净化邪恶巢穴',
+    objective: '清空『邪恶巢穴』洞窟内所有怪物',
     desc: '旷野下的洞窟里盘踞着一窝畸物, 把它们连根清光, 营地才能喘口气。',
     targetArea: 'den_of_evil',
     giver: 'akara',
@@ -22,6 +24,7 @@ export const QUESTS: Quest[] = [
   {
     id: 'sisters_burial',
     name: '姐妹的安息之地',
+    objective: '前往『墓园』, 击杀作祟的源头',
     desc: '坠落的罗格姐妹在墓园里被人扯成行尸, 找到作祟的源头, 还她们一份安宁。',
     targetArea: 'burial_grounds',
     giver: 'kashya',
@@ -30,6 +33,7 @@ export const QUESTS: Quest[] = [
   {
     id: 'andariel',
     name: '夺回护身符',
+    objective: '深入『修道院地窟』击败安达莉尔',
     desc: '修道院深处的恶魔安达莉尔封住了去路, 击败她, 取回被夺走的护身符。',
     targetArea: 'andariel_lair',
     giver: 'cain',
@@ -38,6 +42,7 @@ export const QUESTS: Quest[] = [
   {
     id: 'duriel',
     name: '痛苦之王',
+    objective: '在『塔拉夏古墓』击败督瑞尔',
     desc: '塔拉夏的古墓被痛苦之王督瑞尔占据。深入沙海尽头的墓室, 终结这头巨兽。',
     targetArea: 'tal_rasha_tomb',
     giver: 'cain',
@@ -46,6 +51,7 @@ export const QUESTS: Quest[] = [
   {
     id: 'mephisto',
     name: '憎恨之王',
+    objective: '在『仇恨监狱』击败梅菲斯特',
     desc: '憎恨之王梅菲斯特盘踞在库拉斯特城底的仇恨监狱。穿过丛林与崔凡克, 将他击杀。',
     targetArea: 'durance_of_hate',
     giver: 'cain',
@@ -54,6 +60,7 @@ export const QUESTS: Quest[] = [
   {
     id: 'diablo',
     name: '恐惧之王',
+    objective: '在『混沌避难所』击败暗黑破坏神',
     desc: '暗黑破坏神在混沌避难所撕开了通往地狱的裂口。穿过烈焰之河, 击碎这头恐惧之王。',
     targetArea: 'chaos_sanctuary',
     giver: 'cain',
@@ -62,6 +69,7 @@ export const QUESTS: Quest[] = [
   {
     id: 'baal',
     name: '毁灭之王',
+    objective: '在『世界石要塞』击败巴尔',
     desc: '毁灭之王巴尔已抵达世界石要塞之巅。翻越亚瑞特雪山, 终结这最后的恶魔。',
     targetArea: 'worldstone_keep',
     giver: 'cain',

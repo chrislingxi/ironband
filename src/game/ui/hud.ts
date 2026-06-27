@@ -1,5 +1,4 @@
 import type { Game } from '@game/sim/Game.ts';
-import { CLASS_KEYS, type ClassSkillKey } from '@game/classes/profiles.ts';
 
 // 轻量 DOM HUD: 血条 / 金币 / 怪物数 / 3 技能键(含冷却). 触屏友好, 适配安全区.
 let styleInjected = false;
@@ -67,7 +66,7 @@ export class HUD {
   private infoEl: HTMLElement;
   private lvlEl: HTMLElement;
   private xpFill: HTMLElement;
-  private skills: { cd: HTMLElement; arc: HTMLCanvasElement; meta: ClassSkillKey; slot: number }[] = [];
+  private skills: { cd: HTMLElement; arc: HTMLCanvasElement; ic: HTMLElement; nm: HTMLElement; slot: number }[] = [];
 
   constructor(private game: Game, onSkill: (slot: number) => void) {
     injectStyle();
@@ -100,13 +99,11 @@ export class HUD {
       { slot: 0, row: 1, col: 1 }, { slot: 2, row: 1, col: 2 },
       { slot: 1, row: 2, col: 1 }, { slot: 3, row: 2, col: 2 },
     ];
-    const keys = CLASS_KEYS[this.game.character.cls];
     gridLayout.forEach(({ slot: i, row, col }) => {
-      const meta = keys[i];
-      if (!meta) return;
+      const meta = this.game.skillKey(i); // 初始图标/名称 (实时由 update 刷新, 支持改键)
       const btn = document.createElement('div');
       btn.className = i === 3 ? 'skill skill-4' : 'skill';
-      btn.innerHTML = `${meta.icon}<canvas class="cd-arc" width="62" height="62"></canvas><div class="cd"></div><div class="nm">${meta.name}</div>`;
+      btn.innerHTML = `<span class="ic">${meta.icon}</span><canvas class="cd-arc" width="62" height="62"></canvas><div class="cd"></div><div class="nm">${meta.name}</div>`;
       btn.style.gridRow = String(row);
       btn.style.gridColumn = String(col);
       const fire = (e: Event) => { e.preventDefault(); e.stopPropagation(); onSkill(i); };
@@ -115,7 +112,8 @@ export class HUD {
       this.skills.push({
         cd: btn.querySelector('.cd') as HTMLElement,
         arc: btn.querySelector('.cd-arc') as HTMLCanvasElement,
-        meta,
+        ic: btn.querySelector('.ic') as HTMLElement,
+        nm: btn.querySelector('.nm') as HTMLElement,
         slot: i,
       });
     });
@@ -138,8 +136,11 @@ export class HUD {
         ? `${area} · 安全区`
         : `${area} · 剩余怪物 ${this.game.monsters.length}`;
     this.skills.forEach((s) => {
+      const key = this.game.skillKey(s.slot); // 实时解析当前绑定 (支持改键)
+      if (s.ic.textContent !== key.icon) s.ic.textContent = key.icon;
+      if (s.nm.textContent !== key.name) s.nm.textContent = key.name;
       const cd = this.game.skillCd[s.slot];
-      const maxCd = s.meta.cooldown;
+      const maxCd = key.cooldown;
       if (cd > 0.05) {
         s.cd.style.opacity = '1';
         s.cd.textContent = cd.toFixed(1);

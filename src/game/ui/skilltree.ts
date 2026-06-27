@@ -31,6 +31,14 @@ function injectStyle(): void {
   #skt .sk .lv { font-size:12px; color:#ffe08a; min-width:42px; text-align:right; }
   #skt .sk .add { width:30px; height:30px; border-radius:6px; border:1px solid #6a5a3a; background:#23231a; color:#ffe08a; font-size:18px; font-weight:700; }
   #skt .sk .add:disabled { opacity:.25; }
+  #skt .load { margin:6px 0 12px; padding:10px; border:1px solid #3a3a48; border-radius:9px; background:#101018; }
+  #skt .load h4 { font-family:Georgia,serif; color:#bcd; font-size:13px; margin:0 0 8px; }
+  #skt .slotrow { display:flex; align-items:center; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+  #skt .slotlbl { font-size:12px; color:#ffd76b; width:46px; }
+  #skt .chips { display:flex; gap:6px; flex-wrap:wrap; }
+  #skt .chip { font-size:12px; padding:4px 9px; border-radius:7px; border:1px solid #4a4a58; background:#16161e; color:#cbd; }
+  #skt .chip.on { border-color:#ffd76b; background:#3a2c14; color:#fff; font-weight:700; }
+  #skt .chip.dis { opacity:.3; }
   `;
   const t = document.createElement('style');
   t.textContent = css;
@@ -82,6 +90,9 @@ export class SkillTreePanel {
     top.appendChild(diff);
     this.body.appendChild(top);
 
+    // 技能键装载: 4 个槽各可绑定任意"已学(投过点)"的可施放技能
+    this.body.appendChild(this.loadoutSection());
+
     // 三系
     const tabs = document.createElement('div');
     tabs.className = 'tabs';
@@ -96,6 +107,37 @@ export class SkillTreePanel {
       tabs.appendChild(col);
     }
     this.body.appendChild(tabs);
+  }
+
+  // 技能键装载区: 4 槽 × 可绑定技能池 (已学才可上, 当前绑定高亮)。
+  private loadoutSection(): HTMLElement {
+    const g = this.game;
+    const pool = g.castablePool();
+    const wrap = document.createElement('div');
+    wrap.className = 'load';
+    wrap.innerHTML = `<h4>⚔ 技能键装载 (点技能绑定到对应槽)</h4>`;
+    for (let slot = 0; slot < 4; slot++) {
+      const row = document.createElement('div');
+      row.className = 'slotrow';
+      row.innerHTML = `<span class="slotlbl">槽 ${slot + 1}</span>`;
+      const chips = document.createElement('div');
+      chips.className = 'chips';
+      for (const key of pool) {
+        const cur = g.assignedSkills[slot] === key.id;
+        const can = g.canAssignSkill(key.id);
+        const chip = document.createElement('span');
+        chip.className = 'chip' + (cur ? ' on' : '') + (!can ? ' dis' : '');
+        chip.textContent = `${key.icon} ${key.name}`;
+        if (can) chip.addEventListener('pointerdown', (e) => {
+          e.preventDefault(); e.stopPropagation();
+          if (g.assignSkill(slot, key.id)) this.refresh();
+        });
+        chips.appendChild(chip);
+      }
+      row.appendChild(chips);
+      wrap.appendChild(row);
+    }
+    return wrap;
   }
 
   private skillRow(def: SkillDef, defs: SkillDef[]): HTMLElement {

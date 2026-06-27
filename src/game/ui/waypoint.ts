@@ -33,6 +33,10 @@ function injectStyle(): void {
     color:#ede3cf; font-size:15px; cursor:pointer; box-shadow:0 1px 3px #0008;
     user-select:none; -webkit-user-select:none; }
   #wp .item::before { content:"❖"; color:#9fc7ff; margin-right:8px; }
+  #wp .item.town { border-color:#8a6a2a; background:#241a10; }
+  #wp .item.town::before { content:""; margin:0; }
+  #wp .item .tag { float:right; font-size:11px; color:#ffd76b; background:#3a2a10; border:1px solid #8a6a2a; border-radius:8px; padding:1px 8px; }
+  #wp .acthdr { font-family:Georgia,serif; font-size:13px; color:#c79433; letter-spacing:2px; margin:10px 6px 2px; opacity:.85; }
   #wp .item:active { transform:scale(.98); background:#2a2014; border-color:#8a743f; }
   #wp .empty { padding:26px 16px; text-align:center; color:#a89a80; font-size:14px; line-height:1.6; }
   `;
@@ -80,8 +84,8 @@ export class WaypointPanel {
     (this.root.querySelector('.scrim') as HTMLElement).addEventListener('pointerdown', close);
   }
 
-  // 以当前已发现航点列表渲染并显示面板.
-  show(list: { id: string; name: string }[]): void {
+  // 以当前已发现航点列表渲染并显示面板。按幕分组, 城镇置于各幕之首并标 🏛 (回城一目了然)。
+  show(list: { id: string; name: string; act?: number; isTown?: boolean }[]): void {
     this.listEl.innerHTML = '';
     if (list.length === 0) {
       const empty = document.createElement('div');
@@ -89,19 +93,23 @@ export class WaypointPanel {
       empty.textContent = '尚未发现任何航点。\n探索世界以点亮传送点。';
       this.listEl.appendChild(empty);
     } else {
-      for (const wp of list) {
-        const item = document.createElement('div');
-        item.className = 'item';
-        item.setAttribute('role', 'button');
-        item.innerHTML = esc(wp.name);
-        const go = (e: Event) => {
-          e.preventDefault();
-          e.stopPropagation();
-          this.hide();
-          this.onTravel(wp.id);
-        };
-        item.addEventListener('pointerdown', go);
-        this.listEl.appendChild(item);
+      const acts = [...new Set(list.map((w) => w.act ?? 1))].sort((a, b) => a - b);
+      for (const act of acts) {
+        const hdr = document.createElement('div');
+        hdr.className = 'acthdr';
+        hdr.textContent = `第${['一', '二', '三', '四', '五'][act - 1] ?? act}幕`;
+        this.listEl.appendChild(hdr);
+        // 城镇优先排前 (回城)
+        const group = list.filter((w) => (w.act ?? 1) === act).sort((a, b) => Number(!!b.isTown) - Number(!!a.isTown));
+        for (const wp of group) {
+          const item = document.createElement('div');
+          item.className = wp.isTown ? 'item town' : 'item';
+          item.setAttribute('role', 'button');
+          item.innerHTML = (wp.isTown ? '🏛 ' : '') + esc(wp.name) + (wp.isTown ? ' <span class="tag">回城</span>' : '');
+          const go = (e: Event) => { e.preventDefault(); e.stopPropagation(); this.hide(); this.onTravel(wp.id); };
+          item.addEventListener('pointerdown', go);
+          this.listEl.appendChild(item);
+        }
       }
     }
     this.open = true;

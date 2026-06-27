@@ -19,7 +19,12 @@ const STEPS: Step[] = [
   {
     icon: '✨',
     title: '释放技能',
-    body: '点击右下角<b>技能键</b>施放主动技能。法力不足时会提示，留意蓝条。',
+    body: '点击右下角<b>技能键</b>施放主动技能；冷却中会显示读条，转好即可再放。',
+  },
+  {
+    icon: '💊',
+    title: '受伤与回血',
+    body: '受伤后点左上<b>红色药水珠</b>回血，或低血时<b>自动饮药</b>。药水从怪物掉落，<b>回营地自动补满</b>。',
   },
   {
     icon: '🎒',
@@ -112,12 +117,18 @@ export function showTutorial(onDone?: () => void): void {
   const nextEl = root.querySelector('.next') as HTMLElement;
   const skipEl = root.querySelector('.skip') as HTMLElement;
 
+  function go(n: number): void { i = Math.max(0, Math.min(STEPS.length - 1, n)); render(); }
+
   function render(): void {
     const s = STEPS[i];
     iconEl.textContent = s.icon;
     titleEl.textContent = s.title;
     bodyEl.innerHTML = s.body;
-    dotsEl.innerHTML = STEPS.map((_, k) => `<div class="dot${k === i ? ' on' : ''}"></div>`).join('');
+    dotsEl.innerHTML = STEPS.map((_, k) => `<div class="dot${k === i ? ' on' : ''}" data-k="${k}"></div>`).join('');
+    // dots 可点跳转
+    dotsEl.querySelectorAll('.dot').forEach((d) => d.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); e.stopPropagation(); go(Number((d as HTMLElement).dataset.k));
+    }));
     prevEl.style.visibility = i === 0 ? 'hidden' : 'visible';
     nextEl.textContent = i === STEPS.length - 1 ? '开始游戏' : '下一步';
   }
@@ -131,9 +142,25 @@ export function showTutorial(onDone?: () => void): void {
   const tap = (el: HTMLElement, fn: () => void) =>
     el.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); fn(); });
 
-  tap(prevEl, () => { if (i > 0) { i--; render(); } });
-  tap(nextEl, () => { if (i < STEPS.length - 1) { i++; render(); } else close(); });
+  tap(prevEl, () => go(i - 1));
+  tap(nextEl, () => { if (i < STEPS.length - 1) go(i + 1); else close(); });
   tap(skipEl, close);
+
+  // 左右滑动翻页 (移动端手感): 在卡片上记录起点, 抬手按位移翻页。
+  const card = root.querySelector('.card') as HTMLElement;
+  let sx = 0, sy = 0, swiping = false;
+  card.addEventListener('pointerdown', (e) => { sx = e.clientX; sy = e.clientY; swiping = true; });
+  const endSwipe = (e: PointerEvent) => {
+    if (!swiping) return;
+    swiping = false;
+    const dx = e.clientX - sx, dy = e.clientY - sy;
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) {
+      if (dx < 0) { if (i < STEPS.length - 1) go(i + 1); else close(); } // 左滑前进
+      else go(i - 1); // 右滑后退
+    }
+  };
+  card.addEventListener('pointerup', endSwipe);
+  card.addEventListener('pointercancel', () => { swiping = false; });
   // 吃掉浮层上的所有指针事件, 防止穿透到摇杆/按钮。
   root.addEventListener('pointerdown', (e) => { e.stopPropagation(); });
 
