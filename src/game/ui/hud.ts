@@ -9,28 +9,44 @@ function injectStyle(): void {
   const css = `
   #hud { position:absolute; inset:0; pointer-events:none; font-family:-apple-system,"PingFang SC",sans-serif;
     padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
-  #hud .bar { position:absolute; left:14px; top:14px; width:210px; height:18px; border-radius:9px;
-    background:#000a; border:1px solid #0008; overflow:hidden; box-shadow:0 1px 3px #000a inset; }
-  #hud .bar > i { display:block; height:100%; width:100%; background:linear-gradient(#ff6b5e,#b81e14); transition:width .1s linear; }
-  #hud .hptxt { position:absolute; left:14px; top:14px; width:210px; height:18px; text-align:center; line-height:18px;
-    font-size:11px; font-weight:700; color:#fff; text-shadow:0 1px 1px #000; }
-  #hud .gold { position:absolute; left:14px; top:38px; font-size:13px; color:#ffd24a; text-shadow:0 1px 2px #000; font-weight:700; }
-  #hud .lvl { position:absolute; left:232px; top:13px; font-family:Georgia,serif; font-size:15px; font-weight:800; color:#ffd76b; text-shadow:0 1px 2px #000; }
-  #hud .xpbar { position:absolute; left:14px; right:14px; bottom:6px; height:5px; border-radius:3px; background:#000a; overflow:hidden; }
-  #hud .xpbar > i { display:block; height:100%; width:0; background:linear-gradient(#ffe08a,#e0a020); }
-  #hud .info { position:absolute; right:14px; top:14px; font-size:12px; color:#e8e0d0; text-align:right; text-shadow:0 1px 2px #000; opacity:.9; }
-  #hud .skills { position:absolute; right:calc(16px + env(safe-area-inset-right)); bottom:calc(28px + env(safe-area-inset-bottom));
-    display:grid; grid-template-columns:62px 62px; grid-template-rows:62px 62px; gap:10px;
-    pointer-events:auto; }
-  #hud .skill { width:62px; height:62px; border-radius:50%; background:#1a1a24cc; border:2px solid #6a5a3a;
-    display:flex; align-items:center; justify-content:center; font-size:26px; position:relative; box-shadow:0 3px 8px #000a;
-    color:#fff; overflow:hidden; user-select:none; -webkit-user-select:none; }
-  #hud .skill:active { transform:scale(.92); }
-  #hud .skill.skill-4 { border-color:#9a6aaa; background:#241a2ecc; }
+  /* 生命条: 金边双框 + 渐变填充 + 顶部高光 (Premium Q版) */
+  #hud .bar { position:absolute; left:16px; top:16px; width:216px; height:22px; border-radius:12px;
+    background:linear-gradient(#120806,#241410); border:1.5px solid #c79433;
+    box-shadow:0 2px 6px #000b, 0 0 0 1px #00000080, inset 0 1px 2px #0008; overflow:hidden; }
+  #hud .bar > i { display:block; height:100%; width:100%;
+    background:linear-gradient(180deg,#ff8a72 0%,#e23a2a 45%,#a81810 100%); transition:width .14s ease-out;
+    box-shadow:inset 0 6px 5px -4px #ffffff70, inset 0 -4px 5px -3px #00000060; }
+  #hud .hptxt { position:absolute; left:16px; top:16px; width:216px; height:22px; text-align:center; line-height:22px;
+    font-size:12px; font-weight:800; color:#fff; letter-spacing:.5px; text-shadow:0 1px 2px #000,0 0 4px #0008; }
+  /* 金币: 药丸徽章 */
+  #hud .gold { position:absolute; left:16px; top:44px; padding:2px 10px 2px 8px; border-radius:10px;
+    background:#0c0c12cc; border:1px solid #6a5a3a; font-size:13px; color:#ffcf4a; font-weight:800;
+    text-shadow:0 1px 2px #000; box-shadow:0 2px 5px #0008; }
+  /* 等级: 金色徽记 */
+  #hud .lvl { position:absolute; left:244px; top:15px; padding:2px 11px; border-radius:11px;
+    background:linear-gradient(#3a2c14,#1c1408); border:1.5px solid #c79433;
+    font-family:Cinzel,Georgia,serif; font-size:14px; font-weight:800; color:#ffe08a; text-shadow:0 1px 2px #000;
+    box-shadow:0 2px 5px #0008; }
+  #hud .xpbar { position:absolute; left:16px; right:16px; bottom:6px; height:6px; border-radius:3px;
+    background:#000a; overflow:hidden; box-shadow:inset 0 1px 2px #000a, 0 0 0 1px #6a5a3a55; }
+  #hud .xpbar > i { display:block; height:100%; width:0; background:linear-gradient(90deg,#e0a020,#ffe9b0); transition:width .2s ease; }
+  #hud .info { position:absolute; right:16px; top:16px; padding:3px 10px; border-radius:10px;
+    background:#0c0c12bb; border:1px solid #4a3f2a; font-size:12px; color:#e8e0d0; text-align:right;
+    text-shadow:0 1px 2px #000; }
+  /* 技能键: 金环圆钮 + 内渐变 + 第4技能紫调 */
+  #hud .skills { position:absolute; right:calc(18px + env(safe-area-inset-right)); bottom:calc(30px + env(safe-area-inset-bottom));
+    display:grid; grid-template-columns:64px 64px; grid-template-rows:64px 64px; gap:12px; pointer-events:auto; }
+  #hud .skill { width:64px; height:64px; border-radius:50%;
+    background:radial-gradient(circle at 50% 35%, #2c2c3a, #14141c 75%); border:2.5px solid #c79433;
+    display:flex; align-items:center; justify-content:center; font-size:27px; position:relative;
+    box-shadow:0 4px 10px #000b, inset 0 2px 6px #ffffff18, inset 0 -3px 8px #00000060;
+    color:#fff; overflow:hidden; user-select:none; -webkit-user-select:none; transition:transform .07s; }
+  #hud .skill:active { transform:scale(.9); }
+  #hud .skill.skill-4 { border-color:#b07ad0; background:radial-gradient(circle at 50% 35%, #34243e, #1a1024 75%); }
   #hud .skill .cd { position:absolute; inset:0; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    font-size:16px; font-weight:700; color:#fff; opacity:0; pointer-events:none; }
+    font-size:17px; font-weight:800; color:#fff; opacity:0; pointer-events:none; text-shadow:0 1px 2px #000; }
   #hud .skill .cd-arc { position:absolute; inset:0; border-radius:50%; pointer-events:none; }
-  #hud .skill .nm { position:absolute; bottom:-15px; left:0; width:100%; text-align:center; font-size:9px; color:#cbb; }
+  #hud .skill .nm { position:absolute; bottom:-14px; left:0; width:100%; text-align:center; font-size:9px; color:#d8c89a; text-shadow:0 1px 1px #000; }
   `;
   const tag = document.createElement('style');
   tag.textContent = css;

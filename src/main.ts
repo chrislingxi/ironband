@@ -395,8 +395,8 @@ async function main() {
   bagBtn.textContent = '🎒';
   bagBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(60px + env(safe-area-inset-top));' +
-    'width:48px;height:48px;border-radius:11px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
-    'align-items:center;justify-content:center;font-size:23px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
+    'width:48px;height:48px;border-radius:11px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
+    'align-items:center;justify-content:center;font-size:23px;pointer-events:auto;z-index:40;box-shadow:0 4px 10px #000b,inset 0 1px 4px #ffffff16,inset 0 -3px 7px #00000050;';
   const skillPanel = new SkillTreePanel(game, () => { skillPanel.hide(); paused = false; });
   function closePanels(): void { panel.hide(); skillPanel.hide(); questLog.hide(); town.hide(); wp.hide(); paused = false; }
   bagBtn.addEventListener('pointerdown', (e) => {
@@ -411,8 +411,8 @@ async function main() {
   skillBtn.textContent = '📖';
   skillBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(114px + env(safe-area-inset-top));' +
-    'width:48px;height:48px;border-radius:11px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
-    'align-items:center;justify-content:center;font-size:23px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
+    'width:48px;height:48px;border-radius:11px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
+    'align-items:center;justify-content:center;font-size:23px;pointer-events:auto;z-index:40;box-shadow:0 4px 10px #000b,inset 0 1px 4px #ffffff16,inset 0 -3px 7px #00000050;';
   skillBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();
     if (skillPanel.open) closePanels();
@@ -426,8 +426,8 @@ async function main() {
   questBtn.textContent = '📜';
   questBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(168px + env(safe-area-inset-top));' +
-    'width:48px;height:48px;border-radius:11px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
-    'align-items:center;justify-content:center;font-size:23px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
+    'width:48px;height:48px;border-radius:11px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
+    'align-items:center;justify-content:center;font-size:23px;pointer-events:auto;z-index:40;box-shadow:0 4px 10px #000b,inset 0 1px 4px #ffffff16,inset 0 -3px 7px #00000050;';
   questBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();
     if (questLog.open) { questLog.hide(); paused = false; }
@@ -467,8 +467,8 @@ async function main() {
   townBtn.textContent = '🏛';
   townBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(222px + env(safe-area-inset-top));' +
-    'width:48px;height:48px;border-radius:11px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
-    'align-items:center;justify-content:center;font-size:22px;pointer-events:auto;z-index:40;box-shadow:0 3px 8px #000a;';
+    'width:48px;height:48px;border-radius:11px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
+    'align-items:center;justify-content:center;font-size:22px;pointer-events:auto;z-index:40;box-shadow:0 4px 10px #000b,inset 0 1px 4px #ffffff16,inset 0 -3px 7px #00000050;';
   townBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();
     if (!game.currentArea.isTown) { game.notices.push('营地服务仅在罗格营地可用'); return; }
@@ -487,8 +487,8 @@ async function main() {
     b.textContent = emoji;
     b.style.cssText =
       `position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(${topPx}px + env(safe-area-inset-top));` +
-      'width:42px;height:42px;border-radius:10px;background:#1a1a24cc;border:2px solid #6a5a3a;display:flex;' +
-      'align-items:center;justify-content:center;font-size:20px;pointer-events:auto;z-index:40;box-shadow:0 2px 6px #000a;';
+      'width:42px;height:42px;border-radius:10px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
+      'align-items:center;justify-content:center;font-size:20px;pointer-events:auto;z-index:40;box-shadow:0 4px 10px #000b,inset 0 1px 4px #ffffff16,inset 0 -3px 7px #00000050;';
     b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); audio.sfx('select'); onTap(); });
     document.body.appendChild(b);
   }
