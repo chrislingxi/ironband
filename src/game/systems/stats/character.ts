@@ -53,8 +53,10 @@ export interface PassiveBonusInput {
   defPerc?: number;
   resAll?: number;
 }
-export function deriveCombat(ch: Character, passive: PassiveBonusInput = {}): Derived {
+export function deriveCombat(ch: Character, passive: PassiveBonusInput = {}, extra: Partial<Record<string, number>> = {}): Derived {
   const bag = emptyBag();
+  // 额外永久增益 (任务奖励等) 先并入 bag, 与装备同等参与派生。
+  for (const k of Object.keys(extra)) addStat(bag, k as never, extra[k] ?? 0);
   let armorDef = 0;
   let weapon: ItemInstance | undefined;
   for (const key of Object.keys(ch.equipment) as EquipSlot[]) {

@@ -1,6 +1,14 @@
 // 第一幕三条主线任务. 任务名对标 D2 结构, 但 desc 描述全部原创。
 // giver 引用 npcs.ts 的 NPC id, targetArea 引用 act1.ts 的区域 id。
 
+// 任务奖励 (结构化, 由 Game.completeAndReward 实际发放)。
+export type QuestReward =
+  | { kind: 'gold'; amount: number }
+  | { kind: 'skillPoint'; amount: number }
+  | { kind: 'statPoint'; amount: number }
+  | { kind: 'item'; rarityBoost: number } // 保底掉落一件 (rarityBoost 放大稀有度)
+  | { kind: 'perma'; stat: 'maxhp' | 'res_all' | 'str' | 'dex' | 'vit' | 'energy'; value: number; label: string };
+
 export interface Quest {
   id: string;
   name: string;
@@ -8,7 +16,8 @@ export interface Quest {
   desc: string; // 原创任务说明 (剧情, 默认折叠)
   targetArea: string; // 目标区域 id
   giver: string; // 发布任务的 NPC id
-  reward: string; // 奖励描述
+  reward: string; // 奖励描述 (展示用)
+  grants: QuestReward[]; // 实际发放的奖励
 }
 
 export const QUESTS: Quest[] = [
@@ -20,6 +29,7 @@ export const QUESTS: Quest[] = [
     targetArea: 'den_of_evil',
     giver: 'akara',
     reward: '阿卡拉赠予一次免费的技能领悟。',
+    grants: [{ kind: 'skillPoint', amount: 1 }],
   },
   {
     id: 'sisters_burial',
@@ -29,6 +39,7 @@ export const QUESTS: Quest[] = [
     targetArea: 'burial_grounds',
     giver: 'kashya',
     reward: '卡夏许诺一名免费的雇佣弓手随你出征。',
+    grants: [{ kind: 'gold', amount: 300 }],
   },
   {
     id: 'andariel',
@@ -38,6 +49,7 @@ export const QUESTS: Quest[] = [
     targetArea: 'andariel_lair',
     giver: 'cain',
     reward: '通往第二幕的车队就此开启。',
+    grants: [{ kind: 'gold', amount: 600 }, { kind: 'item', rarityBoost: 4 }],
   },
   {
     id: 'duriel',
@@ -47,6 +59,7 @@ export const QUESTS: Quest[] = [
     targetArea: 'tal_rasha_tomb',
     giver: 'cain',
     reward: '通往第三幕的传送门就此开启。',
+    grants: [{ kind: 'gold', amount: 1000 }, { kind: 'perma', stat: 'maxhp', value: 25, label: '+25 生命上限' }],
   },
   {
     id: 'mephisto',
@@ -56,6 +69,7 @@ export const QUESTS: Quest[] = [
     targetArea: 'durance_of_hate',
     giver: 'cain',
     reward: '泰瑞尔的红门将通往第四幕。',
+    grants: [{ kind: 'gold', amount: 1500 }, { kind: 'statPoint', amount: 5 }],
   },
   {
     id: 'diablo',
@@ -65,6 +79,7 @@ export const QUESTS: Quest[] = [
     targetArea: 'chaos_sanctuary',
     giver: 'cain',
     reward: '红门将通往最终的第五幕。',
+    grants: [{ kind: 'gold', amount: 2500 }, { kind: 'item', rarityBoost: 8 }],
   },
   {
     id: 'baal',
@@ -74,5 +89,6 @@ export const QUESTS: Quest[] = [
     targetArea: 'worldstone_keep',
     giver: 'cain',
     reward: '通关本难度, 解锁更高难度的试炼。',
+    grants: [{ kind: 'gold', amount: 4000 }, { kind: 'perma', stat: 'res_all', value: 8, label: '+8% 全抗' }, { kind: 'skillPoint', amount: 2 }],
   },
 ];

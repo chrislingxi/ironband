@@ -9,7 +9,7 @@ import { RUNES, runeById } from '@game/data/runes.ts';
 import { deriveCombat, type Character } from '@game/systems/stats/character.ts';
 import { createMissile, updateMissiles, type Missile } from '@game/systems/missiles/index.ts';
 import { rollEliteAffixes, applyElite } from '@game/systems/elites/index.ts';
-import { QUESTS } from '@game/world/quests.ts';
+import { QUESTS, type QuestReward } from '@game/world/quests.ts';
 import { initQuests, completeQuest, onAreaCleared, type QuestProgress } from '@game/systems/quests/state.ts';
 import { generateShopStock, buyPrice, sellPrice, gambleCost, gambleItem, identifyCost } from '@game/systems/town/economy.ts';
 import { makeMerc, updateMerc, hireCost, reviveCost, type Merc } from '@game/systems/merc/merc.ts';
@@ -142,6 +142,7 @@ export class Game {
   private potionCd = 0; // 药水冷却 (秒)
   private lifeLeechPct = 0; // 装备吸血% (recompute 汇总)
   runeBag: Record<string, number> = {}; // 符文背包 (runeId → 数量); 镶孔消耗
+  questBonuses: Partial<Record<'maxhp' | 'res_all' | 'str' | 'dex' | 'vit' | 'energy', number>> = {}; // 任务永久增益
   private chillUntilMs = 0; // 被寒冷附魔精英命中后的减速截止 (玩家移速×0.5)
   private bagFullWarned = false; // 背包满提示节流 (有空位时重置)
   get isChilled(): boolean { return this.timeMs < this.chillUntilMs; } // 玩家是否处于减速
@@ -238,7 +239,7 @@ export class Game {
   // 由 character(基础属性+等级+装备) 重算玩家战斗数值. initial=true 时回满血.
   recompute(initial = false): void {
     const passive = passiveBonuses(this.skillTree, CLASS_SKILLS[this.character.cls]);
-    const d = deriveCombat(this.character, passive);
+    const d = deriveCombat(this.character, passive, this.questBonuses);
     const p = this.player;
     const ratio = !initial && p.combat.maxHp > 0 ? p.combat.hp / p.combat.maxHp : 1;
     p.combat.maxHp = d.maxHp;
@@ -360,10 +361,33 @@ export class Game {
     return Math.max(0, this.character.level - 1 + this.bonusSkillPoints - totalPointsSpent(this.skillTree));
   }
 
+  // 发放一条结构化任务奖励。
+  private grantQuestReward(r: QuestReward): void {
+    switch (r.kind) {
+      case 'gold': this.goldTotal += r.amount; this.notices.push(`任务奖励: +⦿${r.amount} 金币`); break;
+      case 'skillPoint': this.bonusSkillPoints += r.amount; this.notices.push(`任务奖励: +${r.amount} 技能点`); break;
+      case 'statPoint': this.statPoints += r.amount; this.notices.push(`任务奖励: +${r.amount} 属性点`); break;
+      case 'item': {
+        const it = generateItem(Math.max(1, this.currentArea.monLevel), this.rng, r.rarityBoost);
+        if (this.inventory.length < this.invCap) this.inventory.push(it);
+        else this.groundItems.push({ id: this.nextGoldId++, pos: { ...this.player.pos }, item: it });
+        this.notices.push(`任务奖励: 获得 ${it.identified ? it.name : it.base.name}`);
+        break;
+      }
+      case 'perma':
+        this.questBonuses[r.stat] = (this.questBonuses[r.stat] ?? 0) + r.value;
+        this.recompute();
+        this.notices.push(`任务奖励: 永久 ${r.label}`);
+        break;
+    }
+  }
+
   // 完成任务并发奖励
   private completeAndReward(questId: string): void {
     this.questProgress = completeQuest(this.questProgress, questId);
-    if (questId === 'den_of_evil') { this.bonusSkillPoints += 1; this.notices.push('任务完成: 净化邪恶巢穴 (+1 技能点)'); }
+    const quest = QUESTS.find((q) => q.id === questId);
+    if (quest) for (const g of quest.grants) this.grantQuestReward(g);
+    if (questId === 'den_of_evil') { this.notices.push('任务完成: 净化邪恶巢穴'); }
     else if (questId === 'sisters_burial') { this.mercUnlocked = true; this.notices.push('任务完成: 姐妹的安息之地 (雇佣兵已解锁)'); }
     else if (questId === 'andariel') {
       this.act1Complete = true;
