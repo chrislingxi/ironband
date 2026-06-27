@@ -67,8 +67,11 @@ export function buildArea(
   const def = AREAS[levelId];
   if (!def) throw new Error(`未知区域: ${levelId}`);
 
-  const [w, h] = def.size;
   const isTown = def.isTown === true;
+  // 缩小有效尺寸: 出口更近、不那么空旷 (营地保持原尺寸放下NPC)
+  const scale = isTown ? 1 : 0.6;
+  const w = Math.max(30, Math.round(def.size[0] * scale));
+  const h = Math.max(30, Math.round(def.size[1] * scale));
 
   // 出口: 由 connects 沿边缘布点生成
   const exits: AreaExit[] = def.connects.map((toId, i) => ({
@@ -78,14 +81,20 @@ export function buildArea(
 
   const monsterSpawns: MonsterSpawn[] = [];
   if (!isTown && def.monsters.length > 0) {
-    // 怪量随 monLevel 与难度增长
+    // 怪量随 monLevel 与难度增长 (略降, 配合安全出生半径)
     const lvl = def.monLevel[diff];
-    const base = 6 + Math.floor(lvl * 0.6);
+    const base = 4 + Math.floor(lvl * 0.5);
     const count = Math.round(base * DIFF_MULT[diff]);
-    for (let i = 0; i < count; i++) {
-      const defId = def.monsters[randInt(rng, 0, def.monsters.length - 1)];
+    // 安全出生半径: 玩家落点(中心)周围不刷怪, 避免一进区域就被围秒
+    const cx = w / 2, cy = h / 2;
+    const safe = Math.max(7, Math.min(w, h) * 0.3);
+    let guard = 0;
+    while (monsterSpawns.length < count && guard < count * 12) {
+      guard++;
       const x = MARGIN + rng() * (w - 2 * MARGIN);
       const y = MARGIN + rng() * (h - 2 * MARGIN);
+      if (Math.hypot(x - cx, y - cy) < safe) continue; // 太靠近落点, 重抽
+      const defId = def.monsters[randInt(rng, 0, def.monsters.length - 1)];
       monsterSpawns.push({ defId, x, y });
     }
   }
@@ -94,7 +103,7 @@ export function buildArea(
     id: def.id,
     name: def.name,
     isTown,
-    size: def.size,
+    size: [w, h],
     monsterSpawns,
     exits,
   };
