@@ -3,7 +3,7 @@ import { makePlayer, makeMonster } from '@game/entities/factory.ts';
 import type { DamageInstance } from '@game/systems/combat/index.ts';
 import { resolveAttack, rollDamage, attackInterval } from '@game/systems/combat/index.ts';
 import { updateMonsterAI, type AIContext } from '@game/systems/ai/behaviors.ts';
-import { CLASS_KEYS, makeCharacterFor, type ClassSkillKey } from '@game/classes/profiles.ts';
+import { CLASS_KEYS, CASTABLE_SKILLS, defaultLoadout, castableById, makeCharacterFor, type ClassSkillKey } from '@game/classes/profiles.ts';
 import { generateItem, socketRune, type ItemInstance, type EquipSlot } from '@game/systems/items/index.ts';
 import { RUNES, runeById } from '@game/data/runes.ts';
 import { deriveCombat, type Character } from '@game/systems/stats/character.ts';
@@ -96,6 +96,7 @@ export class Game {
   private travelCd = 0; // 进入区域后短暂禁用出口, 防瞬间回弹
   state: 'playing' | 'dead' | 'cleared' = 'playing';
   skillCd = [0, 0, 0, 0]; // 四技能键冷却(秒)
+  assignedSkills: string[] = []; // 4 个技能槽当前绑定的技能 id (构造时按职业默认装载)
   shoutUntilMs = 0; // 呐喊防御提升结束时间(ms)
   dodgeUntilMs = 0; // 翻滚无敌帧结束时间(ms)
   private rng: RNG;
@@ -128,9 +129,40 @@ export class Game {
   constructor(seed = 1234, cls: CharClass = 'barbarian') {
     this.rng = mulberry32(seed);
     this.character = makeCharacterFor(cls);
+    this.assignedSkills = defaultLoadout(cls); // 4 槽默认装载该职业起手技能
     this.player = makePlayer();
     this.recompute(true); // 由角色+装备派生玩家战斗数值
     this.loadArea('rogue_encampment'); // 从罗格营地起步
+  }
+
+  // 取某技能槽当前绑定的技能行为 (从可装备池按 id 解析; 回退默认键)。
+  skillKey(slot: number): ClassSkillKey {
+    const cls = this.character.cls as CharClass;
+    const id = this.assignedSkills[slot];
+    return (id ? castableById(cls, id) : undefined) ?? CLASS_KEYS[cls][slot];
+  }
+
+  // 某技能是否可装备: 默认起手4键始终可装; 其余需在其技能树 id 投过点 (学过才能上)。
+  canAssignSkill(id: string): boolean {
+    const cls = this.character.cls as CharClass;
+    const key = castableById(cls, id);
+    if (!key) return false;
+    if (defaultLoadout(cls).includes(id)) return true;
+    const treeId = key.treeSkillId ?? key.id;
+    return pointsIn(treeId, this.skillTree) > 0;
+  }
+
+  // 把技能 id 绑定到某槽 (0-3)。技能须可装备。
+  assignSkill(slot: number, id: string): boolean {
+    if (slot < 0 || slot > 3 || !this.canAssignSkill(id)) return false;
+    this.assignedSkills[slot] = id;
+    this.skillCd[slot] = 0;
+    return true;
+  }
+
+  // 该职业可装备技能池 (供 UI 列举)。
+  castablePool(): ClassSkillKey[] {
+    return CASTABLE_SKILLS[this.character.cls as CharClass];
   }
 
   // 加载一个区域: 实例化→清场→按出生点刷怪→玩家置于中心
@@ -753,7 +785,7 @@ export class Game {
     if (slot < 0 || slot > 3) return false;
     const p = this.player;
     if (p.dead || this.timeMs < p.combat.stunUntilMs || this.skillCd[slot] > 0) return false;
-    const key = CLASS_KEYS[this.character.cls][slot];
+    const key = this.skillKey(slot);
     const aim = this.nearestMonster(p.pos, 16);
     if (aim) p.facing = Math.atan2(aim.pos.y - p.pos.y, aim.pos.x - p.pos.x);
     const dmg = this.scaleDamage(key.damageMult * this.skillPower(key), key.damageType);

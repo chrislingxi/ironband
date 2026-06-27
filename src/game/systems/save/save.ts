@@ -16,6 +16,7 @@ import type { SkillTreeState } from '@game/classes/skilltree.ts';
 import type { QuestProgress } from '@game/systems/quests/state.ts';
 import type { CharClass, Difficulty } from '@game/data/schema.ts';
 import { ITEM_BASES } from '@game/data/items.ts';
+import { defaultLoadout } from '@game/classes/profiles.ts';
 
 // ---------------------------------------------------------------------------
 // 版本与常量
@@ -154,6 +155,7 @@ export interface SaveData {
   potions: number; // 治疗药水数 (旧档无此字段时按满兜底)
   autoQuaff: boolean; // 低血自动饮 (旧档默认开)
   runeBag: Record<string, number>; // 符文背包 (旧档无此字段时按空)
+  assignedSkills: string[]; // 4 技能槽绑定 (旧档无此字段时按职业默认装载)
 }
 
 // ---------------------------------------------------------------------------
@@ -202,6 +204,7 @@ export function serializeGame(game: Game, name?: string): SaveData {
     potions: game.potions,
     autoQuaff: game.autoQuaff,
     runeBag: { ...game.runeBag },
+    assignedSkills: [...game.assignedSkills],
   };
 }
 
@@ -249,6 +252,7 @@ export function applySave(game: Game, data: SaveData): void {
   game.potions = data.potions ?? game.potionCap; // 旧档按满兜底
   game.autoQuaff = data.autoQuaff ?? true;
   game.runeBag = { ...(data.runeBag ?? {}) };
+  game.assignedSkills = data.assignedSkills ?? defaultLoadout(data.cls); // 旧档按职业默认装载
 
   // --- 雇佣兵: 重建最小状态, 位置等瞬态交由 loadArea 归位 ---
   if (data.merc) {
