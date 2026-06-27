@@ -10,7 +10,7 @@ export type ActorKind = 'humanoid' | 'beast' | 'caster';
 // 可选 subKind 细分职业/怪物外观
 export type ActorSubKind =
   | 'barbarian' | 'amazon' | 'sorceress'   // 玩家职业
-  | 'fallen' | 'skeleton' | 'zombie' | 'hound' | 'brute' | 'spitter' | 'andariel' // 怪物
+  | 'fallen' | 'skeleton' | 'zombie' | 'hound' | 'brute' | 'spitter' | 'andariel' | 'duriel' // 怪物
   | undefined;
 
 export interface ActorSpriteOpts {
@@ -99,6 +99,8 @@ export class ActorSprite {
       this.drawZombie(s, main, lit, dark);
     } else if (sub === 'andariel') {
       this.drawAndariel(s, main, lit, dark);
+    } else if (sub === 'duriel') {
+      this.drawDuriel(s, main, lit, dark);
     } else {
       // fallback: 通用人形/野兽/施法者
       this.drawGeneric(s, main, lit, dark);
@@ -380,6 +382,44 @@ export class ActorSprite {
     // 恶魔眼睛
     this.head.circle(-s * 0.2, -s * 1.14, s * 0.1).fill({ color: 0xff0080 });
     this.head.circle(s * 0.2, -s * 1.14, s * 0.1).fill({ color: 0xff0080 });
+  }
+
+  // ── 督瑞尔: 矮壮蛆形痛苦之王 (寒冷苍白 + 巨颚 + 短角 + 钳爪) ──
+  private drawDuriel(s: number, main: number, lit: number, dark: number): void {
+    const OUTLINE = 0x0a1420;
+    // 臃肿蛆形下身 (分节)
+    this.body.ellipse(0, s * 0.45, s * 1.35, s * 0.95).fill({ color: dark }).stroke({ color: OUTLINE, width: 3 });
+    for (let i = -1; i <= 1; i++) {
+      this.body.ellipse(i * s * 0.55, s * 0.6, s * 0.32, s * 0.5).fill({ color: shade(main, 0.85), alpha: 0.5 });
+    }
+    // 厚实上身
+    this.body
+      .moveTo(-s * 0.8, -s * 0.55).lineTo(s * 0.8, -s * 0.55)
+      .lineTo(s * 1.0, s * 0.35).lineTo(-s * 1.0, s * 0.35).closePath()
+      .fill({ color: main }).stroke({ color: OUTLINE, width: 3 });
+    // 受光面 (苍白寒光)
+    this.body.ellipse(-s * 0.25, -s * 0.2, s * 0.6, s * 0.4).fill({ color: towardWhite(lit, 0.5), alpha: 0.45 });
+
+    // 短粗钳爪 (两侧各一)
+    for (const dir of [-1, 1]) {
+      const bx = dir * s * 0.9;
+      this.accessory.moveTo(dir * s * 0.7, -s * 0.2).lineTo(bx, s * 0.1).stroke({ color: dark, width: 5 });
+      this.accessory.poly([bx, s * 0.1, bx + dir * s * 0.32, s * 0.0, bx + dir * s * 0.18, s * 0.28])
+        .fill({ color: shade(main, 1.1) }).stroke({ color: OUTLINE, width: 2 });
+    }
+
+    // 大头 (与身一体感, 低伏)
+    this.head.circle(0, -s * 0.95, s * 0.62).fill({ color: shade(main, 1.05) }).stroke({ color: OUTLINE, width: 3 });
+    this.head.ellipse(-s * 0.15, -s * 1.05, s * 0.28, s * 0.18).fill({ color: towardWhite(lit, 0.6), alpha: 0.5 });
+    // 一对短角
+    this.head.poly([-s * 0.5, -s * 1.3, -s * 0.66, -s * 1.7, -s * 0.3, -s * 1.4]).fill({ color: 0xe8e0d0 }).stroke({ color: OUTLINE, width: 2 });
+    this.head.poly([s * 0.5, -s * 1.3, s * 0.66, -s * 1.7, s * 0.3, -s * 1.4]).fill({ color: 0xe8e0d0 }).stroke({ color: OUTLINE, width: 2 });
+    // 巨颚 (上下獠牙)
+    this.head.poly([-s * 0.4, -s * 0.62, -s * 0.18, -s * 0.32, -s * 0.02, -s * 0.62]).fill({ color: 0xf0ece0 }).stroke({ color: OUTLINE, width: 1.5 });
+    this.head.poly([s * 0.4, -s * 0.62, s * 0.18, -s * 0.32, s * 0.02, -s * 0.62]).fill({ color: 0xf0ece0 }).stroke({ color: OUTLINE, width: 1.5 });
+    // 冷光眼 (一对)
+    this.head.circle(-s * 0.22, -s * 1.0, s * 0.11).fill({ color: 0x8ff0ff });
+    this.head.circle(s * 0.22, -s * 1.0, s * 0.11).fill({ color: 0x8ff0ff });
   }
 
   // ── 通用 fallback ──

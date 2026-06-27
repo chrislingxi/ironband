@@ -176,7 +176,8 @@ async function main() {
 
   function actorSubKind(e: Entity): ActorSubKind {
     if (e.kind === 'player') return game.character.cls as ActorSubKind;
-    if (e.defId === 'andariel' || e.defId === 'duriel') return 'andariel';
+    if (e.defId === 'andariel') return 'andariel';
+    if (e.defId === 'duriel') return 'duriel';
     if (e.ai === 'fallen') return 'fallen';
     if (e.ai === 'skeleton') return 'skeleton';
     if (e.ai === 'zombie') return 'zombie';
