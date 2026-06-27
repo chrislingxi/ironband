@@ -3,11 +3,11 @@ import type { ItemBase, Affix } from './schema.ts';
 // 物品基础 (第一幕量级). type 用槽位字符串; 词缀按 type 适配. 名称为通用物品名.
 export const ITEM_BASES: ItemBase[] = [
   // 武器
-  { id: 'hand_axe', name: '手斧', slot: 'weapon', type: 'weapon', baseDamage: [3, 7], reqLevel: 1, reqStr: 12, sprite: 'item/hand_axe', maxDurability: 60 },
-  { id: 'short_sword', name: '短剑', slot: 'weapon', type: 'weapon', baseDamage: [2, 7], reqLevel: 1, reqStr: 10, sprite: 'item/short_sword', maxDurability: 60 },
-  { id: 'club', name: '棍棒', slot: 'weapon', type: 'weapon', baseDamage: [1, 6], reqLevel: 1, sprite: 'item/club', maxDurability: 60 },
-  { id: 'mace', name: '钉头锤', slot: 'weapon', type: 'weapon', baseDamage: [3, 10], reqLevel: 6, reqStr: 27, sprite: 'item/mace', maxDurability: 60 },
-  { id: 'double_axe', name: '双刃斧', slot: 'weapon', type: 'weapon', baseDamage: [5, 13], reqLevel: 10, reqStr: 43, sprite: 'item/double_axe', maxDurability: 60 },
+  { id: 'hand_axe', name: '手斧', slot: 'weapon', type: 'weapon', baseDamage: [3, 7], reqLevel: 1, reqStr: 12, attackSpeed: 0.6, sprite: 'item/hand_axe', maxDurability: 60 },
+  { id: 'short_sword', name: '短剑', slot: 'weapon', type: 'weapon', baseDamage: [2, 7], reqLevel: 1, reqStr: 10, attackSpeed: 0.45, sprite: 'item/short_sword', maxDurability: 60 },
+  { id: 'club', name: '棍棒', slot: 'weapon', type: 'weapon', baseDamage: [1, 6], reqLevel: 1, attackSpeed: 0.52, sprite: 'item/club', maxDurability: 60 },
+  { id: 'mace', name: '钉头锤', slot: 'weapon', type: 'weapon', baseDamage: [3, 10], reqLevel: 6, reqStr: 27, attackSpeed: 0.62, sprite: 'item/mace', maxDurability: 60 },
+  { id: 'double_axe', name: '双刃斧', slot: 'weapon', type: 'weapon', baseDamage: [5, 13], reqLevel: 10, reqStr: 43, attackSpeed: 0.7, sprite: 'item/double_axe', maxDurability: 60 },
   // 头盔
   { id: 'cap', name: '皮帽', slot: 'helm', type: 'helm', baseDefense: [3, 5], reqLevel: 1, sprite: 'item/cap', maxDurability: 40 },
   { id: 'skull_cap', name: '头盔', slot: 'helm', type: 'helm', baseDefense: [8, 11], reqLevel: 5, reqStr: 15, sprite: 'item/skull_cap', maxDurability: 40 },

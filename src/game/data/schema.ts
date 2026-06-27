@@ -61,6 +61,7 @@ export interface ItemBase {
   reqStr?: number;
   reqDex?: number;
   sockets?: number;
+  attackSpeed?: number; // 武器基础挥击间隔(秒); 缺省 0.55。剑快斧慢, 体现 D2 武器快慢手感。
   sprite: string;
   maxDurability?: number; // 最大耐久度 (Hell 难度死亡时扣减)
 }
