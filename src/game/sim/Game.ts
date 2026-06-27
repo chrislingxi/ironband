@@ -141,6 +141,8 @@ export class Game {
   private potionCd = 0; // 药水冷却 (秒)
   private lifeLeechPct = 0; // 装备吸血% (recompute 汇总)
   runeBag: Record<string, number> = {}; // 符文背包 (runeId → 数量); 镶孔消耗
+  private chillUntilMs = 0; // 被寒冷附魔精英命中后的减速截止 (玩家移速×0.5)
+  get isChilled(): boolean { return this.timeMs < this.chillUntilMs; } // 玩家是否处于减速
 
   constructor(seed = 1234, cls: CharClass = 'barbarian') {
     this.rng = mulberry32(seed);
@@ -475,10 +477,24 @@ export class Game {
     this.loadArea(this.currentArea.id);
   }
 
+  // 光环精英(战旗统帅)在场: 附近同群怪攻击增伤 (D2 光环威胁放大器)。
+  private auraMultiplier(attacker: Entity): number {
+    if (attacker.kind !== 'monster') return 1;
+    for (const e of this.monsters) {
+      if (e === attacker || e.dead) continue;
+      if (!(e as { aura?: boolean }).aura) continue;
+      if (dist(e.pos, attacker.pos) < 6) return 1.25;
+    }
+    return 1;
+  }
+
   private attack = (attacker: Entity, defender: Entity, dmg: DamageInstance[]): void => {
     // 暴击/致命: 玩家攻击有几率双倍物理伤害 (基础5% + 亚马逊critical_strike每点3%)。
     let useDmg = dmg;
     let crit = false;
+    // 光环增伤 (怪物受战旗统帅光环加成)
+    const aura = this.auraMultiplier(attacker);
+    if (aura !== 1) useDmg = useDmg.map((d) => ({ ...d, min: Math.round(d.min * aura), max: Math.round(d.max * aura) }));
     if (attacker === this.player && this.rng() < this.playerCritChance()) {
       crit = true;
       useDmg = dmg.map((d) => (d.type === 'physical' ? { ...d, min: d.min * 2, max: d.max * 2 } : d));
@@ -490,6 +506,10 @@ export class Game {
       return;
     }
     defender.hitFlash = 1;
+    // 寒冷附魔精英(霜噬之息)命中玩家 → 减速
+    if (defender === this.player && (attacker as { onHitChill?: boolean }).onHitChill) {
+      this.chillUntilMs = Math.max(this.chillUntilMs, this.timeMs + 1500);
+    }
     const dmgType = dominantDamageType(r.damageByType);
     const immune = r.totalDamage === 0 && useDmg.length > 0;
     this.events.push({
@@ -608,10 +628,11 @@ export class Game {
     if (!p.dead && !stunned) {
       const mv = input.move;
       const mag = Math.hypot(mv.x, mv.y);
+      const chillFactor = now < this.chillUntilMs ? 0.5 : 1; // 寒冷附魔精英命中后减速
       if (mag > 0.05) {
         const d = normalize(mv);
-        p.pos.x += d.x * p.speed * dt * Math.min(1, mag);
-        p.pos.y += d.y * p.speed * dt * Math.min(1, mag);
+        p.pos.x += d.x * p.speed * chillFactor * dt * Math.min(1, mag);
+        p.pos.y += d.y * p.speed * chillFactor * dt * Math.min(1, mag);
         p.facing = Math.atan2(d.y, d.x);
         p.moving = true;
       } else {
