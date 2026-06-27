@@ -28,6 +28,7 @@ import { hireCost, reviveCost } from '@game/systems/merc/merc.ts';
 import { GameAudio } from '@engine/audio/index.ts';
 import { serializeGame, applySave, saveToDB, loadFromDB, listSlots, nextFreeSlot, deleteSlot } from '@game/systems/save/index.ts';
 import { WaypointPanel } from '@game/ui/waypoint.ts';
+import { WorldMapPanel, type WorldArea } from '@game/ui/worldmap.ts';
 import { listWaypoints } from '@game/systems/waypoint/waypoint.ts';
 import { dist } from '@engine/math/vec.ts';
 
@@ -495,7 +496,7 @@ async function main() {
     'width:48px;height:48px;border-radius:11px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
     'align-items:center;justify-content:center;font-size:23px;pointer-events:auto;z-index:40;box-shadow:0 4px 10px #000b,inset 0 1px 4px #ffffff16,inset 0 -3px 7px #00000050;';
   const skillPanel = new SkillTreePanel(game, () => { skillPanel.hide(); paused = false; });
-  function closePanels(): void { panel.hide(); skillPanel.hide(); questLog.hide(); town.hide(); wp.hide(); paused = false; }
+  function closePanels(): void { panel.hide(); skillPanel.hide(); questLog.hide(); town.hide(); wp.hide(); worldMap.hide(); paused = false; }
   bagBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();
     if (panel.open) closePanels();
@@ -653,8 +654,22 @@ async function main() {
   mm.className = 'hud-mini';
   mm.style.cssText =
     'position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(14px + env(safe-area-inset-top));' +
-    'width:118px;height:84px;border:1.5px solid #6a5a3a;background:#0009;border-radius:8px;pointer-events:none;z-index:35;box-shadow:0 3px 8px #000a;';
+    'width:118px;height:84px;border:1.5px solid #6a5a3a;background:#0009;border-radius:8px;pointer-events:auto;z-index:35;box-shadow:0 3px 8px #000a;';
   document.body.appendChild(mm);
+  // 点击小地图 → 展开世界地图 (关卡链路 + 航点传送)
+  const BOSS_AREA_IDS = new Set(['andariel_lair', 'tal_rasha_tomb', 'durance_of_hate', 'chaos_sanctuary', 'worldstone_keep']);
+  const worldMap = new WorldMapPanel((id) => { game.loadArea(id); worldMap.hide(); paused = false; }, () => { paused = false; });
+  function worldAreas(): WorldArea[] {
+    return Object.keys(AREAS).map((id) => {
+      const a = AREAS[id];
+      return { id, name: a.name, act: a.act ?? 1, isTown: !!a.isTown, waypoint: !!a.waypoint, isBoss: BOSS_AREA_IDS.has(id) };
+    });
+  }
+  mm.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (worldMap.open) { worldMap.hide(); paused = false; }
+    else { closePanels(); worldMap.show({ currentId: game.currentArea.id, discovered: game.discoveredWaypoints, areas: worldAreas() }); paused = true; }
+  });
 
   // 竖屏适配: 小地图已在右上角(不再压血条); 技能簇上抬避开底部功能栏。
   const respStyle = document.createElement('style');
