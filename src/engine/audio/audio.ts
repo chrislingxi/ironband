@@ -20,6 +20,8 @@ export type SfxName =
   | 'coin'     // 金币: 上行正弦双音(更清亮)
   | 'select';  // 界面选择: 清脆点击
 
+import { decodeSample, SFX_BASENAMES, BGM_BASENAME } from './samples.ts';
+
 // 跨浏览器 AudioContext 构造器(含旧 Safari 的 webkit 前缀).
 type AudioCtor = typeof AudioContext;
 
@@ -49,6 +51,11 @@ export class GameAudio {
   private _volume = 0.6; // 主音量 0..1.
   private bgmRunning = false;
 
+  // 采样层: 命中真音效(assets/audio/<name>.<ext>)则优先播放, 缺则回退合成。
+  private samples = new Map<string, AudioBuffer>();
+  private samplesPreloaded = false;
+  private bgmSampleSrc: AudioBufferSourceNode | null = null;
+
   // 构造时不创建 AudioContext, 只解析构造器. 真正实例化推迟到 unlock().
   private readonly Ctor: AudioCtor | null;
 
@@ -76,6 +83,38 @@ export class GameAudio {
     if (this.ctx.state === 'suspended') {
       void this.ctx.resume().catch(() => undefined);
     }
+    // 首次解锁后异步预载采样(有真音效文件则用之, 全缺则保持合成, 不阻塞).
+    this.preloadSamples();
+  }
+
+  // 预载 assets/audio 下的真音效到缓存; 全部失败则采样层为空, sfx/bgm 自动回退合成。
+  private preloadSamples(): void {
+    if (this.samplesPreloaded) return;
+    const ctx = this.ctx;
+    if (!ctx) return;
+    this.samplesPreloaded = true;
+    const want: Array<[string, string]> = Object.entries(SFX_BASENAMES);
+    want.push(['__bgm', BGM_BASENAME]);
+    for (const [name, base] of want) {
+      void decodeSample(ctx, base).then((buf) => { if (buf) this.samples.set(name, buf); }).catch(() => undefined);
+    }
+  }
+
+  // 用已加载采样播放一次; 无采样返回 false 让调用方回退合成。
+  private playSample(name: string, gain = 1): boolean {
+    const ctx = this.ctx;
+    const master = this.master;
+    const buf = this.samples.get(name);
+    if (!ctx || !master || !buf) return false;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const g = ctx.createGain();
+    g.gain.value = gain;
+    src.connect(g);
+    g.connect(master);
+    src.start(ctx.currentTime);
+    src.onended = () => { src.disconnect(); g.disconnect(); };
+    return true;
   }
 
   // 设置启用状态. 关闭时立即把主增益拉到 0(平滑), 但不销毁 BGM 节点.
@@ -107,21 +146,26 @@ export class GameAudio {
     const ctx = this.ctx;
     const master = this.master;
     if (!ctx || !master) return;
+    // 优先真音效采样; 缺文件则走下面的程序化合成。
+    if (this.playSample(name)) return;
     const t = ctx.currentTime;
 
     switch (name) {
       case 'hit':
-        // 短促噪声爆: 带通后的白噪声, 快起快落, 模拟金属/血肉撞击.
-        this.noiseBurst(t, 0.09, 1200, 0.55, 0.6);
+        // 短促噪声爆 + 低频体感 thump: 噪声给"金属/血肉"质感, 低频正弦给"重量", 合起来更扎实不单薄.
+        this.noiseBurst(t, 0.09, 1200, 0.55, 0.55);
+        this.tone(t, 'sine', 190, 72, 0.12, 0.34, 420);
         break;
       case 'hurt':
         // 受伤: 更低沉的噪声短爆, 偏闷.
         this.noiseBurst(t, 0.12, 480, 0.9, 0.45);
         break;
       case 'skill': {
-        // 下扫方波: 起音偏高频快速下滑, 营造能量释放的"呼啸".
+        // 下扫方波 + 谐音层 + 噪声呼啸: 三层叠加, 让"放技能"厚而有能量感, 不再单薄.
         const f0 = 660 + (Math.random() - 0.5) * 40; // 微扰避免机械感.
-        this.tone(t, 'square', f0, 110, 0.22, 0.3, 1400);
+        this.tone(t, 'square', f0, 110, 0.22, 0.28, 1400);
+        this.tone(t, 'sine', f0 * 1.5, 240, 0.2, 0.14, 2200);  // 五度谐音, 增亮
+        this.noiseBurst(t, 0.18, 760, 0.7, 0.16);              // 释放呼啸尾
         break;
       }
       case 'pickup':
@@ -149,6 +193,8 @@ export class GameAudio {
             last ? 0.3 : 0.26,
           );
         }
+        // 收尾高频闪光: 庄严之上加一缕"升华"亮音.
+        this.tone(t + 0.32, 'sine', root * 3, root * 4, 0.5, 0.12);
         break;
       }
       case 'death':
@@ -272,6 +318,23 @@ export class GameAudio {
     if (this.bgmRunning) return;
     this.bgmRunning = true;
 
+    // 有 BGM 采样(assets/audio/bgm.*)则循环播放真音乐, 不再合成 drone。
+    const bgmBuf = this.samples.get('__bgm');
+    if (bgmBuf) {
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 3);
+      const src = ctx.createBufferSource();
+      src.buffer = bgmBuf;
+      src.loop = true;
+      src.connect(gain);
+      gain.connect(master);
+      src.start(ctx.currentTime);
+      this.bgmSampleSrc = src;
+      this.bgmGain = gain;
+      return;
+    }
+
     // BGM 总增益(极低, 仅作氛围底噪).
     const bgmGain = ctx.createGain();
     bgmGain.gain.value = 0;
@@ -343,6 +406,22 @@ export class GameAudio {
 
     const now = ctx.currentTime;
     const fade = 1.5;
+
+    // 采样 BGM: 淡出后停止 source, 拆增益。
+    if (this.bgmSampleSrc) {
+      const src = this.bgmSampleSrc;
+      const gain = this.bgmGain;
+      this.bgmSampleSrc = null;
+      this.bgmGain = null;
+      if (gain) {
+        gain.gain.cancelScheduledValues(now);
+        gain.gain.setValueAtTime(gain.gain.value, now);
+        gain.gain.linearRampToValueAtTime(0, now + fade);
+      }
+      src.stop(now + fade + 0.05);
+      src.onended = () => { src.disconnect(); if (gain) gain.disconnect(); };
+      return;
+    }
 
     // 先淡出主 BGM 增益.
     if (this.bgmGain) {
