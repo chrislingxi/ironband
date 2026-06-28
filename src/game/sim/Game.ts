@@ -304,6 +304,34 @@ export class Game {
     return true;
   }
 
+  // 一键穿戴: 每个槽位从背包挑可穿且评分最高的装备(优于当前则换上)。返回换装件数。
+  equipBest(): number {
+    const order: EquipSlot[] = ['weapon', 'helm', 'armor', 'shield', 'gloves', 'boots', 'belt', 'ring', 'amulet'];
+    const score = (it: ItemInstance): number => {
+      let s = 0;
+      if (it.base.baseDamage) s += (it.base.baseDamage[0] + it.base.baseDamage[1]) / 2 * 3;
+      if (it.base.baseDefense) s += (it.base.baseDefense[0] + it.base.baseDefense[1]) / 2;
+      for (const a of it.affixes) s += a.value;
+      s += { normal: 0, magic: 6, rare: 14, set: 18, unique: 22 }[it.rarity] ?? 0;
+      return s;
+    };
+    let changed = 0;
+    for (const slot of order) {
+      // 该槽可穿候选 (背包内, 已鉴定且满足需求)
+      let bestIdx = -1, bestScore = this.character.equipment[slot] ? score(this.character.equipment[slot]!) : -1;
+      for (let i = 0; i < this.inventory.length; i++) {
+        const it = this.inventory[i];
+        if (it.base.slot !== slot || !this.canEquip(it)) continue;
+        const sc = score(it);
+        if (sc > bestScore) { bestScore = sc; bestIdx = i; }
+      }
+      if (bestIdx >= 0) { if (this.equip(bestIdx)) changed++; }
+    }
+    if (changed > 0) this.notices.push(`一键穿戴: 更换了 ${changed} 件装备`);
+    else this.notices.push('没有更好的装备可换');
+    return changed;
+  }
+
   // 卸下某槽位装备到背包
   unequip(slot: EquipSlot): boolean {
     const it = this.character.equipment[slot];
