@@ -80,7 +80,7 @@ function injectStyle(): void {
   styled = true;
   const css = `
   #inv { position:absolute; inset:0; display:none; background:#0c0c12ee; z-index:80; color:#e8e0d0;
-    font-family:-apple-system,"PingFang SC",sans-serif; padding:max(16px,env(safe-area-inset-top)) 16px 16px; overflow:auto; }
+    font-family:-apple-system,"PingFang SC",sans-serif; padding:max(16px,env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 16px calc(16px + env(safe-area-inset-left)); overflow:auto; }
   #inv h3 { font-family:Georgia,serif; color:#ffd76b; font-size:16px; margin:6px 0; }
   #inv .close { position:absolute; top:12px; right:16px; width:40px; height:40px; border-radius:8px; background:#2a2a36;
     display:flex; align-items:center; justify-content:center; font-size:22px; }

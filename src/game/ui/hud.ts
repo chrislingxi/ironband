@@ -9,30 +9,30 @@ function injectStyle(): void {
   #hud { position:absolute; inset:0; pointer-events:none; font-family:-apple-system,"PingFang SC",sans-serif;
     padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
   /* 生命条: 金边双框 + 渐变填充 + 顶部高光 (Premium Q版) */
-  #hud .bar { position:absolute; left:16px; top:16px; width:216px; height:22px; border-radius:12px;
+  #hud .bar { position:absolute; left:calc(16px + env(safe-area-inset-left)); top:16px; width:216px; height:22px; border-radius:12px;
     background:linear-gradient(#120806,#241410); border:1.5px solid #c79433;
     box-shadow:0 2px 6px #000b, 0 0 0 1px #00000080, inset 0 1px 2px #0008; overflow:hidden; }
   #hud .bar > i { display:block; height:100%; width:100%;
     background:linear-gradient(180deg,#ff8a72 0%,#e23a2a 45%,#a81810 100%); transition:width .14s ease-out;
     box-shadow:inset 0 6px 5px -4px #ffffff70, inset 0 -4px 5px -3px #00000060; }
-  #hud .hptxt { position:absolute; left:16px; top:16px; width:216px; height:22px; text-align:center; line-height:22px;
+  #hud .hptxt { position:absolute; left:calc(16px + env(safe-area-inset-left)); top:16px; width:216px; height:22px; text-align:center; line-height:22px;
     font-size:12px; font-weight:800; color:#fff; letter-spacing:.5px; text-shadow:0 1px 2px #000,0 0 4px #0008; }
   /* 金币: 药丸徽章 */
-  #hud .gold { position:absolute; left:16px; top:44px; padding:2px 10px 2px 8px; border-radius:10px;
+  #hud .gold { position:absolute; left:calc(16px + env(safe-area-inset-left)); top:44px; padding:2px 10px 2px 8px; border-radius:10px;
     background:#0c0c12cc; border:1px solid #6a5a3a; font-size:13px; color:#ffcf4a; font-weight:800;
     text-shadow:0 1px 2px #000; box-shadow:0 2px 5px #0008; }
   /* 治疗药水: 可点红珠 (点击/低血自动饮) */
-  #hud .potion { position:absolute; left:108px; top:43px; padding:2px 9px 2px 7px; border-radius:11px; pointer-events:auto;
+  #hud .potion { position:absolute; left:calc(108px + env(safe-area-inset-left)); top:43px; padding:2px 9px 2px 7px; border-radius:11px; pointer-events:auto;
     background:radial-gradient(circle at 50% 30%,#7a1414,#3a0808); border:1.5px solid #c24a3a; font-size:13px; color:#ffd2c8;
     font-weight:800; text-shadow:0 1px 2px #000; box-shadow:0 2px 5px #0008, inset 0 1px 3px #ffffff22; user-select:none; }
   #hud .potion:active { transform:scale(.92); }
   #hud .potion.empty { filter:grayscale(1) brightness(.6); }
   /* 等级: 金色徽记 */
-  #hud .lvl { position:absolute; left:244px; top:15px; padding:2px 11px; border-radius:11px;
+  #hud .lvl { position:absolute; left:calc(244px + env(safe-area-inset-left)); top:15px; padding:2px 11px; border-radius:11px;
     background:linear-gradient(#3a2c14,#1c1408); border:1.5px solid #c79433;
     font-family:Cinzel,Georgia,serif; font-size:14px; font-weight:800; color:#ffe08a; text-shadow:0 1px 2px #000;
     box-shadow:0 2px 5px #0008; }
-  #hud .xpbar { position:absolute; left:16px; right:16px; bottom:6px; height:6px; border-radius:3px;
+  #hud .xpbar { position:absolute; left:calc(16px + env(safe-area-inset-left)); right:calc(16px + env(safe-area-inset-right)); bottom:6px; height:6px; border-radius:3px;
     background:#000a; overflow:hidden; box-shadow:inset 0 1px 2px #000a, 0 0 0 1px #6a5a3a55; }
   #hud .xpbar > i { display:block; height:100%; width:0; background:linear-gradient(90deg,#e0a020,#ffe9b0); transition:width .2s ease; }
   #hud .info { position:absolute; left:50%; transform:translateX(-50%); top:14px; padding:3px 12px; border-radius:10px;
