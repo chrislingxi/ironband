@@ -26,7 +26,7 @@ function injectStyle(): void {
     font-family:-apple-system,"PingFang SC",sans-serif; overflow:auto;
     padding:max(16px,env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left)); }
   #worldmap.show { display:block; }
-  #worldmap .x { position:absolute; top:12px; right:16px; width:40px; height:40px; border-radius:8px; background:#2a2a36;
+  #worldmap .x { position:absolute; top:calc(12px + env(safe-area-inset-top)); right:calc(16px + env(safe-area-inset-right)); width:40px; height:40px; border-radius:8px; background:#2a2a36;
     display:flex; align-items:center; justify-content:center; font-size:22px; z-index:2; }
   #worldmap h2 { font-family:Georgia,serif; color:#ffd76b; font-size:18px; text-align:center; margin:4px 0 4px; letter-spacing:2px; }
   #worldmap .hint { text-align:center; font-size:12px; color:#9a8a66; margin-bottom:12px; }

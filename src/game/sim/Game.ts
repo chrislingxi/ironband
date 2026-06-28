@@ -837,19 +837,15 @@ export class Game {
     for (const s of this.swings) s.ageMs += dt * 1000;
     this.swings = this.swings.filter((s) => s.ageMs < 220);
 
-    // ----- 磁吸拾金 -----
-    for (const g of this.gold) {
-      if (dist(g.pos, p.pos) < 1.8) { this.goldTotal += g.amount; g.amount = 0; }
-    }
+    // ----- 全屏自动拾金 (不再限距, 整图金币立即收取) -----
+    for (const g of this.gold) { this.goldTotal += g.amount; g.amount = 0; }
     this.gold = this.gold.filter((g) => g.amount > 0);
 
-    // 磁吸拾取地面物品 (背包未满); 满了给一次提示 (防止"踩着不捡"困惑)
+    // 全屏自动拾取地面物品 (背包未满); 满了给一次提示 (防止"踩着不捡"困惑)
     if (!p.dead) {
       this.groundItems = this.groundItems.filter((gi) => {
-        if (dist(gi.pos, p.pos) < 1.8) {
-          if (this.inventory.length < this.invCap) { this.inventory.push(gi.item); this.bagFullWarned = false; return false; }
-          if (!this.bagFullWarned) { this.notices.push('⚠ 背包已满! 回营地出售或丢弃'); this.bagFullWarned = true; }
-        }
+        if (this.inventory.length < this.invCap) { this.inventory.push(gi.item); this.bagFullWarned = false; return false; }
+        if (!this.bagFullWarned) { this.notices.push('⚠ 背包已满! 回营地出售或丢弃'); this.bagFullWarned = true; }
         return true;
       });
     }

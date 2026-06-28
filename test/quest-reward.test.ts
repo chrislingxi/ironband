@@ -14,7 +14,8 @@ describe('任务奖励', () => {
     const g = new Game(1, 'barbarian');
     const gold0 = g.goldTotal, inv0 = g.inventory.length;
     clearBoss(g, 'andariel_lair');
-    expect(g.goldTotal).toBe(gold0 + 600);
+    // 全屏自动拾取后, 奖励 600 之外还会收取 Boss 掉落的散金, 故 ≥ +600。
+    expect(g.goldTotal).toBeGreaterThanOrEqual(gold0 + 600);
     expect(g.inventory.length + g.groundItems.length).toBeGreaterThan(inv0); // 获得一件装备
   });
 
