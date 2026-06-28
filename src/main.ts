@@ -14,6 +14,7 @@ import { Game } from '@game/sim/Game.ts';
 import type { Entity } from '@game/entities/entity.ts';
 import { HUD } from '@game/ui/hud.ts';
 import { InventoryPanel } from '@game/ui/inventory.ts';
+import { CharacterPanel } from '@game/ui/character.ts';
 import { SkillTreePanel } from '@game/ui/skilltree.ts';
 import { NPCS, type NpcRole } from '@game/world/npcs.ts';
 import { AREAS } from '@game/world/act1.ts';
@@ -513,13 +514,28 @@ async function main() {
     'width:48px;height:48px;border-radius:11px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
     'align-items:center;justify-content:center;font-size:23px;pointer-events:auto;z-index:40;box-shadow:0 4px 10px #000b,inset 0 1px 4px #ffffff16,inset 0 -3px 7px #00000050;';
   const skillPanel = new SkillTreePanel(game, () => { skillPanel.hide(); paused = false; });
-  function closePanels(): void { panel.hide(); skillPanel.hide(); questLog.hide(); town.hide(); wp.hide(); worldMap.hide(); paused = false; }
+  const charPanel = new CharacterPanel(game, () => { charPanel.hide(); paused = false; });
+  function closePanels(): void { panel.hide(); skillPanel.hide(); questLog.hide(); town.hide(); wp.hide(); worldMap.hide(); charPanel.hide(); paused = false; }
   bagBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();
     if (panel.open) closePanels();
-    else { skillPanel.hide(); panel.show(); paused = true; }
+    else { closePanels(); panel.show(); paused = true; }
   });
   document.body.appendChild(bagBtn);
+
+  // 角色按钮 (属性/加点/装备/导向)
+  const charBtn = document.createElement('div');
+  charBtn.textContent = '🧍';
+  charBtn.style.cssText =
+    'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(330px + env(safe-area-inset-top));' +
+    'width:48px;height:48px;border-radius:11px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
+    'align-items:center;justify-content:center;font-size:23px;pointer-events:auto;z-index:40;box-shadow:0 4px 10px #000b,inset 0 1px 4px #ffffff16,inset 0 -3px 7px #00000050;';
+  charBtn.addEventListener('pointerdown', (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (charPanel.open) closePanels();
+    else { closePanels(); charPanel.show(); paused = true; }
+  });
+  document.body.appendChild(charBtn);
 
   // 技能树按钮
   const skillBtn = document.createElement('div');

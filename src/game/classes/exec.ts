@@ -6,9 +6,14 @@ import type { ClassSkillKey } from '@game/classes/profiles.ts';
 // 一个技能的执行参数 (id/name/icon 由技能树补全)。
 export type ExecProfile = Omit<ClassSkillKey, 'id' | 'name' | 'icon' | 'treeSkillId'>;
 
-// 普通攻击: 所有职业默认槽0, 无需学习, 用武器做一次标准近战。
+// 普通攻击: 所有职业默认槽0, 无需学习。野蛮人/亚马逊近战挥击; 法师射出魔法光弹(不再用棍子近战)。
 export const BASIC_ATTACK: ClassSkillKey = {
   id: 'basic_attack', name: '普通攻击', icon: '👊', cooldown: 0.25, kind: 'melee', damageMult: 1.0, damageType: 'physical',
+};
+export const BASIC_ATTACK_BY_CLASS: Record<'barbarian' | 'amazon' | 'sorceress', ClassSkillKey> = {
+  barbarian: BASIC_ATTACK,
+  amazon: BASIC_ATTACK,
+  sorceress: { id: 'basic_attack', name: '魔法光弹', icon: '🔵', cooldown: 0.35, kind: 'projectile', damageMult: 1.0, damageType: 'magic', missileKind: 'bolt' },
 };
 
 export const SKILL_EXEC: Record<string, ExecProfile> = {

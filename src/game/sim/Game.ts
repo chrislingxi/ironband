@@ -4,7 +4,7 @@ import type { DamageInstance } from '@game/systems/combat/index.ts';
 import { resolveAttack, rollDamage, attackInterval } from '@game/systems/combat/index.ts';
 import { updateMonsterAI, type AIContext } from '@game/systems/ai/behaviors.ts';
 import { CASTABLE_SKILLS, defaultLoadout, castableById, makeCharacterFor, type ClassSkillKey } from '@game/classes/profiles.ts';
-import { BASIC_ATTACK } from '@game/classes/exec.ts';
+import { BASIC_ATTACK, BASIC_ATTACK_BY_CLASS } from '@game/classes/exec.ts';
 import { generateItem, socketRune, type ItemInstance, type EquipSlot } from '@game/systems/items/index.ts';
 import { RUNES, runeById } from '@game/data/runes.ts';
 import { deriveCombat, type Character } from '@game/systems/stats/character.ts';
@@ -163,7 +163,7 @@ export class Game {
     const id = this.assignedSkills[slot];
     const key = castableById(cls, id);
     if (key) return key;
-    return slot === 0 ? BASIC_ATTACK : undefined; // 槽0永远至少是普通攻击
+    return slot === 0 ? (BASIC_ATTACK_BY_CLASS[cls] ?? BASIC_ATTACK) : undefined; // 槽0永远至少是普通攻击(法师=光弹)
   }
 
   // 某技能是否可装备到技能键: 普通攻击专属槽0; 其余主动技需在其技能树投过点 (学过才能上)。
@@ -302,6 +302,34 @@ export class Game {
     if (prev) this.inventory.push(prev);
     this.recompute();
     return true;
+  }
+
+  // 一键穿戴: 每个槽位从背包挑可穿且评分最高的装备(优于当前则换上)。返回换装件数。
+  equipBest(): number {
+    const order: EquipSlot[] = ['weapon', 'helm', 'armor', 'shield', 'gloves', 'boots', 'belt', 'ring', 'amulet'];
+    const score = (it: ItemInstance): number => {
+      let s = 0;
+      if (it.base.baseDamage) s += (it.base.baseDamage[0] + it.base.baseDamage[1]) / 2 * 3;
+      if (it.base.baseDefense) s += (it.base.baseDefense[0] + it.base.baseDefense[1]) / 2;
+      for (const a of it.affixes) s += a.value;
+      s += { normal: 0, magic: 6, rare: 14, set: 18, unique: 22 }[it.rarity] ?? 0;
+      return s;
+    };
+    let changed = 0;
+    for (const slot of order) {
+      // 该槽可穿候选 (背包内, 已鉴定且满足需求)
+      let bestIdx = -1, bestScore = this.character.equipment[slot] ? score(this.character.equipment[slot]!) : -1;
+      for (let i = 0; i < this.inventory.length; i++) {
+        const it = this.inventory[i];
+        if (it.base.slot !== slot || !this.canEquip(it)) continue;
+        const sc = score(it);
+        if (sc > bestScore) { bestScore = sc; bestIdx = i; }
+      }
+      if (bestIdx >= 0) { if (this.equip(bestIdx)) changed++; }
+    }
+    if (changed > 0) this.notices.push(`一键穿戴: 更换了 ${changed} 件装备`);
+    else this.notices.push('没有更好的装备可换');
+    return changed;
   }
 
   // 卸下某槽位装备到背包
@@ -698,14 +726,22 @@ export class Game {
       } else {
         p.moving = false;
       }
-      // 自动攻击最近的射程内怪物
+      // 自动普通攻击最近的怪 (法师=光弹远程, 近战=挥击近程); 技能仍需手点。
       if (p.attackCd <= 0) {
-        const target = this.nearestMonster(p.pos, p.attackRange + 0.5);
+        const bk = BASIC_ATTACK_BY_CLASS[this.character.cls as CharClass] ?? BASIC_ATTACK;
+        const ranged = bk.kind === 'projectile';
+        const range = ranged ? 9 : p.attackRange + 0.5;
+        const target = this.nearestMonster(p.pos, range);
         if (target) {
           p.facing = Math.atan2(target.pos.y - p.pos.y, target.pos.x - p.pos.x);
-          this.attack(p, target, p.damage);
+          if (ranged) {
+            const dir = { x: Math.cos(p.facing), y: Math.sin(p.facing) };
+            this.spawnMissile(dir, bk, this.skillDamage(bk));
+          } else {
+            this.attack(p, target, p.damage);
+            this.swings.push({ pos: { ...p.pos }, facing: p.facing, ageMs: 0, kind: 'basic' });
+          }
           p.attackCd = p.attackInterval;
-          this.swings.push({ pos: { ...p.pos }, facing: p.facing, ageMs: 0, kind: 'basic' });
         }
       }
     }
@@ -803,14 +839,14 @@ export class Game {
 
     // ----- 磁吸拾金 -----
     for (const g of this.gold) {
-      if (dist(g.pos, p.pos) < 1.2) { this.goldTotal += g.amount; g.amount = 0; }
+      if (dist(g.pos, p.pos) < 1.8) { this.goldTotal += g.amount; g.amount = 0; }
     }
     this.gold = this.gold.filter((g) => g.amount > 0);
 
     // 磁吸拾取地面物品 (背包未满); 满了给一次提示 (防止"踩着不捡"困惑)
     if (!p.dead) {
       this.groundItems = this.groundItems.filter((gi) => {
-        if (dist(gi.pos, p.pos) < 1.2) {
+        if (dist(gi.pos, p.pos) < 1.8) {
           if (this.inventory.length < this.invCap) { this.inventory.push(gi.item); this.bagFullWarned = false; return false; }
           if (!this.bagFullWarned) { this.notices.push('⚠ 背包已满! 回营地出售或丢弃'); this.bagFullWarned = true; }
         }

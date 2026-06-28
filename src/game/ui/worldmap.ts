@@ -24,7 +24,7 @@ function injectStyle(): void {
   const css = `
   #worldmap { position:absolute; inset:0; z-index:90; display:none; background:#05060bf2; color:#e8e0d0;
     font-family:-apple-system,"PingFang SC",sans-serif; overflow:auto;
-    padding:max(16px,env(safe-area-inset-top)) 16px calc(20px + env(safe-area-inset-bottom)); }
+    padding:max(16px,env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left)); }
   #worldmap.show { display:block; }
   #worldmap .x { position:absolute; top:12px; right:16px; width:40px; height:40px; border-radius:8px; background:#2a2a36;
     display:flex; align-items:center; justify-content:center; font-size:22px; z-index:2; }
