@@ -1,4 +1,5 @@
 import type { Game } from '@game/sim/Game.ts';
+import { iconImg } from '@game/ui/icon.ts';
 
 // 轻量 DOM HUD: 血条 / 金币 / 怪物数 / 3 技能键(含冷却). 触屏友好, 适配安全区.
 let styleInjected = false;
@@ -76,7 +77,7 @@ export class HUD {
       <div class="bar"><i></i></div>
       <div class="hptxt"></div>
       <div class="gold">⦿ 0</div>
-      <div class="potion">💊 <b>4</b></div>
+      <div class="potion" style="display:flex;align-items:center;gap:3px">${iconImg('potion', '💊', 20)} <b>4</b></div>
       <div class="lvl">Lv 1</div>
       <div class="info"></div>
       <div class="xpbar"><i></i></div>
