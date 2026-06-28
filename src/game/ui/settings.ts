@@ -1,5 +1,6 @@
 // 设置面板: 音量 / 音效·BGM 开关 / 自动饮药 / 重置存档。
 // 纯 DOM + 内联样式; 通过回调与 main 的 audio/game/save 解耦。
+import { iconImg } from '@game/ui/icon.ts';
 
 export interface SettingsHooks {
   getVolume(): number;          // 0..1
@@ -55,7 +56,7 @@ export class SettingsPanel {
     this.root.id = 'settings';
     this.root.innerHTML = `
       <div class="card">
-        <h3>⚙ 设置</h3>
+        <h3>${iconImg('settings', '⚙', 18)} 设置</h3>
         <div class="row"><span class="lbl">主音量</span><input type="range" min="0" max="100" class="vol"></div>
         <div class="row"><span class="lbl">音效</span><div class="sw sfx"><div class="dot"></div></div></div>
         <div class="row"><span class="lbl">背景音乐</span><div class="sw bgm"><div class="dot"></div></div></div>
