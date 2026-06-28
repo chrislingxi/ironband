@@ -131,11 +131,12 @@ export class HUD {
     this.lvlEl.textContent = `Lv ${this.game.character.level}`;
     this.xpFill.style.width = `${Math.min(100, (this.game.character.xp / this.game.xpForNext()) * 100)}%`;
     const area = this.game.currentArea?.name ?? '';
-    this.infoEl.textContent = p.dead
-      ? '☠ 已阵亡'
+    const obj = this.game.currentObjective;
+    this.infoEl.innerHTML = p.dead
+      ? '已阵亡'
       : this.game.currentArea?.isTown
-        ? `${area} · 安全区`
-        : `${area} · 剩余怪物 ${this.game.monsters.length}`;
+        ? `${area} · 安全区${obj ? `<br><span style="color:#e7c66a;font-size:11px">${iconImg('bullseye', '🎯', 12)} ${obj}</span>` : ''}`
+        : `${area} · 剩余怪物 ${this.game.monsters.length}${obj ? `<br><span style="color:#e7c66a;font-size:11px">${iconImg('bullseye', '🎯', 12)} ${obj}</span>` : ''}`;
     this.skills.forEach((s) => {
       const key = this.game.skillKey(s.slot); // 实时解析当前绑定 (支持改键; 空槽 undefined)
       const icon = key?.icon ?? '·', name = key?.name ?? '空';
