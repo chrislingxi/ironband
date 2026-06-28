@@ -777,6 +777,8 @@ async function main() {
     'font-weight:800;color:#ffe08a;text-shadow:0 2px 10px #000;pointer-events:none;opacity:0;transition:opacity .4s;z-index:60;';
   document.body.appendChild(noticeEl);
   let noticeUntil = 0;
+  let noticeReadyAt = 0;            // 上一条淡出后的就绪时刻 (留出淡出间隙再上下一条)
+  const noticeQueue: string[] = []; // 顺序展示队列 (一帧多条不丢失)
 
   // NPC 交互气泡 (营地靠近时显示, 可点击触发该 NPC 的功能)
   const npcEl = document.createElement('div');
@@ -898,13 +900,24 @@ async function main() {
       hud.update();
       syncMinimap();
       syncExitArrow();
+      // 通知队列: 逐条顺序展示(不再只显最后一条/丢掉多行任务文案); 任务完成类更醒目、停留更久。
       if (game.notices.length) {
-        noticeEl.textContent = game.notices[game.notices.length - 1];
-        noticeEl.style.opacity = '1';
-        noticeUntil = performance.now() + 1400;
+        noticeQueue.push(...game.notices);
         game.notices.length = 0;
+        if (noticeQueue.length > 8) noticeQueue.splice(0, noticeQueue.length - 8); // 防刷屏堆积
       }
-      if (noticeUntil && performance.now() > noticeUntil) { noticeEl.style.opacity = '0'; noticeUntil = 0; }
+      const nowMs = performance.now();
+      if (noticeUntil && nowMs > noticeUntil) { noticeEl.style.opacity = '0'; noticeUntil = 0; noticeReadyAt = nowMs + 380; }
+      if (!noticeUntil && nowMs >= noticeReadyAt && noticeQueue.length) {
+        const msg = noticeQueue.shift() as string;
+        const big = /任务完成|通关|★|全剧终/.test(msg); // 任务/幕完成 = 庆祝级横幅
+        noticeEl.textContent = msg;
+        noticeEl.style.color = big ? '#ffd76b' : '#ffe08a';
+        noticeEl.style.fontSize = big ? '30px' : '34px';
+        noticeEl.style.textShadow = big ? '0 2px 18px #c79433aa, 0 0 4px #000' : '0 2px 10px #000';
+        noticeEl.style.opacity = '1';
+        noticeUntil = nowMs + (big ? 2600 : 1400);
+      }
       // 营地 NPC 邻近问候
       if (game.currentArea.isTown && npcMarkers.length) {
         let near: typeof npcMarkers[number] | null = null;
