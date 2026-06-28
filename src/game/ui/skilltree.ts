@@ -4,6 +4,7 @@ import { CLASS_SKILLS, TAB_NAMES } from '@game/classes/registry.ts';
 import { canInvest, pointsIn, requiredLevel } from '@game/classes/skilltree.ts';
 import { SKILL_EXEC } from '@game/classes/exec.ts';
 import { DIFFICULTIES } from '@game/systems/difficulty.ts';
+import { skillIconHtml } from '@game/ui/icon.ts';
 
 const DTYPE: Record<string, string> = { fire: '火', cold: '冰', lightning: '电', poison: '毒', magic: '魔', physical: '物理' };
 const DIFF_LABEL: Record<string, string> = { normal: '普通', nightmare: '噩梦', hell: '地狱' };
@@ -222,7 +223,7 @@ export class SkillTreePanel {
     if (!def) { el.textContent = '点击技能图标查看效果'; return; }
     const lvl = pointsIn(def.id, g.skillTree);
     const exec = SKILL_EXEC[def.id];
-    const lines = [`<b>${def.icon} ${def.name}</b> · ${def.passive ? '被动' : '主动'} · 等级 ${lvl}/${def.maxLevel}`];
+    const lines = [`<b>${skillIconHtml(def.icon, 20)} ${def.name}</b> · ${def.passive ? '被动' : '主动'} · 等级 ${lvl}/${def.maxLevel}`];
     if (def.baseDamage) {
       const base = Math.max(1, lvl);
       const cur = def.baseDamage(base);
@@ -266,7 +267,7 @@ export class SkillTreePanel {
       const key = g.skillKey(slot);
       const cell = document.createElement('span');
       cell.className = 'chip' + (slot === 0 ? ' on' : '');
-      cell.innerHTML = key ? `${slot === 0 ? '🔒' : slot} ${key.icon}${key.name}` : `${slot} <span style="opacity:.5">空</span>`;
+      cell.innerHTML = key ? `${slot === 0 ? '🔒' : slot} ${skillIconHtml(key.icon, 18)}${key.name}` : `${slot} <span style="opacity:.5">空</span>`;
       if (slot >= 1 && key) {
         const x = document.createElement('span');
         x.textContent = ' ✕'; x.style.cssText = 'color:#d88;cursor:pointer';
@@ -289,7 +290,7 @@ export class SkillTreePanel {
     tile.className = 'sk' + (locked ? ' locked' : '') + (lvl > 0 ? ' learned' : '') + (investable ? ' investable' : '') +
       (maxed ? ' maxed' : '') + (this.selectedId === def.id ? ' sel' : '');
     tile.dataset.id = def.id;
-    tile.innerHTML = `${def.icon}<span class="lv">${lvl}/${def.maxLevel}</span>${investable ? '<span class="plus">+</span>' : ''}<span class="nm">${def.name}</span>`;
+    tile.innerHTML = `${skillIconHtml(def.icon, 30)}<span class="lv">${lvl}/${def.maxLevel}</span>${investable ? '<span class="plus">+</span>' : ''}<span class="nm">${def.name}</span>`;
     // 点图标主体 → 选中
     tile.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.selectedId = def.id; this.refresh(); });
     // 点右上 + → 直接投点
