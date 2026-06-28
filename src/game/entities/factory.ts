@@ -8,6 +8,7 @@ import { MEPHISTO } from '@game/systems/boss/mephisto.ts';
 import { DIABLO } from '@game/systems/boss/diablo.ts';
 import { BAAL } from '@game/systems/boss/baal.ts';
 import type { MonStat } from '@game/data/schema.ts';
+import { BALANCE } from '@game/data/balance.ts';
 
 const ALL_MONSTERS: Record<string, MonStat> = {
   ...MONSTERS, ...MONSTERS_EXT,
@@ -50,7 +51,8 @@ export function makeMonster(defId: string, x: number, y: number, rng: RNG, diff:
   const m = ALL_MONSTERS[defId];
   if (!m) throw new Error(`unknown monster: ${defId}`);
   const [hpMin, hpMax] = m.hp[diff];
-  const hp = randInt(rng, hpMin, hpMax);
+  // Boss 生命倍率 (BALANCE.bossHpMult): Boss 远比杂兵耐打, 与下调后输出匹配出耐久 Boss 战。
+  const hp = Math.round(randInt(rng, hpMin, hpMax) * (m.flags?.boss ? BALANCE.bossHpMult : 1));
   const resist = noResist();
   for (const k in m.resist) {
     const t = k as DamageType;

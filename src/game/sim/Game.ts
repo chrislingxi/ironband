@@ -7,6 +7,7 @@ import { CASTABLE_SKILLS, defaultLoadout, castableById, makeCharacterFor, type C
 import { BASIC_ATTACK, BASIC_ATTACK_BY_CLASS } from '@game/classes/exec.ts';
 import { generateItem, socketRune, type ItemInstance, type EquipSlot } from '@game/systems/items/index.ts';
 import { RUNES, runeById } from '@game/data/runes.ts';
+import { BALANCE } from '@game/data/balance.ts';
 import { deriveCombat, type Character } from '@game/systems/stats/character.ts';
 import { createMissile, updateMissiles, type Missile } from '@game/systems/missiles/index.ts';
 import { rollEliteAffixes, applyElite } from '@game/systems/elites/index.ts';
@@ -982,10 +983,11 @@ export class Game {
     const def = defs.find((d) => d.id === treeId);
     if (type !== 'physical' && def?.baseDamage) {
       const lvl = Math.max(1, pointsIn(treeId, this.skillTree));
-      const syn = synergyBonus(def, this.skillTree, defs);
+      const syn = synergyBonus(def, this.skillTree, defs) * BALANCE.synergyScale;
       const [mn, mx] = def.baseDamage(lvl);
-      // 法术放大因子: 技能基础伤害量级远小于怪物HP经济, 统一放大以匹配 (M4 校验标定)。
-      const K = 14;
+      // 法术放大因子 (BALANCE.spellK): 技能基础伤害量级远小于怪物HP经济, 统一放大以匹配。
+      // 由平衡 BOT 以目标带自动标定 (见 src/game/data/balance.ts)。
+      const K = BALANCE.spellK;
       return [{ type, min: Math.max(1, Math.round(mn * (1 + syn) * K)), max: Math.max(1, Math.round(mx * (1 + syn) * K)) }];
     }
     return this.scaleDamage(key.damageMult * this.skillPower(key), type);
