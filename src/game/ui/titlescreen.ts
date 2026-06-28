@@ -43,6 +43,12 @@ const CLASS_NAME: Record<CharClass, string> = {
   amazon: '亚马逊',
   sorceress: '法师',
 };
+// 去AI感: 职业卡/存档槽用真实角色立绘(assets/char/<cls>.png)替 emoji; 缺图回退 emoji。
+function classIconHtml(cls: CharClass): string {
+  const emoji = CLASS_ICON[cls];
+  return `<img class="cimg" src="assets/char/${cls}.png" alt="" `
+    + `onerror="this.style.display='none';this.insertAdjacentText('afterend','${emoji}')">`;
+}
 const DIFF_NAME: Record<Difficulty, string> = {
   normal: '普通',
   nightmare: '噩梦',
@@ -55,10 +61,10 @@ function injectStyle(): void {
   styleInjected = true;
   const css = `
   #title { position:absolute; inset:0; z-index:50; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; pointer-events:auto; overflow:hidden;
+    align-items:center; justify-content:safe center; pointer-events:auto; overflow-y:auto; -webkit-overflow-scrolling:touch;
     background:radial-gradient(120% 90% at 50% 0%, #2a2018 0%, #160f0a 55%, #060403 100%);
     font-family:-apple-system,"PingFang SC",sans-serif; color:#e8e0d0;
-    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+    padding:calc(12px + env(safe-area-inset-top)) env(safe-area-inset-right) calc(40px + env(safe-area-inset-bottom)) env(safe-area-inset-left); }
   #title h1 { margin:0 0 6px; font-family:Cinzel,Georgia,"Times New Roman",serif; font-weight:800;
     font-size:clamp(40px,11vw,84px); letter-spacing:.18em; text-transform:uppercase;
     color:#e7c66a;
@@ -73,12 +79,24 @@ function injectStyle(): void {
     box-shadow:0 6px 20px #000a, 0 0 0 1px #0006 inset; transition:transform .08s ease, border-color .15s, box-shadow .15s; }
   #title .card:hover { border-color:#c79433; box-shadow:0 8px 26px #000c, 0 0 18px #c7943330; }
   #title .card:active { transform:scale(.95); }
-  #title .card .ic { font-size:clamp(40px,9vw,58px); line-height:1; filter:drop-shadow(0 3px 6px #000a); }
+  #title .card .ic { height:84px; display:flex; align-items:center; justify-content:center; font-size:clamp(40px,9vw,58px); line-height:1; filter:drop-shadow(0 4px 8px #000b); }
+  #title .card .ic img.cimg { height:90px; width:auto; max-width:100%; object-fit:contain; }
   #title .card .nm { margin:14px 0 8px; font-family:Cinzel,Georgia,serif; font-weight:700;
     font-size:clamp(18px,4.4vw,22px); letter-spacing:.06em; color:#e7c66a; text-shadow:0 1px 3px #000; }
   #title .card .bl { font-size:clamp(11px,3vw,13px); line-height:1.5; color:#b8ab92; }
   #title .foot { position:absolute; bottom:calc(14px + env(safe-area-inset-bottom)); left:0; width:100%;
-    text-align:center; font-size:11px; color:#6a5e48; letter-spacing:.08em; }
+    text-align:center; font-size:11px; color:#6a5e48; letter-spacing:.08em; pointer-events:none; }
+  /* 短屏(横屏/小机)紧凑职业卡, 防越界/与页脚重叠堆叠 */
+  @media (max-height:620px) {
+    #title h1 { font-size:clamp(30px,7vw,52px); margin-bottom:2px; }
+    #title .sub { margin-bottom:12px; }
+    #title .cards { gap:10px; }
+    #title .card { padding:12px 12px 12px; min-width:118px; }
+    #title .card .ic { height:50px; } #title .card .ic img.cimg { height:54px; }
+    #title .card .nm { margin:8px 0 4px; font-size:clamp(15px,3.6vw,19px); }
+    #title .card .bl { display:none; }
+    #title .foot { display:none; }
+  }
   /* --- 存档槽列表 --- */
   #title .slots { display:flex; flex-direction:column; gap:12px; width:min(440px,86vw); max-height:62vh; overflow:auto;
     -webkit-overflow-scrolling:touch; padding:2px; }
@@ -88,7 +106,8 @@ function injectStyle(): void {
   #title .slot:hover { border-color:#c79433; box-shadow:0 0 16px #c7943322; }
   #title .slot:active { transform:scale(.98); }
   #title .slot.new { border-style:dashed; justify-content:center; color:#c79433; font-weight:700; }
-  #title .slot .sic { font-size:34px; line-height:1; filter:drop-shadow(0 2px 4px #000a); }
+  #title .slot .sic { width:44px; height:44px; display:flex; align-items:center; justify-content:center; font-size:34px; line-height:1; filter:drop-shadow(0 2px 4px #000a); }
+  #title .slot .sic img.cimg { height:44px; width:auto; object-fit:contain; }
   #title .slot .meta { flex:1; min-width:0; text-align:left; }
   #title .slot .meta .snm { font-family:Cinzel,Georgia,serif; font-size:18px; color:#e7c66a; font-weight:700;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -97,6 +116,7 @@ function injectStyle(): void {
   #title .slot .del:hover { color:#d8604a; background:#0006; }
   /* --- 命名输入 --- */
   #title .namebox { display:flex; flex-direction:column; align-items:center; gap:18px; width:min(380px,84vw); }
+  #title .nbportrait img.cimg { height:104px; width:auto; object-fit:contain; filter:drop-shadow(0 4px 8px #000b); }
   #title .namebox input { width:100%; box-sizing:border-box; padding:14px 16px; font-size:18px; text-align:center;
     border-radius:12px; border:1px solid #6a5a3a; background:#140d08; color:#e8e0d0; outline:none;
     font-family:Cinzel,Georgia,serif; }
@@ -168,7 +188,7 @@ export class TitleScreen {
       const row = document.createElement('div');
       row.className = 'slot';
       row.innerHTML = `
-        <div class="sic">${CLASS_ICON[s.cls]}</div>
+        <div class="sic">${classIconHtml(s.cls)}</div>
         <div class="meta">
           <div class="snm">${escapeHtml(s.name)}</div>
           <div class="sde">${CLASS_NAME[s.cls]} · Lv ${s.level} · ${DIFF_NAME[s.difficulty]}</div>
@@ -208,7 +228,7 @@ export class TitleScreen {
       const card = document.createElement('div');
       card.className = 'card';
       card.innerHTML = `
-        <div class="ic">${c.icon}</div>
+        <div class="ic">${classIconHtml(c.cls)}</div>
         <div class="nm">${c.name}</div>
         <div class="bl">${c.blurb}</div>`;
       onTap(card, () => this.renderNameEntry(c.cls));
@@ -221,7 +241,7 @@ export class TitleScreen {
   private renderNameEntry(cls: CharClass): void {
     this.body.innerHTML = `
       <div class="namebox">
-        <div style="font-size:46px">${CLASS_ICON[cls]}</div>
+        <div class="nbportrait" style="font-size:46px">${classIconHtml(cls)}</div>
         <input maxlength="12" placeholder="给${CLASS_NAME[cls]}起个名字" />
         <button class="btn">踏入暗黑之地</button>
       </div>`;

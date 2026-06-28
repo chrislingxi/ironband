@@ -18,20 +18,22 @@ import type { Difficulty, DamageType } from '@game/data/schema.ts';
 import type { DamageInstance } from '@game/systems/combat/index.ts';
 import { randInt, type RNG } from '@engine/math/rng.ts';
 
+// 体型大幅放大 (Chris: 人物/怪显著变大, Boss 近半屏暗黑2感)。size=像素半径, 真图身高=size×2.6,
+// 碰撞 radius 是独立字段不受影响 → 纯视觉放大、不动 gameplay。杂怪约 ×1.7, Boss 约 ×3.5。
 const PLACEHOLDER: Record<string, { color: number; size: number }> = {
-  skeleton: { color: 0xdcdcd0, size: 12 },
-  zombie: { color: 0x6a8a4a, size: 14 },
-  fallen: { color: 0xc0503a, size: 9 },
-  shaman: { color: 0xa050c0, size: 12 },
-  archer: { color: 0xc8b88a, size: 12 },
-  brute: { color: 0x8a4a3a, size: 18 },
-  spitter: { color: 0x7ac04a, size: 10 },
-  hound: { color: 0x9a6a3a, size: 10 },
-  andariel: { color: 0xb01818, size: 30 },
-  duriel: { color: 0x8ab0c8, size: 32 }, // 寒冷苍白, 体型最大
-  mephisto: { color: 0x7a5ad0, size: 31 }, // 憎恨之王, 紫电色
-  diablo: { color: 0xd83020, size: 34 },   // 恐惧之王, 烈焰赤红
-  baal: { color: 0x6a8a4a, size: 36 },     // 毁灭之王, 终极, 体型最大
+  skeleton: { color: 0xdcdcd0, size: 20 },
+  zombie: { color: 0x6a8a4a, size: 24 },
+  fallen: { color: 0xc0503a, size: 16 },
+  shaman: { color: 0xa050c0, size: 20 },
+  archer: { color: 0xc8b88a, size: 20 },
+  brute: { color: 0x8a4a3a, size: 30 },
+  spitter: { color: 0x7ac04a, size: 17 },
+  hound: { color: 0x9a6a3a, size: 17 },
+  andariel: { color: 0xb01818, size: 108 },
+  duriel: { color: 0x8ab0c8, size: 118 }, // 寒冷苍白, 体型最大
+  mephisto: { color: 0x7a5ad0, size: 112 }, // 憎恨之王, 紫电色
+  diablo: { color: 0xd83020, size: 126 },   // 恐惧之王, 烈焰赤红
+  baal: { color: 0x6a8a4a, size: 135 },     // 毁灭之王, 终极, 体型最大
 };
 
 export function makePlayer(): Entity {
@@ -43,7 +45,7 @@ export function makePlayer(): Entity {
     damage: [{ type: 'physical', min: 3, max: 6 }],
     attackRange: 1.25, attackInterval: 0.55, attackCd: 0, xpReward: 0,
     hitFlash: 0, fleeing: false, moving: false, dead: false,
-    color: 0xffd76b, size: 13,
+    color: 0xffd76b, size: 22,
   };
 }
 

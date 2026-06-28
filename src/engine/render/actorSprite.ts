@@ -77,7 +77,9 @@ export class ActorSprite {
     const s = this.opts.size;
     const sp = new Sprite(tex);
     sp.anchor.set(0.5, 0.82); // 脚部近底
-    const targetH = s * 2.6;  // 与矢量身高相称
+    // 与矢量身高相称; 但封顶到视口高的 55%, 防大体型 Boss 真图(如 andariel size108→281px)在横屏遮挡战场。
+    const vh = (typeof window !== 'undefined' ? window.innerHeight : 800);
+    const targetH = Math.min(s * 2.6, vh * 0.55);
     sp.scale.set(targetH / tex.height);
     this.bodyHolder.addChildAt(sp, 0);
     this.sprite = sp;

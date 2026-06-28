@@ -1,4 +1,5 @@
 import type { Game } from '@game/sim/Game.ts';
+import { iconImg } from '@game/ui/icon.ts';
 import { deriveCombat } from '@game/systems/stats/character.ts';
 
 // 逐职业加点导向 (回应"什么职业加什么属性")。
@@ -72,7 +73,7 @@ export class CharacterPanel {
     injectStyle();
     this.root = document.createElement('div');
     this.root.id = 'charp';
-    this.root.innerHTML = `<div class="hd"><div class="ttl">🧍 角色</div><div class="x">✕</div></div><div class="body"></div>`;
+    this.root.innerHTML = `<div class="hd"><div class="ttl">${iconImg('char','🧍',18)} 角色</div><div class="x">✕</div></div><div class="body"></div>`;
     document.body.appendChild(this.root);
     this.body = this.root.querySelector('.body') as HTMLElement;
     (this.root.querySelector('.x') as HTMLElement).addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); onClose(); });

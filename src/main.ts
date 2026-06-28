@@ -16,6 +16,7 @@ import { HUD } from '@game/ui/hud.ts';
 import { InventoryPanel } from '@game/ui/inventory.ts';
 import { CharacterPanel } from '@game/ui/character.ts';
 import { SkillTreePanel } from '@game/ui/skilltree.ts';
+import { setIcon } from '@game/ui/icon.ts';
 import { NPCS, type NpcRole } from '@game/world/npcs.ts';
 import { AREAS } from '@game/world/act1.ts';
 import { TitleScreen, type BootChoice } from '@game/ui/titlescreen.ts';
@@ -291,12 +292,13 @@ async function main() {
       ring.label = 'eliteRing';
       c.addChild(ring);
       const nm = new Text({ text: e.elite.name, style: { fontFamily: 'Georgia,serif', fontSize: 11, fill: e.elite.color, stroke: { color: 0x000000, width: 3 } } });
-      nm.anchor.set(0.5, 1); nm.position.set(0, -e.size - 20);
+      nm.anchor.set(0.5, 1); nm.position.set(0, -e.size * 2.1 - 12);
       c.addChild(nm);
     }
-    // 血条 (受伤才显)
-    const hpbg = new Graphics().rect(-14, -e.size - 16, 28, 4).fill({ color: 0x000000, alpha: 0.6 });
-    const hp = new Graphics().rect(-13, -e.size - 15, 26, 2).fill({ color: 0xcc2200 });
+    // 血条 (受伤才显). 顶部偏移随体型放大 (真图身高≈size×2.6·脚锚0.82 → 顶约 -size×2.13), 放大后血条/名牌仍在头顶上方。
+    const topY = -e.size * 2.1 - 8;
+    const hpbg = new Graphics().rect(-14, topY, 28, 4).fill({ color: 0x000000, alpha: 0.6 });
+    const hp = new Graphics().rect(-13, topY + 1, 26, 2).fill({ color: 0xcc2200 });
     hpbg.label = 'hpbg'; hp.label = 'hp';
     hpbg.visible = false;
     c.addChild(hpbg, hp);
@@ -517,13 +519,15 @@ async function main() {
   }
 
   const joy = new Joystick(document.body);
+  // 左侧 UI 按钮列设为摇杆死区, 防按钮缝隙误触出摇杆(按钮 x≈10-58, y≈56-380)。
+  joy.deadZones = [{ x: 0, y: 50, w: 68, h: 340 }];
   const hud = new HUD(game, (slot) => { const ok = game.useSkill(slot); if (ok) audio.sfx('skill'); return ok; });
 
   // 背包/装备面板 (打开时暂停模拟)
   let paused = false;
   const panel = new InventoryPanel(game, () => { panel.hide(); paused = false; });
   const bagBtn = document.createElement('div');
-  bagBtn.textContent = '🎒';
+  setIcon(bagBtn, 'bag', '🎒');
   bagBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(60px + env(safe-area-inset-top));' +
     'width:48px;height:48px;border-radius:11px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
@@ -540,7 +544,7 @@ async function main() {
 
   // 角色按钮 (属性/加点/装备/导向)
   const charBtn = document.createElement('div');
-  charBtn.textContent = '🧍';
+  setIcon(charBtn, 'char', '🧍');
   charBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(330px + env(safe-area-inset-top));' +
     'width:48px;height:48px;border-radius:11px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
@@ -554,7 +558,7 @@ async function main() {
 
   // 技能树按钮
   const skillBtn = document.createElement('div');
-  skillBtn.textContent = '📖';
+  setIcon(skillBtn, 'skilltree', '📖');
   skillBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(114px + env(safe-area-inset-top));' +
     'width:48px;height:48px;border-radius:11px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
@@ -569,7 +573,7 @@ async function main() {
   // 任务日志按钮
   const questLog = new QuestLogPanel(() => { questLog.hide(); paused = false; });
   const questBtn = document.createElement('div');
-  questBtn.textContent = '📜';
+  setIcon(questBtn, 'quest', '📜');
   questBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(168px + env(safe-area-inset-top));' +
     'width:48px;height:48px;border-radius:11px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
@@ -611,7 +615,7 @@ async function main() {
     onClose: () => { town.hide(); paused = false; },
   });
   const townBtn = document.createElement('div');
-  townBtn.textContent = '🏛';
+  setIcon(townBtn, 'camp', '🏛');
   townBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(222px + env(safe-area-inset-top));' +
     'width:48px;height:48px;border-radius:11px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
@@ -630,9 +634,9 @@ async function main() {
 
   // 顶部右侧次级功能按钮 (航点/存档/读档/音效) — 收纳进可折叠的 ☰ 菜单, 减少常驻按钮。
   const utilBtns: HTMLElement[] = [];
-  function topBtn(emoji: string, slot: number, onTap: () => void): HTMLElement {
+  function topBtn(key: string, emoji: string, slot: number, onTap: () => void): HTMLElement {
     const b = document.createElement('div');
-    b.textContent = emoji;
+    setIcon(b, key, emoji, 24);
     const topPx = 156 + slot * 48; // ☰ 菜单按钮之下依次排列 (小地图在右上角)
     b.style.cssText =
       `position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(${topPx}px + env(safe-area-inset-top));` +
@@ -646,7 +650,7 @@ async function main() {
   // 航点: 提为常驻左侧按钮 (高频核心移动手段, 不再藏进菜单)
   const wp = new WaypointPanel((id) => { game.loadArea(id); wp.hide(); paused = false; }, () => { wp.hide(); paused = false; });
   const wpBtn = document.createElement('div');
-  wpBtn.textContent = '🗺';
+  setIcon(wpBtn, 'waypoint', '🗺');
   wpBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(276px + env(safe-area-inset-top));' +
     'width:48px;height:48px;border-radius:11px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
@@ -665,9 +669,9 @@ async function main() {
   // 页面隐藏(切后台/锁屏)时立即存一份, 防丢档
   document.addEventListener('visibilitychange', () => { if (document.hidden) autosave(); });
   let audioOn = true;
-  topBtn('🔊', 0, () => { audioOn = !audioOn; audio.setEnabled(audioOn); game.notices.push(audioOn ? '音效开' : '音效关'); });
+  topBtn('audio', '🔊', 0, () => { audioOn = !audioOn; audio.setEnabled(audioOn); game.notices.push(audioOn ? '音效开' : '音效关'); });
   // 帮助: 重看新手引导 (暂停模拟, 关闭后恢复)
-  topBtn('❓', 1, () => { paused = true; showTutorial(() => { paused = false; }); });
+  topBtn('help', '❓', 1, () => { paused = true; showTutorial(() => { paused = false; }); });
   // 设置: 音量/音效/BGM/自动饮药/重置存档
   let masterVol = 0.6, bgmOn = true;
   const settings = new SettingsPanel({
@@ -682,7 +686,7 @@ async function main() {
     onResetSave: () => { void deleteSlot(activeSlot).then(() => location.reload()); },
     onClose: () => { paused = false; },
   });
-  topBtn('⚙', 2, () => { paused = true; settings.show(); });
+  topBtn('settings', '⚙', 2, () => { paused = true; settings.show(); });
   // ☰ 菜单开关: 折叠/展开上述次级按钮 (默认折叠, 只占一个角)
   let menuOpen = false;
   function menuToggle(open?: boolean): void {
@@ -691,7 +695,7 @@ async function main() {
     menuBtn.textContent = menuOpen ? '✕' : '☰';
   }
   const menuBtn = document.createElement('div');
-  menuBtn.textContent = '☰';
+  setIcon(menuBtn, 'menu', '☰');
   menuBtn.style.cssText =
     'position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(108px + env(safe-area-inset-top));' +
     'width:42px;height:42px;border-radius:10px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
@@ -739,7 +743,8 @@ async function main() {
     'pointer-events:none;z-index:38;display:none;will-change:transform;';
   document.body.appendChild(exitArrow);
   function syncExitArrow(): void {
-    if (game.currentArea.isTown || !game.currentArea.exits.length) { exitArrow.style.display = 'none'; return; }
+    // 营地也指出口: 新手在安全区不知道往哪走打怪 → 箭头指向营地出口(原本营地禁用箭头, 是首个场景最大卡点)。
+    if (!game.currentArea.exits.length) { exitArrow.style.display = 'none'; return; }
     let near = game.currentArea.exits[0], nd = Infinity;
     for (const ex of game.currentArea.exits) { const d = dist(game.player.pos, ex.pos); if (d < nd) { nd = d; near = ex; } }
     if (nd <= 4) { exitArrow.style.display = 'none'; return; }
@@ -925,7 +930,8 @@ async function main() {
           : game.difficulty === 'nightmare'
           ? `<div style="font-size:14px;color:#ffaa44;margin:4px 0">⚠ 惩罚: -10% 金币 · 50% HP · 重生于区域入口</div>`
           : `<div style="font-size:14px;color:#88ff88;margin:4px 0">普通模式: 无惩罚, 原地复活</div>`;
-        banner.innerHTML = `☠ 你已阵亡${penaltyText}<div style="font-size:13px;opacity:.7;margin-top:8px">点击重生</div>`;
+        const causeText = game.playerKilledBy ? `<div style="font-size:13px;color:#ffbbbb;margin-top:2px">死于 ${game.playerKilledBy} 之手</div>` : '';
+        banner.innerHTML = `你已阵亡${causeText}${penaltyText}<div style="font-size:13px;opacity:.7;margin-top:8px">点击重生</div>`;
       } else if (game.state === 'cleared' && !game.currentArea.isTown) {
         // 区域肃清: 仅顶部提示条, 不暗幕、不拦截输入 (否则摇杆被吃, 走不到出口 → 卡死)
         banner.style.display = 'flex';

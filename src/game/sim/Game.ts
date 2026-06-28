@@ -12,7 +12,18 @@ import { deriveCombat, type Character } from '@game/systems/stats/character.ts';
 import { createMissile, updateMissiles, type Missile } from '@game/systems/missiles/index.ts';
 import { rollEliteAffixes, applyElite } from '@game/systems/elites/index.ts';
 import { QUESTS, type QuestReward } from '@game/world/quests.ts';
-import { initQuests, completeQuest, onAreaCleared, type QuestProgress } from '@game/systems/quests/state.ts';
+import { initQuests, completeQuest, onAreaCleared, isActive, type QuestProgress } from '@game/systems/quests/state.ts';
+import { MONSTERS } from '@game/data/monsters.ts';
+import { MONSTERS_EXT } from '@game/data/monsters2.ts';
+
+// 怪物 defId → 中文名 (死因显示用); Boss 名单独补。
+const MON_NAME: Record<string, string> = {};
+for (const m of [...Object.values(MONSTERS), ...Object.values(MONSTERS_EXT)]) MON_NAME[m.id] = m.name;
+const BOSS_NAME: Record<string, string> = { andariel: '安达莉尔', duriel: '督瑞尔', mephisto: '墨菲斯托', diablo: '迪亚波罗', baal: '巴尔' };
+function killerName(e: Entity): string {
+  const base = BOSS_NAME[e.defId] ?? MON_NAME[e.defId] ?? '敌人';
+  return e.elite?.name ? `${e.elite.name}·${base}` : base;
+}
 import { generateShopStock, buyPrice, sellPrice, gambleCost, gambleItem, identifyCost } from '@game/systems/town/economy.ts';
 import { makeMerc, updateMerc, hireCost, reviveCost, type Merc } from '@game/systems/merc/merc.ts';
 import { discover, type WaypointState } from '@game/systems/waypoint/waypoint.ts';
@@ -125,6 +136,13 @@ export class Game {
   skillTree: SkillTreeState = {}; // 已投技能点 (skillId→点数)
   missiles: Missile[] = []; // 投射物(箭/法术)
   questProgress: QuestProgress = initQuests(QUESTS); // 任务状态
+  playerKilledBy = ''; // 死因(被谁击杀), 阵亡横幅显示
+
+  // 当前进行中任务的一行目标 (HUD 常驻显示, 解决"不知道下一步干嘛")
+  get currentObjective(): string {
+    const q = QUESTS.find((qq) => isActive(this.questProgress, qq.id));
+    return q ? q.objective : '';
+  }
   bonusSkillPoints = 0; // 任务奖励的额外技能点
   statPoints = 0; // 未分配的属性点 (每级+5, 手动加点)
   mercUnlocked = false; // 任务奖励: 雇佣兵解锁(Phase D)
@@ -580,6 +598,8 @@ export class Game {
   }
 
   private attack = (attacker: Entity, defender: Entity, dmg: DamageInstance[]): void => {
+    // 翻滚无敌帧: 玩家翻滚期间免疫近战 (原本只挡投射物, 不挡近战 → 此处补齐)。
+    if (defender === this.player && this.timeMs < this.dodgeUntilMs) return;
     // 暴击/致命: 玩家攻击有几率双倍物理伤害 (基础5% + 亚马逊critical_strike每点3%)。
     let useDmg = dmg;
     let crit = false;
@@ -590,7 +610,12 @@ export class Game {
       crit = true;
       useDmg = dmg.map((d) => (d.type === 'physical' ? { ...d, min: d.min * 2, max: d.max * 2 } : d));
     }
+    // 呐喊: 玩家受击时若呐喊生效, 临时把有效防御 ×1.5 (结算后还原, 不污染 combat.defense)。
+    const shouted = defender === this.player && this.timeMs < this.shoutUntilMs;
+    const baseDef = defender.combat.defense;
+    if (shouted) defender.combat.defense = Math.round(baseDef * 1.5);
     const r = resolveAttack(attacker.combat, defender.combat, useDmg, this.rng, this.timeMs);
+    if (shouted) defender.combat.defense = baseDef;
     if (!r.hit) {
       // 未命中: 推一条 miss 事件 (让 AR/命中系统对玩家可感)
       this.events.push({ pos: { x: defender.pos.x, y: defender.pos.y }, amount: 0, killed: false, toPlayer: defender.kind === 'player', miss: true });
@@ -633,6 +658,7 @@ export class Game {
     }
     if (r.killed) {
       defender.dead = true;
+      if (defender === this.player) this.playerKilledBy = killerName(attacker);
       if (attacker === this.player && defender.kind === 'monster') {
         this.grantXp(defender.xpReward);
         if (defender.xpReward > 0) this.events.push({ pos: { x: defender.pos.x, y: defender.pos.y }, amount: 0, killed: false, toPlayer: false, xp: defender.xpReward });
@@ -797,7 +823,7 @@ export class Game {
           p.combat.hp = Math.max(0, p.combat.hp - total);
           p.hitFlash = 1;
           this.events.push({ pos: { ...p.pos }, amount: total, killed: p.combat.hp <= 0, toPlayer: true });
-          if (p.combat.hp <= 0) p.dead = true;
+          if (p.combat.hp <= 0) { p.dead = true; this.playerKilledBy = `${killerName(e)}的死亡爆炸`; }
         }
         this.corpses.push({ pos: { ...e.pos }, defId: e.defId, color: e.color, size: e.size, ageMs: 0 });
         const isBoss = BOSS_IDS.has(e.defId);
@@ -878,6 +904,7 @@ export class Game {
   respawn(): void {
     const p = this.player;
     p.dead = false;
+    this.playerKilledBy = ''; // 清死因, 防下次阵亡显示上次的
     this.shoutUntilMs = 0; // 清除增益
     this.dodgeUntilMs = 0;
 
@@ -1081,8 +1108,8 @@ export class Game {
   private execShout(key: ClassSkillKey): void {
     const duration = (key.duration ?? 5) * 1000;
     this.shoutUntilMs = this.timeMs + duration;
-    // 临时将防御翻倍 (用标记; recompute 时检测并应用)
-    this.player.combat.defense = Math.round(this.player.combat.defense * 1.5);
+    // 仅置时间标记; 防御 ×1.5 在受击结算(attack)里按 shoutUntilMs 临时应用, 不再永久改 combat.defense
+    // (原实现直接乘 combat.defense 会被 recompute 清掉、且可反复呐喊叠乘成近无敌 exploit)。
     this.notices.push('呐喊! 防御大幅提升 5秒');
   }
 
@@ -1128,6 +1155,7 @@ export class Game {
     if (!killed && m.kind === 'iceball') target.combat.stunUntilMs = Math.max(target.combat.stunUntilMs, this.timeMs + 1000);
     if (killed) {
       target.dead = true;
+      if (target === this.player) this.playerKilledBy = `敌方${m.kind === 'arrow' ? '箭矢' : '法术'}`;
       if (m.fromPlayer && target.kind === 'monster') {
         this.grantXp(target.xpReward);
         if (target.xpReward > 0) this.events.push({ pos: { ...target.pos }, amount: 0, killed: false, toPlayer: false, xp: target.xpReward });
