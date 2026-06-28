@@ -1,4 +1,5 @@
 // 任务日志面板: 哥特风全屏覆盖层, 列出所有任务及其状态/描述/奖励.
+import { iconImg } from '@game/ui/icon.ts';
 // 风格参考 hud.ts 的 injectStyle 写法, 触屏友好, 适配安全区.
 import type { Quest } from '@game/world/quests.ts';
 import { isComplete, type QuestProgress } from '@game/systems/quests/state.ts';
@@ -67,7 +68,7 @@ export class QuestLogPanel {
     root.innerHTML = `
       <div class="panel">
         <div class="head">
-          <div class="title">📜 任务日志</div>
+          <div class="title">${iconImg('quest','📜',18)} 任务日志</div>
           <div class="close" role="button">✕</div>
         </div>
         <div class="list"></div>

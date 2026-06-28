@@ -23,4 +23,8 @@ export const ICON_MAP = {
   'comet-spark': 'comet-spark', 'magic-swirl': 'magic-swirl', 'meteor-impact': 'meteor-impact',
   'portal': 'portal', 'linked-rings': 'linked-rings',
   'fist': 'fist', 'beams-aura': 'beams-aura', 'frozen-orb': 'frozen-orb',
+  // 装备槽 + 面板标题图标
+  'slot/helm': 'crested-helmet', 'slot/armor': 'breastplate', 'slot/shield': 'winged-shield',
+  'slot/gloves': 'gloves', 'slot/boots': 'boots', 'slot/belt': 'belt', 'slot/ring': 'ring', 'slot/amulet': 'necklace',
+  'broom': 'broom',
 };

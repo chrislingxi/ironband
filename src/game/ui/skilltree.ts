@@ -4,7 +4,7 @@ import { CLASS_SKILLS, TAB_NAMES } from '@game/classes/registry.ts';
 import { canInvest, pointsIn, requiredLevel } from '@game/classes/skilltree.ts';
 import { SKILL_EXEC } from '@game/classes/exec.ts';
 import { DIFFICULTIES } from '@game/systems/difficulty.ts';
-import { skillIconHtml } from '@game/ui/icon.ts';
+import { skillIconHtml, iconImg } from '@game/ui/icon.ts';
 
 const DTYPE: Record<string, string> = { fire: '火', cold: '冰', lightning: '电', poison: '毒', magic: '魔', physical: '物理' };
 const DIFF_LABEL: Record<string, string> = { normal: '普通', nightmare: '噩梦', hell: '地狱' };
@@ -260,7 +260,7 @@ export class SkillTreePanel {
     const g = this.game;
     const wrap = document.createElement('div');
     wrap.className = 'load';
-    wrap.innerHTML = `<h4>⚔ 技能键 (槽0=普通攻击; 选中技能后在上方详情里装载到 ①②③)</h4>`;
+    wrap.innerHTML = `<h4>${iconImg('crossed-swords','⚔',16)} 技能键 (槽0=普通攻击; 选中技能后在上方详情里装载到 ①②③)</h4>`;
     const row = document.createElement('div');
     row.className = 'slotrow';
     for (let slot = 0; slot < 4; slot++) {
