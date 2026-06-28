@@ -105,6 +105,7 @@ function injectStyle(): void {
   #title .slot .del:hover { color:#d8604a; background:#0006; }
   /* --- 命名输入 --- */
   #title .namebox { display:flex; flex-direction:column; align-items:center; gap:18px; width:min(380px,84vw); }
+  #title .nbportrait img.cimg { height:104px; width:auto; object-fit:contain; filter:drop-shadow(0 4px 8px #000b); }
   #title .namebox input { width:100%; box-sizing:border-box; padding:14px 16px; font-size:18px; text-align:center;
     border-radius:12px; border:1px solid #6a5a3a; background:#140d08; color:#e8e0d0; outline:none;
     font-family:Cinzel,Georgia,serif; }
@@ -229,7 +230,7 @@ export class TitleScreen {
   private renderNameEntry(cls: CharClass): void {
     this.body.innerHTML = `
       <div class="namebox">
-        <div style="font-size:46px">${CLASS_ICON[cls]}</div>
+        <div class="nbportrait" style="font-size:46px">${classIconHtml(cls)}</div>
         <input maxlength="12" placeholder="给${CLASS_NAME[cls]}起个名字" />
         <button class="btn">踏入暗黑之地</button>
       </div>`;

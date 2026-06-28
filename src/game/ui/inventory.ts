@@ -86,7 +86,7 @@ export class InventoryPanel {
       <div class="hd"><div class="ttl">${iconImg('bag', '🎒', 20)} 装备 / 背包</div><div class="x">✕</div></div>
       <div class="sect">${iconImg('broadsword', '⚔', 16)} 已装备 <span class="ln"></span></div>
       <div class="equip"></div>
-      <div class="bar2"><span class="equipbest">⚡ 一键穿戴</span><span class="cap"></span><span class="runes"></span></div>
+      <div class="bar2"><span class="equipbest">${iconImg('lightning-arc', '⚡', 16)} 一键穿戴</span><span class="cap"></span><span class="runes"></span></div>
       <div class="sect">${iconImg('bag', '🎒', 16)} 背包 <span class="ln"></span></div>
       <div class="grid"></div>
       <div class="tip">点击物品查看 · 点「穿」装备 · 点已装备「卸」卸下</div>`;
