@@ -57,7 +57,22 @@ function showError(msg: string): void {
 // Phase0 等距脊柱 + T3 战斗内核 + T4 怪物AI 的可玩集成.
 // 占位形状渲染 (T1 并行会替换为 FLARE 等距精灵 + 光照).
 
+// iOS Safari 忽略 user-scalable=no: 手动拦截双击缩放(350ms 内二次 touchend)与多指捏合手势。
+// 否则连续点击(如角色页加点)会触发页面放大, 体验很差。
+function installZoomGuards(): void {
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', (e) => {
+    const now = performance.now();
+    if (now - lastTouchEnd < 350) e.preventDefault(); // 阻止双击缩放
+    lastTouchEnd = now;
+  }, { passive: false });
+  for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) {
+    document.addEventListener(ev, (e) => e.preventDefault());
+  }
+}
+
 async function main() {
+  installZoomGuards();
   const app = new Application();
   // iOS Safari 的 WebGPU 不稳定 → 强制 WebGL; 失败再退默认(自动选择)
   const initOpts = {

@@ -54,7 +54,7 @@ function injectStyle(): void {
   #town h3 { font-family:Georgia,serif; color:#ffd76b; font-size:17px; margin:4px 0 2px; letter-spacing:.5px; }
   #town .sub { font-size:12px; opacity:.6; margin-bottom:10px; }
   #town .gold { font-size:14px; color:#ffd24a; font-weight:700; text-shadow:0 1px 2px #000; margin:2px 0 12px; }
-  #town .close { position:absolute; top:12px; right:16px; width:40px; height:40px; border-radius:8px;
+  #town .close { position:absolute; top:calc(12px + env(safe-area-inset-top)); right:calc(16px + env(safe-area-inset-right)); width:40px; height:40px; border-radius:8px;
     background:#2a2a36; border:1px solid #54442a; display:flex; align-items:center; justify-content:center; font-size:22px; }
   #town .close:active { transform:scale(.92); }
   #town .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
