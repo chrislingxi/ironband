@@ -61,10 +61,10 @@ function injectStyle(): void {
   styleInjected = true;
   const css = `
   #title { position:absolute; inset:0; z-index:50; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; pointer-events:auto; overflow:hidden;
+    align-items:center; justify-content:safe center; pointer-events:auto; overflow-y:auto; -webkit-overflow-scrolling:touch;
     background:radial-gradient(120% 90% at 50% 0%, #2a2018 0%, #160f0a 55%, #060403 100%);
     font-family:-apple-system,"PingFang SC",sans-serif; color:#e8e0d0;
-    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+    padding:calc(12px + env(safe-area-inset-top)) env(safe-area-inset-right) calc(40px + env(safe-area-inset-bottom)) env(safe-area-inset-left); }
   #title h1 { margin:0 0 6px; font-family:Cinzel,Georgia,"Times New Roman",serif; font-weight:800;
     font-size:clamp(40px,11vw,84px); letter-spacing:.18em; text-transform:uppercase;
     color:#e7c66a;
@@ -85,7 +85,18 @@ function injectStyle(): void {
     font-size:clamp(18px,4.4vw,22px); letter-spacing:.06em; color:#e7c66a; text-shadow:0 1px 3px #000; }
   #title .card .bl { font-size:clamp(11px,3vw,13px); line-height:1.5; color:#b8ab92; }
   #title .foot { position:absolute; bottom:calc(14px + env(safe-area-inset-bottom)); left:0; width:100%;
-    text-align:center; font-size:11px; color:#6a5e48; letter-spacing:.08em; }
+    text-align:center; font-size:11px; color:#6a5e48; letter-spacing:.08em; pointer-events:none; }
+  /* 短屏(横屏/小机)紧凑职业卡, 防越界/与页脚重叠堆叠 */
+  @media (max-height:620px) {
+    #title h1 { font-size:clamp(30px,7vw,52px); margin-bottom:2px; }
+    #title .sub { margin-bottom:12px; }
+    #title .cards { gap:10px; }
+    #title .card { padding:12px 12px 12px; min-width:118px; }
+    #title .card .ic { height:50px; } #title .card .ic img.cimg { height:54px; }
+    #title .card .nm { margin:8px 0 4px; font-size:clamp(15px,3.6vw,19px); }
+    #title .card .bl { display:none; }
+    #title .foot { display:none; }
+  }
   /* --- 存档槽列表 --- */
   #title .slots { display:flex; flex-direction:column; gap:12px; width:min(440px,86vw); max-height:62vh; overflow:auto;
     -webkit-overflow-scrolling:touch; padding:2px; }
