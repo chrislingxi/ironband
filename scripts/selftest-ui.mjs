@@ -1,11 +1,28 @@
 // 设备矩阵 UI 自测: 在多分辨率下逐面板截图 + 断言 (越界/遮挡/安全区/运行时错误)。
 // 替代人工逐 bug 复测的「画面层」关。运行: node scripts/selftest-ui.mjs
 import { chromium } from 'playwright-core';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, existsSync, cpSync, readdirSync } from 'node:fs';
 
 const URL = 'file://' + process.cwd() + '/dist/web/index.html';
 const OUT = process.cwd() + '/.selftest';
 mkdirSync(OUT, { recursive: true });
+
+// 复刻部署布局: vite 把 public/assets 拷到 dist/assets, 但 html 在 dist/web/。
+// 部署时 workflow 会把 assets/ 与 index.html 同级; 本地测试同样把 assets 拷到 dist/web 下, 让真图按 key 加载。
+if (existsSync(process.cwd() + '/dist/assets')) {
+  cpSync(process.cwd() + '/dist/assets', process.cwd() + '/dist/web/assets', { recursive: true });
+}
+// 已交付的美术 key (按 public/assets 实际存在者校验加载, 不臆测)。
+function deliveredKeys() {
+  const root = process.cwd() + '/public/assets';
+  const keys = [];
+  if (!existsSync(root)) return keys;
+  for (const cat of readdirSync(root)) {
+    const dir = `${root}/${cat}`;
+    try { for (const f of readdirSync(dir)) if (f.endsWith('.png')) keys.push(`${cat}/${f.slice(0, -4)}`); } catch { /* not a dir */ }
+  }
+  return keys;
+}
 
 // 设备 profile: 含模拟刘海 (insets) 用于横屏安全区校验。
 const DEVICES = [
@@ -101,6 +118,26 @@ for (const dev of DEVICES) {
   }
   if (errs.length) flag(dev.name, 'runtime', `控制台/页面错误 ${errs.length}: ${errs.slice(0, 2).join(' | ')}`);
   await ctx.close();
+}
+
+// ── 美术加载回归关: 已交付的每个 key 必须能从 assets/<key>.png 加载 (防资产丢失/路径回归) ──
+{
+  const keys = deliveredKeys();
+  if (keys.length) {
+    const ctx = await b.newContext({ viewport: { width: 400, height: 400 } });
+    const pg = await ctx.newPage();
+    await pg.goto(URL);
+    // 用 Image 加载校验 (file:// 下 fetch 被拦, 但 <img> 与 Pixi 的纹理加载一致可用)。
+    const bad = await pg.evaluate((keys) => Promise.all(keys.map((k) => new Promise((res) => {
+      const img = new Image();
+      img.onload = () => res(img.naturalWidth > 0 ? null : `${k}(0w)`);
+      img.onerror = () => res(`${k}(err)`);
+      img.src = `assets/${k}.png`;
+    }))).then((r) => r.filter(Boolean)), keys);
+    if (bad.length) findings.push(`[art] 美术 key 加载失败: ${bad.join(', ')}`);
+    else console.log(`美术加载关通过: ${keys.length} 个 key 全部可加载 (assets/<key>.png)。`);
+    await ctx.close();
+  }
 }
 
 await b.close();
