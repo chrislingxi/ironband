@@ -519,6 +519,8 @@ async function main() {
   }
 
   const joy = new Joystick(document.body);
+  // 左侧 UI 按钮列设为摇杆死区, 防按钮缝隙误触出摇杆(按钮 x≈10-58, y≈56-380)。
+  joy.deadZones = [{ x: 0, y: 50, w: 68, h: 340 }];
   const hud = new HUD(game, (slot) => { const ok = game.useSkill(slot); if (ok) audio.sfx('skill'); return ok; });
 
   // 背包/装备面板 (打开时暂停模拟)
@@ -741,7 +743,8 @@ async function main() {
     'pointer-events:none;z-index:38;display:none;will-change:transform;';
   document.body.appendChild(exitArrow);
   function syncExitArrow(): void {
-    if (game.currentArea.isTown || !game.currentArea.exits.length) { exitArrow.style.display = 'none'; return; }
+    // 营地也指出口: 新手在安全区不知道往哪走打怪 → 箭头指向营地出口(原本营地禁用箭头, 是首个场景最大卡点)。
+    if (!game.currentArea.exits.length) { exitArrow.style.display = 'none'; return; }
     let near = game.currentArea.exits[0], nd = Infinity;
     for (const ex of game.currentArea.exits) { const d = dist(game.player.pos, ex.pos); if (d < nd) { nd = d; near = ex; } }
     if (nd <= 4) { exitArrow.style.display = 'none'; return; }
