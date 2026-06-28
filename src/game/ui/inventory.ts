@@ -4,6 +4,7 @@ import { openSockets } from '@game/systems/items/index.ts';
 import { runeById } from '@game/data/runes.ts';
 import { deriveCombat } from '@game/systems/stats/character.ts';
 import { itemTip, RARITY_HEX } from '@game/ui/itemtip.ts';
+import { iconImg } from '@game/ui/icon.ts';
 
 type ItemLoc = { kind: 'equip'; slot: EquipSlot } | { kind: 'bag'; index: number } | null;
 
@@ -14,6 +15,11 @@ const SLOT_LABEL: Record<EquipSlot, string> = {
 const SLOT_ICON: Record<EquipSlot, string> = {
   weapon: '⚔', helm: '🪖', armor: '🛡', shield: '🔰', gloves: '🧤', boots: '🥾', belt: '🎗', ring: '💍', amulet: '📿',
 };
+// 去AI感: 装备槽 emoji → game-icons key (缺图回退 emoji)
+const SLOT_KEY: Record<EquipSlot, string> = {
+  weapon: 'broadsword', helm: 'helm', armor: 'armor', shield: 'shield', gloves: 'gloves', boots: 'boots', belt: 'belt', ring: 'ring', amulet: 'amulet',
+};
+const slotIcon = (slot: EquipSlot, px = 26): string => iconImg(SLOT_KEY[slot], SLOT_ICON[slot], px);
 const SLOT_ORDER: EquipSlot[] = ['weapon', 'helm', 'armor', 'shield', 'gloves', 'boots', 'belt', 'ring', 'amulet'];
 
 let styled = false;
@@ -77,11 +83,11 @@ export class InventoryPanel {
     this.root = document.createElement('div');
     this.root.id = 'inv';
     this.root.innerHTML = `
-      <div class="hd"><div class="ttl">🎒 装备 / 背包</div><div class="x">✕</div></div>
-      <div class="sect">⚔ 已装备 <span class="ln"></span></div>
+      <div class="hd"><div class="ttl">${iconImg('bag', '🎒', 20)} 装备 / 背包</div><div class="x">✕</div></div>
+      <div class="sect">${iconImg('broadsword', '⚔', 16)} 已装备 <span class="ln"></span></div>
       <div class="equip"></div>
       <div class="bar2"><span class="equipbest">⚡ 一键穿戴</span><span class="cap"></span><span class="runes"></span></div>
-      <div class="sect">🎒 背包 <span class="ln"></span></div>
+      <div class="sect">${iconImg('bag', '🎒', 16)} 背包 <span class="ln"></span></div>
       <div class="grid"></div>
       <div class="tip">点击物品查看 · 点「穿」装备 · 点已装备「卸」卸下</div>`;
     document.body.appendChild(this.root);
@@ -138,11 +144,11 @@ export class InventoryPanel {
       cell.className = 'slot' + (it ? '' : ' empty');
       if (it) {
         const nm = it.identified ? it.name : `${it.base.name}(未鉴)`;
-        cell.innerHTML = `<span class="ic">${SLOT_ICON[slot]}</span><span class="nm" style="color:${RARITY_HEX[it.rarity]}">${nm}<br><small>${SLOT_LABEL[slot]}</small></span><span class="off">卸</span>`;
+        cell.innerHTML = `<span class="ic">${slotIcon(slot)}</span><span class="nm" style="color:${RARITY_HEX[it.rarity]}">${nm}<br><small>${SLOT_LABEL[slot]}</small></span><span class="off">卸</span>`;
         (cell.querySelector('.nm') as HTMLElement).addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.showTip(it, { kind: 'equip', slot }); });
         (cell.querySelector('.off') as HTMLElement).addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); g.unequip(slot); this.refresh(); });
       } else {
-        cell.innerHTML = `<span class="ic">${SLOT_ICON[slot]}</span><span class="nm">${SLOT_LABEL[slot]} · 空</span>`;
+        cell.innerHTML = `<span class="ic">${slotIcon(slot)}</span><span class="nm">${SLOT_LABEL[slot]} · 空</span>`;
       }
       this.equipEl.appendChild(cell);
     }
