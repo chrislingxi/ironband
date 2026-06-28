@@ -67,10 +67,12 @@ function injectStyle(): void {
   #skt .detail .asg b { width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; border-radius:6px;
     border:1px solid #6a5a3a; background:#1a1a24; color:#cbd; font-size:12px; font-weight:700; }
   #skt .detail .asg b.on { background:#3a2c14; border-color:#ffd76b; color:#fff; }
-  /* 三系网格 */
-  #skt .tabs { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-start; }
-  #skt .tab { flex:1; min-width:236px; background:linear-gradient(#161320cc,#0d0b14cc); border:1px solid #3a3450; border-radius:12px; padding:10px 10px 12px; }
-  #skt .tab h4 { font-family:Georgia,serif; color:#bcd; font-size:13px; margin:2px 0 10px; text-align:center; border-bottom:1px solid #3a3450; padding-bottom:5px; }
+  /* 系切换 tab: 冰/火/电 一次一系一屏, 消除三栏挤压换行的割裂 */
+  #skt .systabs { display:flex; gap:8px; margin:2px 0 10px; }
+  #skt .systab { flex:1; padding:9px 6px; border-radius:9px; border:1px solid #3a3450; background:#161320cc; color:#bcd; font-size:13px; font-weight:700; text-align:center; letter-spacing:1px; cursor:pointer; transition:transform .07s; }
+  #skt .systab:active { transform:scale(.97); }
+  #skt .systab.on { border-color:#ffd76b; background:linear-gradient(#3a2c14,#241a0c); color:#ffe08a; box-shadow:0 0 10px #c7943340; }
+  #skt .tabhost { background:linear-gradient(#161320cc,#0d0b14cc); border:1px solid #3a3450; border-radius:12px; padding:16px 10px 22px; overflow-x:auto; display:flex; justify-content:center; }
   #skt .grid { position:relative; display:grid; gap:14px 10px; justify-items:center; }
   #skt .grid svg.links { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:0; overflow:visible; }
   #skt .sk { position:relative; z-index:1; width:54px; height:54px; border-radius:12px; display:flex; align-items:center; justify-content:center;
@@ -98,6 +100,11 @@ export class SkillTreePanel {
   readonly root: HTMLElement;
   private body: HTMLElement;
   private selectedId: string | null = null;
+  private activeTab = 0;            // 当前显示的系 (0/1/2), 一次一屏
+  private pointsEl!: HTMLElement;   // 可用点数 (投点后局部更新)
+  private detailEl!: HTMLElement;   // 详情区 (常驻, 选中/投点只改 innerHTML)
+  private loadEl!: HTMLElement;     // 技能键装载区 (装载/卸下局部更新)
+  private tabHostEl!: HTMLElement;  // 当前系网格宿主 (切系/投点局部更新)
   open = false;
 
   constructor(private game: Game, onClose: () => void) {
@@ -114,17 +121,20 @@ export class SkillTreePanel {
   show(): void { this.open = true; this.root.style.display = 'block'; this.refresh(); }
   hide(): void { this.open = false; this.root.style.display = 'none'; }
 
+  // 全量重建 (show / 难度切换). 选中/投点/装载走局部更新方法, 避免整树重绘的闪动。
   refresh(): void {
     const g = this.game;
-    const cls = g.character.cls;
-    const defs = CLASS_SKILLS[cls];
-    const tabNames = TAB_NAMES[cls];
+    const tabNames = TAB_NAMES[g.character.cls];
     this.body.innerHTML = '';
 
     // 顶部: 可用点数 + 难度切换
     const top = document.createElement('div');
     top.className = 'top';
-    top.innerHTML = `<span class="pts">可用技能点: ${g.skillPointsAvailable()}</span><span style="opacity:.6">·</span><span>难度</span>`;
+    this.pointsEl = document.createElement('span');
+    this.pointsEl.className = 'pts';
+    this.pointsEl.textContent = `可用技能点: ${g.skillPointsAvailable()}`;
+    top.appendChild(this.pointsEl);
+    top.insertAdjacentHTML('beforeend', `<span style="opacity:.6">·</span><span>难度</span>`);
     const diff = document.createElement('div');
     diff.className = 'diff';
     for (const d of DIFFICULTIES) {
@@ -139,46 +149,117 @@ export class SkillTreePanel {
     top.appendChild(diff);
     this.body.appendChild(top);
 
-    // 技能键装载概览
-    this.body.appendChild(this.loadoutSection());
+    // 技能键装载概览 (常驻引用, 装载/卸下局部更新)
+    this.loadEl = this.loadoutSection();
+    this.body.appendChild(this.loadEl);
 
-    // 选中技能详情 (含投点/装载操作)
-    const detail = document.createElement('div');
-    detail.className = 'detail';
-    if (this.selectedId) this.fillDetail(detail, defs);
-    else detail.innerHTML = '点击技能图标查看「本级/下一级」效果与解锁条件, 并在此投点 / 装载';
-    this.body.appendChild(detail);
+    // 选中技能详情 (常驻, 不随选中重建外壳, 只改内容)
+    this.detailEl = document.createElement('div');
+    this.detailEl.className = 'detail';
+    this.body.appendChild(this.detailEl);
+    this.fillDetailOrHint();
 
-    // 三系网格树
-    const tabs = document.createElement('div');
-    tabs.className = 'tabs';
-    for (let tab = 0; tab < 3; tab++) {
-      const col = document.createElement('div');
-      col.className = 'tab';
-      col.innerHTML = `<h4>${tabNames[tab]}</h4>`;
-      const list = defs.filter((d) => d.tab === tab);
-      const pos = new Map<string, Cell>();
-      const cols = layoutTab(list, pos);
-      const grid = document.createElement('div');
-      grid.className = 'grid';
-      grid.style.gridTemplateColumns = `repeat(${cols}, 54px)`;
-      // 连线层
-      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-      svg.setAttribute('class', 'links');
-      grid.appendChild(svg);
-      for (const def of list) {
-        const cell = pos.get(def.id)!;
-        const tile = this.skillTile(def, defs);
-        tile.style.gridRow = String(cell.row + 1);
-        tile.style.gridColumn = String(cell.col + 1);
-        grid.appendChild(tile);
-      }
-      col.appendChild(grid);
-      tabs.appendChild(col);
+    // 系切换 tab (一次一系一屏)
+    const systabs = document.createElement('div');
+    systabs.className = 'systabs';
+    for (let t = 0; t < 3; t++) {
+      const b = document.createElement('div');
+      b.className = 'systab' + (t === this.activeTab ? ' on' : '');
+      b.dataset.tab = String(t);
+      b.textContent = tabNames[t];
+      b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.switchTab(t); });
+      systabs.appendChild(b);
     }
-    this.body.appendChild(tabs);
-    // 等布局完成后绘制连线
+    this.body.appendChild(systabs);
+
+    // 当前系网格宿主
+    this.tabHostEl = document.createElement('div');
+    this.tabHostEl.className = 'tabhost';
+    this.body.appendChild(this.tabHostEl);
+    this.renderActiveTab();
+  }
+
+  private switchTab(t: number): void {
+    if (t === this.activeTab) return;
+    this.activeTab = t;
+    this.body.querySelectorAll('.systab').forEach((el) => el.classList.toggle('on', (el as HTMLElement).dataset.tab === String(t)));
+    this.renderActiveTab();
+  }
+
+  // 只重建当前系网格 (切系/投点), 不动 top/详情/装载, 减少闪动面。
+  private renderActiveTab(): void {
+    const defs = CLASS_SKILLS[this.game.character.cls];
+    this.tabHostEl.innerHTML = '';
+    const list = defs.filter((d) => d.tab === this.activeTab);
+    const pos = new Map<string, Cell>();
+    const cols = layoutTab(list, pos);
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    grid.style.gridTemplateColumns = `repeat(${cols}, 54px)`;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'links');
+    grid.appendChild(svg);
+    for (const def of list) {
+      const cell = pos.get(def.id)!;
+      const tile = this.skillTile(def, defs);
+      tile.style.gridRow = String(cell.row + 1);
+      tile.style.gridColumn = String(cell.col + 1);
+      grid.appendChild(tile);
+    }
+    this.tabHostEl.appendChild(grid);
     requestAnimationFrame(() => this.drawAllLinks());
+  }
+
+  private fillDetailOrHint(): void {
+    const defs = CLASS_SKILLS[this.game.character.cls];
+    if (this.selectedId) this.fillDetail(this.detailEl, defs);
+    else this.detailEl.innerHTML = '点击技能图标查看「本级/下一级」效果与解锁条件, 并在此投点 / 装载';
+  }
+
+  // 选中技能: 仅切换 .sel 高亮 + 刷新详情, 不重建网格 (去掉"点一下整树闪一下")。
+  private select(id: string): void {
+    this.selectedId = id;
+    this.tabHostEl.querySelectorAll('.sk').forEach((el) => el.classList.toggle('sel', (el as HTMLElement).dataset.id === id));
+    this.fillDetailOrHint();
+  }
+
+  // 投点: 点数文本 + 当前系各 tile 状态 + 详情 + 连线 就地更新, 不整页重建。
+  private invest(id: string): void {
+    if (!this.game.investSkill(id)) return;
+    this.pointsEl.textContent = `可用技能点: ${this.game.skillPointsAvailable()}`;
+    this.updateTileStates();
+    this.fillDetailOrHint();
+    this.drawAllLinks();
+  }
+
+  // 就地更新当前系所有 tile 的等级/可投/锁定/已满状态与 + 角标 (投点会连锁解锁下游)。
+  private updateTileStates(): void {
+    const g = this.game;
+    const defs = CLASS_SKILLS[g.character.cls];
+    this.tabHostEl.querySelectorAll('.sk').forEach((el) => {
+      const id = (el as HTMLElement).dataset.id;
+      const def = defs.find((d) => d.id === id);
+      if (!def) return;
+      const lvl = pointsIn(def.id, g.skillTree);
+      const investable = g.skillPointsAvailable() > 0 && canInvest(def, g.character.level, g.skillTree, defs);
+      const locked = lvl === 0 && !investable;
+      const maxed = lvl >= def.maxLevel;
+      el.className = 'sk' + (locked ? ' locked' : '') + (lvl > 0 ? ' learned' : '') + (investable ? ' investable' : '') +
+        (maxed ? ' maxed' : '') + (this.selectedId === def.id ? ' sel' : '');
+      const lv = el.querySelector('.lv'); if (lv) lv.textContent = `${lvl}/${def.maxLevel}`;
+      let plus = el.querySelector('.plus') as HTMLElement | null;
+      if (investable && !plus) {
+        plus = document.createElement('span'); plus.className = 'plus'; plus.textContent = '+';
+        plus.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.select(def.id); this.invest(def.id); });
+        el.appendChild(plus);
+      } else if (!investable && plus) { plus.remove(); }
+    });
+  }
+
+  private refreshLoadout(): void {
+    const fresh = this.loadoutSection();
+    this.loadEl.replaceWith(fresh);
+    this.loadEl = fresh;
   }
 
   // 为每个 tab 绘制 前置→技能 的连线 (基于实际 DOM 位置)。
@@ -249,10 +330,10 @@ export class SkillTreePanel {
       `<div class="ctl"><button class="inv" ${investable ? '' : 'disabled'}>+ 投点</button>${asg}</div>`;
 
     const inv = el.querySelector('.inv') as HTMLButtonElement;
-    inv.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); if (g.investSkill(def.id)) this.refresh(); });
+    inv.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.invest(def.id); });
     el.querySelectorAll('.asg b').forEach((b) => b.addEventListener('pointerdown', (e) => {
       e.preventDefault(); e.stopPropagation();
-      if (g.assignSkill(Number((b as HTMLElement).dataset.slot), def.id)) this.refresh();
+      if (g.assignSkill(Number((b as HTMLElement).dataset.slot), def.id)) { this.refreshLoadout(); this.fillDetailOrHint(); }
     }));
   }
 
@@ -271,7 +352,7 @@ export class SkillTreePanel {
       if (slot >= 1 && key) {
         const x = document.createElement('span');
         x.textContent = ' ✕'; x.style.cssText = 'color:#d88;cursor:pointer';
-        x.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); g.clearSkillSlot(slot); this.refresh(); });
+        x.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); g.clearSkillSlot(slot); this.refreshLoadout(); this.fillDetailOrHint(); });
         cell.appendChild(x);
       }
       row.appendChild(cell);
@@ -291,14 +372,14 @@ export class SkillTreePanel {
       (maxed ? ' maxed' : '') + (this.selectedId === def.id ? ' sel' : '');
     tile.dataset.id = def.id;
     tile.innerHTML = `${skillIconHtml(def.icon, 30)}<span class="lv">${lvl}/${def.maxLevel}</span>${investable ? '<span class="plus">+</span>' : ''}<span class="nm">${def.name}</span>`;
-    // 点图标主体 → 选中
-    tile.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.selectedId = def.id; this.refresh(); });
-    // 点右上 + → 直接投点
+    // 点图标主体 → 选中 (局部高亮, 不重建树)
+    tile.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.select(def.id); });
+    // 点右上 + → 选中并直接投点 (局部更新)
     const plus = tile.querySelector('.plus');
     if (plus) plus.addEventListener('pointerdown', (e) => {
       e.preventDefault(); e.stopPropagation();
-      this.selectedId = def.id;
-      if (g.investSkill(def.id)) this.refresh(); else this.refresh();
+      this.select(def.id);
+      this.invest(def.id);
     });
     return tile;
   }
