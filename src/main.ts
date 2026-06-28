@@ -291,12 +291,13 @@ async function main() {
       ring.label = 'eliteRing';
       c.addChild(ring);
       const nm = new Text({ text: e.elite.name, style: { fontFamily: 'Georgia,serif', fontSize: 11, fill: e.elite.color, stroke: { color: 0x000000, width: 3 } } });
-      nm.anchor.set(0.5, 1); nm.position.set(0, -e.size - 20);
+      nm.anchor.set(0.5, 1); nm.position.set(0, -e.size * 2.1 - 12);
       c.addChild(nm);
     }
-    // 血条 (受伤才显)
-    const hpbg = new Graphics().rect(-14, -e.size - 16, 28, 4).fill({ color: 0x000000, alpha: 0.6 });
-    const hp = new Graphics().rect(-13, -e.size - 15, 26, 2).fill({ color: 0xcc2200 });
+    // 血条 (受伤才显). 顶部偏移随体型放大 (真图身高≈size×2.6·脚锚0.82 → 顶约 -size×2.13), 放大后血条/名牌仍在头顶上方。
+    const topY = -e.size * 2.1 - 8;
+    const hpbg = new Graphics().rect(-14, topY, 28, 4).fill({ color: 0x000000, alpha: 0.6 });
+    const hp = new Graphics().rect(-13, topY + 1, 26, 2).fill({ color: 0xcc2200 });
     hpbg.label = 'hpbg'; hp.label = 'hp';
     hpbg.visible = false;
     c.addChild(hpbg, hp);
