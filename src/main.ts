@@ -16,6 +16,7 @@ import { HUD } from '@game/ui/hud.ts';
 import { InventoryPanel } from '@game/ui/inventory.ts';
 import { CharacterPanel } from '@game/ui/character.ts';
 import { SkillTreePanel } from '@game/ui/skilltree.ts';
+import { setIcon } from '@game/ui/icon.ts';
 import { NPCS, type NpcRole } from '@game/world/npcs.ts';
 import { AREAS } from '@game/world/act1.ts';
 import { TitleScreen, type BootChoice } from '@game/ui/titlescreen.ts';
@@ -524,7 +525,7 @@ async function main() {
   let paused = false;
   const panel = new InventoryPanel(game, () => { panel.hide(); paused = false; });
   const bagBtn = document.createElement('div');
-  bagBtn.textContent = '🎒';
+  setIcon(bagBtn, 'bag', '🎒');
   bagBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(60px + env(safe-area-inset-top));' +
     'width:48px;height:48px;border-radius:11px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
@@ -541,7 +542,7 @@ async function main() {
 
   // 角色按钮 (属性/加点/装备/导向)
   const charBtn = document.createElement('div');
-  charBtn.textContent = '🧍';
+  setIcon(charBtn, 'char', '🧍');
   charBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(330px + env(safe-area-inset-top));' +
     'width:48px;height:48px;border-radius:11px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
@@ -555,7 +556,7 @@ async function main() {
 
   // 技能树按钮
   const skillBtn = document.createElement('div');
-  skillBtn.textContent = '📖';
+  setIcon(skillBtn, 'skilltree', '📖');
   skillBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(114px + env(safe-area-inset-top));' +
     'width:48px;height:48px;border-radius:11px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
@@ -570,7 +571,7 @@ async function main() {
   // 任务日志按钮
   const questLog = new QuestLogPanel(() => { questLog.hide(); paused = false; });
   const questBtn = document.createElement('div');
-  questBtn.textContent = '📜';
+  setIcon(questBtn, 'quest', '📜');
   questBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(168px + env(safe-area-inset-top));' +
     'width:48px;height:48px;border-radius:11px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
@@ -612,7 +613,7 @@ async function main() {
     onClose: () => { town.hide(); paused = false; },
   });
   const townBtn = document.createElement('div');
-  townBtn.textContent = '🏛';
+  setIcon(townBtn, 'camp', '🏛');
   townBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(222px + env(safe-area-inset-top));' +
     'width:48px;height:48px;border-radius:11px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
@@ -631,9 +632,9 @@ async function main() {
 
   // 顶部右侧次级功能按钮 (航点/存档/读档/音效) — 收纳进可折叠的 ☰ 菜单, 减少常驻按钮。
   const utilBtns: HTMLElement[] = [];
-  function topBtn(emoji: string, slot: number, onTap: () => void): HTMLElement {
+  function topBtn(key: string, emoji: string, slot: number, onTap: () => void): HTMLElement {
     const b = document.createElement('div');
-    b.textContent = emoji;
+    setIcon(b, key, emoji, 24);
     const topPx = 156 + slot * 48; // ☰ 菜单按钮之下依次排列 (小地图在右上角)
     b.style.cssText =
       `position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(${topPx}px + env(safe-area-inset-top));` +
@@ -647,7 +648,7 @@ async function main() {
   // 航点: 提为常驻左侧按钮 (高频核心移动手段, 不再藏进菜单)
   const wp = new WaypointPanel((id) => { game.loadArea(id); wp.hide(); paused = false; }, () => { wp.hide(); paused = false; });
   const wpBtn = document.createElement('div');
-  wpBtn.textContent = '🗺';
+  setIcon(wpBtn, 'waypoint', '🗺');
   wpBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(276px + env(safe-area-inset-top));' +
     'width:48px;height:48px;border-radius:11px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
@@ -666,9 +667,9 @@ async function main() {
   // 页面隐藏(切后台/锁屏)时立即存一份, 防丢档
   document.addEventListener('visibilitychange', () => { if (document.hidden) autosave(); });
   let audioOn = true;
-  topBtn('🔊', 0, () => { audioOn = !audioOn; audio.setEnabled(audioOn); game.notices.push(audioOn ? '音效开' : '音效关'); });
+  topBtn('audio', '🔊', 0, () => { audioOn = !audioOn; audio.setEnabled(audioOn); game.notices.push(audioOn ? '音效开' : '音效关'); });
   // 帮助: 重看新手引导 (暂停模拟, 关闭后恢复)
-  topBtn('❓', 1, () => { paused = true; showTutorial(() => { paused = false; }); });
+  topBtn('help', '❓', 1, () => { paused = true; showTutorial(() => { paused = false; }); });
   // 设置: 音量/音效/BGM/自动饮药/重置存档
   let masterVol = 0.6, bgmOn = true;
   const settings = new SettingsPanel({
@@ -683,7 +684,7 @@ async function main() {
     onResetSave: () => { void deleteSlot(activeSlot).then(() => location.reload()); },
     onClose: () => { paused = false; },
   });
-  topBtn('⚙', 2, () => { paused = true; settings.show(); });
+  topBtn('settings', '⚙', 2, () => { paused = true; settings.show(); });
   // ☰ 菜单开关: 折叠/展开上述次级按钮 (默认折叠, 只占一个角)
   let menuOpen = false;
   function menuToggle(open?: boolean): void {
@@ -692,7 +693,7 @@ async function main() {
     menuBtn.textContent = menuOpen ? '✕' : '☰';
   }
   const menuBtn = document.createElement('div');
-  menuBtn.textContent = '☰';
+  setIcon(menuBtn, 'menu', '☰');
   menuBtn.style.cssText =
     'position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(108px + env(safe-area-inset-top));' +
     'width:42px;height:42px;border-radius:10px;background:radial-gradient(circle at 50% 30%,#2c2638,#15121c 80%);border:1.5px solid #c79433;display:flex;' +
