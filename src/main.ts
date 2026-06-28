@@ -927,7 +927,8 @@ async function main() {
           : game.difficulty === 'nightmare'
           ? `<div style="font-size:14px;color:#ffaa44;margin:4px 0">⚠ 惩罚: -10% 金币 · 50% HP · 重生于区域入口</div>`
           : `<div style="font-size:14px;color:#88ff88;margin:4px 0">普通模式: 无惩罚, 原地复活</div>`;
-        banner.innerHTML = `☠ 你已阵亡${penaltyText}<div style="font-size:13px;opacity:.7;margin-top:8px">点击重生</div>`;
+        const causeText = game.playerKilledBy ? `<div style="font-size:13px;color:#ffbbbb;margin-top:2px">死于 ${game.playerKilledBy} 之手</div>` : '';
+        banner.innerHTML = `你已阵亡${causeText}${penaltyText}<div style="font-size:13px;opacity:.7;margin-top:8px">点击重生</div>`;
       } else if (game.state === 'cleared' && !game.currentArea.isTown) {
         // 区域肃清: 仅顶部提示条, 不暗幕、不拦截输入 (否则摇杆被吃, 走不到出口 → 卡死)
         banner.style.display = 'flex';

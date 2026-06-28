@@ -11,7 +11,18 @@ import { deriveCombat, type Character } from '@game/systems/stats/character.ts';
 import { createMissile, updateMissiles, type Missile } from '@game/systems/missiles/index.ts';
 import { rollEliteAffixes, applyElite } from '@game/systems/elites/index.ts';
 import { QUESTS, type QuestReward } from '@game/world/quests.ts';
-import { initQuests, completeQuest, onAreaCleared, type QuestProgress } from '@game/systems/quests/state.ts';
+import { initQuests, completeQuest, onAreaCleared, isActive, type QuestProgress } from '@game/systems/quests/state.ts';
+import { MONSTERS } from '@game/data/monsters.ts';
+import { MONSTERS_EXT } from '@game/data/monsters2.ts';
+
+// 怪物 defId → 中文名 (死因显示用); Boss 名单独补。
+const MON_NAME: Record<string, string> = {};
+for (const m of [...Object.values(MONSTERS), ...Object.values(MONSTERS_EXT)]) MON_NAME[m.id] = m.name;
+const BOSS_NAME: Record<string, string> = { andariel: '安达莉尔', duriel: '督瑞尔', mephisto: '墨菲斯托', diablo: '迪亚波罗', baal: '巴尔' };
+function killerName(e: Entity): string {
+  const base = BOSS_NAME[e.defId] ?? MON_NAME[e.defId] ?? '敌人';
+  return e.elite?.name ? `${e.elite.name}·${base}` : base;
+}
 import { generateShopStock, buyPrice, sellPrice, gambleCost, gambleItem, identifyCost } from '@game/systems/town/economy.ts';
 import { makeMerc, updateMerc, hireCost, reviveCost, type Merc } from '@game/systems/merc/merc.ts';
 import { discover, type WaypointState } from '@game/systems/waypoint/waypoint.ts';
@@ -124,6 +135,13 @@ export class Game {
   skillTree: SkillTreeState = {}; // 已投技能点 (skillId→点数)
   missiles: Missile[] = []; // 投射物(箭/法术)
   questProgress: QuestProgress = initQuests(QUESTS); // 任务状态
+  playerKilledBy = ''; // 死因(被谁击杀), 阵亡横幅显示
+
+  // 当前进行中任务的一行目标 (HUD 常驻显示, 解决"不知道下一步干嘛")
+  get currentObjective(): string {
+    const q = QUESTS.find((qq) => isActive(this.questProgress, qq.id));
+    return q ? q.objective : '';
+  }
   bonusSkillPoints = 0; // 任务奖励的额外技能点
   statPoints = 0; // 未分配的属性点 (每级+5, 手动加点)
   mercUnlocked = false; // 任务奖励: 雇佣兵解锁(Phase D)
@@ -639,6 +657,7 @@ export class Game {
     }
     if (r.killed) {
       defender.dead = true;
+      if (defender === this.player) this.playerKilledBy = killerName(attacker);
       if (attacker === this.player && defender.kind === 'monster') {
         this.grantXp(defender.xpReward);
         if (defender.xpReward > 0) this.events.push({ pos: { x: defender.pos.x, y: defender.pos.y }, amount: 0, killed: false, toPlayer: false, xp: defender.xpReward });
@@ -803,7 +822,7 @@ export class Game {
           p.combat.hp = Math.max(0, p.combat.hp - total);
           p.hitFlash = 1;
           this.events.push({ pos: { ...p.pos }, amount: total, killed: p.combat.hp <= 0, toPlayer: true });
-          if (p.combat.hp <= 0) p.dead = true;
+          if (p.combat.hp <= 0) { p.dead = true; this.playerKilledBy = `${killerName(e)}的死亡爆炸`; }
         }
         this.corpses.push({ pos: { ...e.pos }, defId: e.defId, color: e.color, size: e.size, ageMs: 0 });
         const isBoss = BOSS_IDS.has(e.defId);
@@ -884,6 +903,7 @@ export class Game {
   respawn(): void {
     const p = this.player;
     p.dead = false;
+    this.playerKilledBy = ''; // 清死因, 防下次阵亡显示上次的
     this.shoutUntilMs = 0; // 清除增益
     this.dodgeUntilMs = 0;
 
@@ -1133,6 +1153,7 @@ export class Game {
     if (!killed && m.kind === 'iceball') target.combat.stunUntilMs = Math.max(target.combat.stunUntilMs, this.timeMs + 1000);
     if (killed) {
       target.dead = true;
+      if (target === this.player) this.playerKilledBy = `敌方${m.kind === 'arrow' ? '箭矢' : '法术'}`;
       if (m.fromPlayer && target.kind === 'monster') {
         this.grantXp(target.xpReward);
         if (target.xpReward > 0) this.events.push({ pos: { ...target.pos }, amount: 0, killed: false, toPlayer: false, xp: target.xpReward });
