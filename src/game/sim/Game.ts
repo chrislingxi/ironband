@@ -20,6 +20,15 @@ import { MONSTERS_EXT } from '@game/data/monsters2.ts';
 const MON_NAME: Record<string, string> = {};
 for (const m of [...Object.values(MONSTERS), ...Object.values(MONSTERS_EXT)]) MON_NAME[m.id] = m.name;
 const BOSS_NAME: Record<string, string> = { andariel: '安达莉尔', duriel: '督瑞尔', mephisto: '墨菲斯托', diablo: '迪亚波罗', baal: '巴尔' };
+// 装备战力评分(背包显示+一键穿戴共用): 伤害×3 + 防御 + 词缀值合计 + 稀有度权重。
+export function itemPower(it: ItemInstance): number {
+  let s = 0;
+  if (it.base.baseDamage) s += (it.base.baseDamage[0] + it.base.baseDamage[1]) / 2 * 3;
+  if (it.base.baseDefense) s += (it.base.baseDefense[0] + it.base.baseDefense[1]) / 2;
+  for (const a of it.affixes) s += a.value;
+  s += ({ normal: 0, magic: 6, rare: 14, set: 18, unique: 22 } as Record<string, number>)[it.rarity] ?? 0;
+  return Math.round(s);
+}
 function killerName(e: Entity): string {
   const base = BOSS_NAME[e.defId] ?? MON_NAME[e.defId] ?? '敌人';
   return e.elite?.name ? `${e.elite.name}·${base}` : base;
@@ -328,14 +337,7 @@ export class Game {
   // 一键穿戴: 每个槽位从背包挑可穿且评分最高的装备(优于当前则换上)。返回换装件数。
   equipBest(): number {
     const order: EquipSlot[] = ['weapon', 'helm', 'armor', 'shield', 'gloves', 'boots', 'belt', 'ring', 'amulet'];
-    const score = (it: ItemInstance): number => {
-      let s = 0;
-      if (it.base.baseDamage) s += (it.base.baseDamage[0] + it.base.baseDamage[1]) / 2 * 3;
-      if (it.base.baseDefense) s += (it.base.baseDefense[0] + it.base.baseDefense[1]) / 2;
-      for (const a of it.affixes) s += a.value;
-      s += { normal: 0, magic: 6, rare: 14, set: 18, unique: 22 }[it.rarity] ?? 0;
-      return s;
-    };
+    const score = itemPower;
     let changed = 0;
     for (const slot of order) {
       // 该槽可穿候选 (背包内, 已鉴定且满足需求)
