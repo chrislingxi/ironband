@@ -43,6 +43,12 @@ const CLASS_NAME: Record<CharClass, string> = {
   amazon: '亚马逊',
   sorceress: '法师',
 };
+// 去AI感: 职业卡/存档槽用真实角色立绘(assets/char/<cls>.png)替 emoji; 缺图回退 emoji。
+function classIconHtml(cls: CharClass): string {
+  const emoji = CLASS_ICON[cls];
+  return `<img class="cimg" src="assets/char/${cls}.png" alt="" `
+    + `onerror="this.style.display='none';this.insertAdjacentText('afterend','${emoji}')">`;
+}
 const DIFF_NAME: Record<Difficulty, string> = {
   normal: '普通',
   nightmare: '噩梦',
@@ -73,7 +79,8 @@ function injectStyle(): void {
     box-shadow:0 6px 20px #000a, 0 0 0 1px #0006 inset; transition:transform .08s ease, border-color .15s, box-shadow .15s; }
   #title .card:hover { border-color:#c79433; box-shadow:0 8px 26px #000c, 0 0 18px #c7943330; }
   #title .card:active { transform:scale(.95); }
-  #title .card .ic { font-size:clamp(40px,9vw,58px); line-height:1; filter:drop-shadow(0 3px 6px #000a); }
+  #title .card .ic { height:84px; display:flex; align-items:center; justify-content:center; font-size:clamp(40px,9vw,58px); line-height:1; filter:drop-shadow(0 4px 8px #000b); }
+  #title .card .ic img.cimg { height:90px; width:auto; max-width:100%; object-fit:contain; }
   #title .card .nm { margin:14px 0 8px; font-family:Cinzel,Georgia,serif; font-weight:700;
     font-size:clamp(18px,4.4vw,22px); letter-spacing:.06em; color:#e7c66a; text-shadow:0 1px 3px #000; }
   #title .card .bl { font-size:clamp(11px,3vw,13px); line-height:1.5; color:#b8ab92; }
@@ -88,7 +95,8 @@ function injectStyle(): void {
   #title .slot:hover { border-color:#c79433; box-shadow:0 0 16px #c7943322; }
   #title .slot:active { transform:scale(.98); }
   #title .slot.new { border-style:dashed; justify-content:center; color:#c79433; font-weight:700; }
-  #title .slot .sic { font-size:34px; line-height:1; filter:drop-shadow(0 2px 4px #000a); }
+  #title .slot .sic { width:44px; height:44px; display:flex; align-items:center; justify-content:center; font-size:34px; line-height:1; filter:drop-shadow(0 2px 4px #000a); }
+  #title .slot .sic img.cimg { height:44px; width:auto; object-fit:contain; }
   #title .slot .meta { flex:1; min-width:0; text-align:left; }
   #title .slot .meta .snm { font-family:Cinzel,Georgia,serif; font-size:18px; color:#e7c66a; font-weight:700;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -168,7 +176,7 @@ export class TitleScreen {
       const row = document.createElement('div');
       row.className = 'slot';
       row.innerHTML = `
-        <div class="sic">${CLASS_ICON[s.cls]}</div>
+        <div class="sic">${classIconHtml(s.cls)}</div>
         <div class="meta">
           <div class="snm">${escapeHtml(s.name)}</div>
           <div class="sde">${CLASS_NAME[s.cls]} · Lv ${s.level} · ${DIFF_NAME[s.difficulty]}</div>
@@ -208,7 +216,7 @@ export class TitleScreen {
       const card = document.createElement('div');
       card.className = 'card';
       card.innerHTML = `
-        <div class="ic">${c.icon}</div>
+        <div class="ic">${classIconHtml(c.cls)}</div>
         <div class="nm">${c.name}</div>
         <div class="bl">${c.blurb}</div>`;
       onTap(card, () => this.renderNameEntry(c.cls));
