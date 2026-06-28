@@ -109,7 +109,7 @@ export class CharacterPanel {
             ${attrRow('敏捷', 'dex', d.attrs.dex)}
             ${attrRow('体能', 'vit', d.attrs.vit)}
             ${attrRow('精力', 'energy', d.attrs.energy)}
-            <div class="guide" style="margin-top:8px">💡 ${CLASS_GUIDE[cls] ?? ''}</div>
+            <div class="guide" style="margin-top:8px">${iconImg('light-bulb', '💡', 13)} ${CLASS_GUIDE[cls] ?? ''}</div>
             ${g.currentArea.isTown ? `<div class="respec">洗点 (花费 ${g.respecCost()} 金)</div>` : ''}
           </div>
         </div>

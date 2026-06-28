@@ -26,5 +26,5 @@ export const ICON_MAP = {
   // 装备槽 + 面板标题图标
   'slot/helm': 'crested-helmet', 'slot/armor': 'breastplate', 'slot/shield': 'winged-shield',
   'slot/gloves': 'gloves', 'slot/boots': 'boots', 'slot/belt': 'belt', 'slot/ring': 'ring', 'slot/amulet': 'necklace',
-  'broom': 'broom', 'book-cover': 'book-cover',
+  'broom': 'broom', 'book-cover': 'book-cover', 'trash-can': 'trash-can', 'light-bulb': 'light-bulb',
 };

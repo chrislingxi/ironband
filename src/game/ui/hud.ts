@@ -19,11 +19,11 @@ function injectStyle(): void {
   #hud .hptxt { position:absolute; left:calc(16px + env(safe-area-inset-left)); top:16px; width:216px; height:22px; text-align:center; line-height:22px;
     font-size:12px; font-weight:800; color:#fff; letter-spacing:.5px; text-shadow:0 1px 2px #000,0 0 4px #0008; }
   /* 金币: 药丸徽章 */
-  #hud .gold { position:absolute; left:calc(16px + env(safe-area-inset-left)); top:44px; padding:2px 10px 2px 8px; border-radius:10px;
+  #hud .gold { position:absolute; left:calc(16px + env(safe-area-inset-left)); top:38px; padding:1px 10px 1px 8px; border-radius:10px;
     background:#0c0c12cc; border:1px solid #6a5a3a; font-size:13px; color:#ffcf4a; font-weight:800;
     text-shadow:0 1px 2px #000; box-shadow:0 2px 5px #0008; }
   /* 治疗药水: 可点红珠 (点击/低血自动饮) */
-  #hud .potion { position:absolute; left:calc(108px + env(safe-area-inset-left)); top:43px; padding:2px 9px 2px 7px; border-radius:11px; pointer-events:auto;
+  #hud .potion { position:absolute; left:calc(108px + env(safe-area-inset-left)); top:38px; padding:1px 9px 1px 7px; border-radius:11px; pointer-events:auto;
     background:radial-gradient(circle at 50% 30%,#7a1414,#3a0808); border:1.5px solid #c24a3a; font-size:13px; color:#ffd2c8;
     font-weight:800; text-shadow:0 1px 2px #000; box-shadow:0 2px 5px #0008, inset 0 1px 3px #ffffff22; user-select:none; }
   #hud .potion:active { transform:scale(.92); }

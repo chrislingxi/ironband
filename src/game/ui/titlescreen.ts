@@ -193,7 +193,7 @@ export class TitleScreen {
           <div class="snm">${escapeHtml(s.name)}</div>
           <div class="sde">${CLASS_NAME[s.cls]} · Lv ${s.level} · ${DIFF_NAME[s.difficulty]}</div>
         </div>
-        <div class="del" title="删除">🗑</div>`;
+        <div class="del" title="删除"><img src="assets/icon/trash-can.svg" alt="" style="width:16px;height:16px;vertical-align:middle;opacity:.85" onerror="this.style.display='none';this.insertAdjacentText('afterend','🗑')"></div>`;
       onTap(row, () => {
         this.hide();
         this.onStart({ kind: 'continue', slotId: s.slotId });
