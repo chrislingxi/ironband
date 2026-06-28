@@ -1,5 +1,5 @@
 import type { Game } from '@game/sim/Game.ts';
-import { iconImg } from '@game/ui/icon.ts';
+import { iconImg, skillIconHtml } from '@game/ui/icon.ts';
 
 // 轻量 DOM HUD: 血条 / 金币 / 怪物数 / 3 技能键(含冷却). 触屏友好, 适配安全区.
 let styleInjected = false;
@@ -104,7 +104,7 @@ export class HUD {
       const meta = this.game.skillKey(i); // 初始图标/名称 (实时由 update 刷新, 支持改键)
       const btn = document.createElement('div');
       btn.className = i === 3 ? 'skill skill-4' : 'skill';
-      btn.innerHTML = `<span class="ic">${meta?.icon ?? '·'}</span><canvas class="cd-arc" width="62" height="62"></canvas><div class="cd"></div><div class="nm">${meta?.name ?? '空'}</div>`;
+      btn.innerHTML = `<span class="ic" data-emoji="${meta?.icon ?? ''}">${skillIconHtml(meta?.icon ?? '·')}</span><canvas class="cd-arc" width="62" height="62"></canvas><div class="cd"></div><div class="nm">${meta?.name ?? '空'}</div>`;
       btn.style.gridRow = String(row);
       btn.style.gridColumn = String(col);
       const fire = (e: Event) => { e.preventDefault(); e.stopPropagation(); onSkill(i); };
@@ -139,7 +139,7 @@ export class HUD {
     this.skills.forEach((s) => {
       const key = this.game.skillKey(s.slot); // 实时解析当前绑定 (支持改键; 空槽 undefined)
       const icon = key?.icon ?? '·', name = key?.name ?? '空';
-      if (s.ic.textContent !== icon) s.ic.textContent = icon;
+      if (s.ic.dataset.emoji !== icon) { s.ic.dataset.emoji = icon; s.ic.innerHTML = skillIconHtml(icon); }
       if (s.nm.textContent !== name) s.nm.textContent = name;
       const cd = this.game.skillCd[s.slot];
       const maxCd = key?.cooldown ?? 1;
