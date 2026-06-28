@@ -14,7 +14,8 @@
     "test:watch": "vitest",
     "selftest:lint": "node scripts/selftest-lint.mjs",
     "selftest:ui": "node scripts/selftest-ui.mjs",
-    "selftest": "npm run selftest:lint && npm run typecheck && npm test && npm run build && npm run selftest:ui"
+    "selftest": "npm run selftest:lint && npm run typecheck && npm test && npm run build && npm run selftest:ui",
+    "loop:check": "npm run selftest:lint && npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "pixi.js": "^8.6.6"
