@@ -160,10 +160,12 @@ export class Game {
   // 取某技能槽当前绑定的技能行为 (空槽返回 undefined; 槽0缺省普通攻击)。
   skillKey(slot: number): ClassSkillKey | undefined {
     const cls = this.character.cls as CharClass;
+    // 槽0=普通攻击, 永远按职业解析 (法师=魔法光弹, 与自动攻击一致); 不走 castable 否则会落到通用近战。
+    if (slot === 0) return BASIC_ATTACK_BY_CLASS[cls] ?? BASIC_ATTACK;
     const id = this.assignedSkills[slot];
     const key = castableById(cls, id);
     if (key) return key;
-    return slot === 0 ? (BASIC_ATTACK_BY_CLASS[cls] ?? BASIC_ATTACK) : undefined; // 槽0永远至少是普通攻击(法师=光弹)
+    return undefined;
   }
 
   // 某技能是否可装备到技能键: 普通攻击专属槽0; 其余主动技需在其技能树投过点 (学过才能上)。

@@ -71,7 +71,7 @@ function injectStyle(): void {
   const css = `
   #tut { position:absolute; inset:0; z-index:120; display:flex; align-items:center; justify-content:center;
     background:#05060be0; font-family:-apple-system,"PingFang SC",sans-serif; color:#e8e0d0;
-    padding:max(20px,env(safe-area-inset-top)) 20px 20px; }
+    padding:max(20px,env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left)); }
   #tut .card { width:min(420px,90vw); background:linear-gradient(180deg,#181420,#0f0c16);
     border:1.5px solid #c79433; border-radius:16px; padding:22px 20px 18px; box-shadow:0 10px 40px #000c; }
   #tut .icon { font-size:42px; text-align:center; margin-bottom:6px; }

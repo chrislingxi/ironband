@@ -11,7 +11,10 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "selftest:lint": "node scripts/selftest-lint.mjs",
+    "selftest:ui": "node scripts/selftest-ui.mjs",
+    "selftest": "npm run selftest:lint && npm run typecheck && npm test && npm run build && npm run selftest:ui"
   },
   "dependencies": {
     "pixi.js": "^8.6.6"

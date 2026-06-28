@@ -21,7 +21,7 @@ function injectStyle(): void {
   const css = `
   #settings { position:absolute; inset:0; z-index:110; display:none; align-items:center; justify-content:center;
     background:#05060be0; font-family:-apple-system,"PingFang SC",sans-serif; color:#e8e0d0;
-    padding:max(20px,env(safe-area-inset-top)) 20px 20px; }
+    padding:max(20px,env(safe-area-inset-top)) calc(20px + env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left)); }
   #settings .card { width:min(400px,92vw); background:linear-gradient(180deg,#181420,#0f0c16);
     border:1.5px solid #c79433; border-radius:16px; padding:20px; box-shadow:0 10px 40px #000c; }
   #settings h3 { font-family:Georgia,serif; color:#ffd76b; font-size:18px; margin:0 0 14px; text-align:center; }
