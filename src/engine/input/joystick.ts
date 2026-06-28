@@ -14,6 +14,8 @@ export class Joystick {
   active = false;
   vector: Vec2 = { x: 0, y: 0 };
   strength = 0;
+  // 死区: 左侧 UI 按钮区, 在此按下不触发摇杆(防"看着是按钮、误触出摇杆"的混淆区)。
+  deadZones: Array<{ x: number; y: number; w: number; h: number }> = [];
 
   // 可视化: 按下处生成底环 + 跟手摇杆头 (浮动摇杆手感地基, 原本零反馈)
   private base?: HTMLDivElement;
@@ -53,6 +55,9 @@ export class Joystick {
   private onDown = (e: PointerEvent) => {
     if (this.pointerId !== null) return;
     if (e.clientX > window.innerWidth * 0.5) return;
+    for (const z of this.deadZones) {
+      if (e.clientX >= z.x && e.clientX <= z.x + z.w && e.clientY >= z.y && e.clientY <= z.y + z.h) return;
+    }
     e.preventDefault();
     this.pointerId = e.pointerId;
     this.originX = this.curX = e.clientX;
