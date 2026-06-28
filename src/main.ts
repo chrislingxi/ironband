@@ -283,7 +283,7 @@ async function main() {
     const c = new Container();
     // 贴图 key: 玩家=char/<职业>, 怪物/Boss=mon/<defId>。命中 assets/<key>.png 即用真图。
     const textureKey = e.kind === 'player' ? `char/${game.character.cls}` : `mon/${e.defId}`;
-    const actor = createActorSprite({ kind: actorKind(e), color: e.color, size: e.size, subKind: actorSubKind(e), textureKey });
+    const actor = createActorSprite({ kind: actorKind(e), color: e.color, size: e.size, subKind: actorSubKind(e), textureKey, showFacing: e.kind === 'player' });
     actors.set(e.id, actor);
     c.addChild(actor.container);
     // 精英描边光环 + 名牌
@@ -314,8 +314,10 @@ async function main() {
     c.zIndex = depthKey(e.pos);
     const actor = actors.get(e.id);
     if (actor) {
+      // 朝向是格子空间角; 投到屏幕空间(等距 2:1)再给精灵, 这样倾身/朝向尖角指向"看着的方向"而非格子方向
+      const fd = gridToScreen({ x: Math.cos(e.facing), y: Math.sin(e.facing) });
       actor.update({
-        facing: e.facing,
+        facing: Math.atan2(fd.y, fd.x),
         moving: e.moving,
         attacking: e.attackInterval > 0 && e.attackCd > e.attackInterval - 0.18,
         flash: e.hitFlash > 0 ? Math.min(1, e.hitFlash) : 0,

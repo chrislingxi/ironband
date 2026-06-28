@@ -21,6 +21,8 @@ export interface ActorSpriteOpts {
   subKind?: ActorSubKind;
   /** 可选贴图 key (如 'char/barbarian'): 命中 assets/<key>.png 即用真图覆盖矢量, 缺失回退。 */
   textureKey?: string;
+  /** 玩家专用: 移动时显示朝向尖角, 让"走的方向"一目了然 (修地图方向与走路方向看着不一致)。 */
+  showFacing?: boolean;
 }
 
 export interface ActorUpdate {
@@ -97,10 +99,14 @@ export class ActorSprite {
     this.shadow
       .ellipse(0, s * 0.6, s * 1.1, s * 0.45)
       .fill({ color: 0x000000, alpha: 0.3 });
-    // 朝向尖角
+    // 朝向尖角 (玩家移动时显示, 金色更醒目, 指向真实行进方向)。
+    // 支点抬到躯干高度: 朝上走时尖角落在头顶上方而非埋进身体里, 各方向都看得见。
+    this.pointer.clear();
     this.pointer
-      .poly([s + 1, 0, s + 9, -4, s + 9, 4])
-      .fill({ color: 0x000000, alpha: 0.5 });
+      .poly([s + 2, 0, s + 14, -7, s + 14, 7])
+      .fill({ color: 0xffe08a, alpha: 0.95 })
+      .stroke({ color: 0x000000, width: 1.5, alpha: 0.6 });
+    this.pointer.position.set(0, -s * 1.05);
   }
 
   private drawBody(main: number, lit: number, dark: number): void {
@@ -597,12 +603,18 @@ export class ActorSprite {
     const bob = moving
       ? Math.sin(timeMs / 90) * this.opts.size * 0.12
       : Math.sin(timeMs / 600) * this.opts.size * 0.04;
-    this.bodyHolder.position.y = bob;
+
+    // 行进倾身: 朝真实行进方向(屏幕 x/y)整体偏移, 让"往上/往下走"与"往侧走"明显不同, 不再只靠左右镜像
+    const lean = moving ? this.opts.size * 0.28 : 0;
+    const vx = Math.cos(facing), vy = Math.sin(facing);
 
     // 攻击前倾
     const lunge = attacking ? this.opts.size * 0.35 : 0;
-    this.bodyHolder.position.x = (faceLeft ? -lunge : lunge);
+    this.bodyHolder.position.x = (faceLeft ? -lunge : lunge) + vx * lean;
+    this.bodyHolder.position.y = bob + vy * lean;
 
+    // 朝向尖角: 仅玩家且移动时显示, 指向真实行进方向 (修"地图方向与走路方向看着不一致")
+    this.pointer.visible = !!this.opts.showFacing && moving;
     this.pointer.rotation = facing;
   }
 
