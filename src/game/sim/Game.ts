@@ -579,6 +579,8 @@ export class Game {
   }
 
   private attack = (attacker: Entity, defender: Entity, dmg: DamageInstance[]): void => {
+    // 翻滚无敌帧: 玩家翻滚期间免疫近战 (原本只挡投射物, 不挡近战 → 此处补齐)。
+    if (defender === this.player && this.timeMs < this.dodgeUntilMs) return;
     // 暴击/致命: 玩家攻击有几率双倍物理伤害 (基础5% + 亚马逊critical_strike每点3%)。
     let useDmg = dmg;
     let crit = false;
@@ -589,7 +591,12 @@ export class Game {
       crit = true;
       useDmg = dmg.map((d) => (d.type === 'physical' ? { ...d, min: d.min * 2, max: d.max * 2 } : d));
     }
+    // 呐喊: 玩家受击时若呐喊生效, 临时把有效防御 ×1.5 (结算后还原, 不污染 combat.defense)。
+    const shouted = defender === this.player && this.timeMs < this.shoutUntilMs;
+    const baseDef = defender.combat.defense;
+    if (shouted) defender.combat.defense = Math.round(baseDef * 1.5);
     const r = resolveAttack(attacker.combat, defender.combat, useDmg, this.rng, this.timeMs);
+    if (shouted) defender.combat.defense = baseDef;
     if (!r.hit) {
       // 未命中: 推一条 miss 事件 (让 AR/命中系统对玩家可感)
       this.events.push({ pos: { x: defender.pos.x, y: defender.pos.y }, amount: 0, killed: false, toPlayer: defender.kind === 'player', miss: true });
@@ -1079,8 +1086,8 @@ export class Game {
   private execShout(key: ClassSkillKey): void {
     const duration = (key.duration ?? 5) * 1000;
     this.shoutUntilMs = this.timeMs + duration;
-    // 临时将防御翻倍 (用标记; recompute 时检测并应用)
-    this.player.combat.defense = Math.round(this.player.combat.defense * 1.5);
+    // 仅置时间标记; 防御 ×1.5 在受击结算(attack)里按 shoutUntilMs 临时应用, 不再永久改 combat.defense
+    // (原实现直接乘 combat.defense 会被 recompute 清掉、且可反复呐喊叠乘成近无敌 exploit)。
     this.notices.push('呐喊! 防御大幅提升 5秒');
   }
 
