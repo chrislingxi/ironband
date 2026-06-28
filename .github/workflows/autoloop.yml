@@ -1,0 +1,63 @@
+name: Autoloop · 自动玩家 BOT 持续探针
+
+# 自迭代 loop 的「always-on 测量层」(无 LLM, 跑在 GitHub 基建上, 真正 7×24)。
+# 定时跑全套探针(平衡闸门 + 全流程不变量 + 随机种子探索)。探索探针每次随机种子 → 持续发现新边角问题。
+# 一旦发现回归/新问题 → 开/更新一个 issue 上报, 由修复层(agent 会话 / Mac ccgs)接手。
+on:
+  schedule:
+    - cron: '17 */8 * * *'   # 每 8 小时 (避开整点)
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths: ['src/**', 'test/**', 'package.json']
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: autoloop
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - id: probe
+        name: 运行探针 (lint/typecheck/probes/build)
+        run: |
+          set +e
+          npm run loop:check 2>&1 | tee probe.log
+          echo "code=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+      - name: 发现问题 → 开/更新 issue
+        if: steps.probe.outputs.code != '0'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            let log = '';
+            try { log = fs.readFileSync('probe.log','utf8'); } catch {}
+            // 截取失败片段 (末尾 8000 字)
+            const tail = log.slice(-8000);
+            const title = '🤖 Autoloop: 探针发现回归/新问题';
+            const body = [
+              '自动玩家 BOT 探针发现问题 (run: ' + context.runId + ')。',
+              '', '修复层(agent/ccgs)接手: 在 src/game/data/balance.ts 白名单旋钮内调平 → 棘轮验收(npm run loop:check 全绿) → PR;',
+              '越界(改机制/数据曲线)进 docs/NEEDS_DESIGN.md, 不擅自做。',
+              '', '```', tail, '```'
+            ].join('\n');
+            const q = `repo:${context.repo.owner}/${context.repo.repo} is:issue is:open in:title "${title}"`;
+            const found = await github.rest.search.issuesAndPullRequests({ q });
+            if (found.data.total_count > 0) {
+              const n = found.data.items[0].number;
+              await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: n, body });
+            } else {
+              await github.rest.issues.create({ owner: context.repo.owner, repo: context.repo.repo, title, body, labels: ['autoloop'] });
+            }
+      - name: 探针失败则置红
+        if: steps.probe.outputs.code != '0'
+        run: exit 1
