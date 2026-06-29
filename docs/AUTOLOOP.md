@@ -14,7 +14,20 @@
 
 这层真正 24/7、零 token 成本、容器回收也不受影响。
 
-### ② 修复层（按需唤醒 LLM）
+### ②a 修复层 · 真·7×24 自治（`.github/workflows/autofix.yml`）
+定时(每天 05:33 UTC)唤醒 Claude 跑一轮：探针失败→白名单旋钮内调平→棘轮验收→开 draft PR。不依赖任何会话/容器。
+
+**一次性启用（两步）：**
+1. **安装 Claude GitHub App** 到本仓库：https://github.com/apps/claude → Install → 选 `chrislingxi/ironband`。
+   （cron 下创建分支/PR 必须用 App 身份，默认 `GITHUB_TOKEN` 不行。）
+2. **加一个仓库 secret**（Settings → Secrets and variables → Actions → New repository secret）：
+   - 名称 `CLAUDE_CODE_OAUTH_TOKEN`，值 = 本地跑 `claude setup-token` 生成的订阅 OAuth token（Pro/Max）。
+   - 或改用 API key：把 `autofix.yml` 里 `claude_code_oauth_token:` 一行换成 `anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}`，secret 名 `ANTHROPIC_API_KEY`（console.anthropic.com 生成，按量计费）。
+
+配好后：Actions → "Autofix" → Run workflow 手动试跑一次确认认证/权限通；之后每天自动跑。
+**授权边界**：只允许改 `balance.ts` + 两个 docs；越界进 `NEEDS_DESIGN.md`，不擅自动其它代码。`timeout-minutes:30` + `--max-turns 30` 兜底防失控。
+
+### ②b 修复层（按需唤醒 LLM / 备选）
 读最新 `autoloop` issue → 诊断 → 在 `src/game/data/balance.ts` **白名单旋钮**内调平 → `npm run loop:check` 棘轮验收 → PR → 合并；越界(改机制/技能曲线)进 `docs/NEEDS_DESIGN.md` 等人拍板。
 
 可由以下任一驱动（都遵守同一纪律）：

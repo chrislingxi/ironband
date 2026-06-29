@@ -1,0 +1,58 @@
+name: Autofix · 自治修复层 (Claude 定时自迭代)
+
+# 真·7×24 自治修复层: 定时唤醒 Claude, 跑探针 → 失败则在白名单旋钮内调平 → 棘轮验收 → 开 PR。
+# 与 autoloop.yml(测量层)互补: 测量层只检测/开 issue, 本工作流真正动手修。
+# 不依赖任何会话/容器, 跑在 GitHub 基建上。
+#
+# 启用前置(一次性, 见 docs/AUTOLOOP.md):
+#   1) 安装 Claude GitHub App 到本仓库 (cron 下创建分支/PR 必须, 默认 GITHUB_TOKEN 不行)。
+#   2) 加仓库 secret: CLAUDE_CODE_OAUTH_TOKEN (Pro/Max 订阅, 本地 `claude setup-token` 生成)
+#      —— 或改用 API key: 把下方 claude_code_oauth_token 一行换成 anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}。
+on:
+  schedule:
+    - cron: '33 5 * * *'    # 每天 05:33 UTC (避开整点; 与测量层 8h 节奏错开)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: autofix
+  cancel-in-progress: false
+
+jobs:
+  autofix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30          # 成本/失控护栏
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - name: Claude 自治修复一轮
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: >-
+            --allowedTools Bash,Edit,Write,Read,Grep,Glob
+            --max-turns 30
+          prompt: |
+            你是 ironband 的自治修复层, 严格遵守 docs/AUTOLOOP.md 与下面纪律, 保持稳定不跑偏。
+
+            步骤(按序):
+            1) 跑 `npm run loop:check`。若全绿: 不做任何改动、不开 PR, 结束(回报"探针全绿")。
+            2) 若失败: 判断根因是否落在"白名单数值旋钮"范围内 —— 即 src/game/data/balance.ts 中
+               spellK / synergyScale / bossHpMult 等旋钮, 且改动落在其 BALANCE_BOUNDS 区间内。
+               · 在范围内: 只改 balance.ts 旋钮调平(可参考 test/balance-tune.probe.ts 的二分搜参思路);
+                 改完必须重跑 `npm run loop:check` 全绿(棘轮: 目标项改善且其余探针不回归, 否则还原)。
+                 把本次调参追加到 docs/BALANCE_LEDGER.md(旋钮改动 + 前后指标 + 验收结论)。
+               · 超出范围(需改机制/技能数据曲线/加内容/动目标带): 不要改代码, 把问题追加到 docs/NEEDS_DESIGN.md, 结束。
+            3) 仅当有"通过 loop:check 验收"的有效修复时: 新建分支 claude/autofix-<UTC日期>, 提交, 开 draft PR 到 main,
+               PR 描述含 根因 / 旋钮改动 / 前后指标。每轮最多一个 PR, 不直接推 main。
+            4) 全程只动数值旋钮、不重构、不碰美术; 判不准就升级到 NEEDS_DESIGN 而非硬改。
+
+            约束: 你只被授权改 src/game/data/balance.ts、docs/BALANCE_LEDGER.md、docs/NEEDS_DESIGN.md。
+            其它源文件一律不改 —— 若修复需要动它们, 说明原因并写入 NEEDS_DESIGN.md, 不擅自改。
