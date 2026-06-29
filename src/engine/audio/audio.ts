@@ -22,6 +22,11 @@ export type SfxName =
 
 import { decodeSample, SFX_BASENAMES, BGM_BASENAME } from './samples.ts';
 
+// 真音效采样各自响度不一, 这里做平衡(相对 master), 避免某个音爆/某个音弱。
+const SAMPLE_GAIN: Record<string, number> = {
+  hit: 0.7, hurt: 0.7, skill: 0.5, pickup: 0.7, coin: 0.55, levelup: 0.55, death: 0.8, select: 0.6,
+};
+
 // 跨浏览器 AudioContext 构造器(含旧 Safari 的 webkit 前缀).
 type AudioCtor = typeof AudioContext;
 
@@ -147,7 +152,7 @@ export class GameAudio {
     const master = this.master;
     if (!ctx || !master) return;
     // 优先真音效采样; 缺文件则走下面的程序化合成。
-    if (this.playSample(name)) return;
+    if (this.playSample(name, SAMPLE_GAIN[name] ?? 0.7)) return;
     const t = ctx.currentTime;
 
     switch (name) {

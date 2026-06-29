@@ -15,8 +15,8 @@ export const BGM_BASENAME = 'bgm';
 
 // 资产根 (与部署一致: dist 下 assets/ 与 index.html 同级)。
 const ROOT = 'assets/audio/';
-// 浏览器普遍可解码的容器, 按优先级探测 (有谁算谁)。
-const EXT = ['ogg', 'mp3', 'webm', 'wav'];
+// 容器探测顺序: mp3 优先 — iOS Safari 不能解 Ogg Vorbis, mp3 各端通吃 (含 iPhone)。
+const EXT = ['mp3', 'ogg', 'm4a', 'wav'];
 
 // 抓取 + 解码一个基名到 AudioBuffer; 逐个扩展名尝试, 全失败返回 null (静默回退)。
 export async function decodeSample(ctx: AudioContext, basename: string): Promise<AudioBuffer | null> {
