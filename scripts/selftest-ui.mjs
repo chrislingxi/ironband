@@ -1,7 +1,7 @@
 // 设备矩阵 UI 自测: 在多分辨率下逐面板截图 + 断言 (越界/遮挡/安全区/运行时错误)。
 // 替代人工逐 bug 复测的「画面层」关。运行: node scripts/selftest-ui.mjs
 import { chromium } from 'playwright-core';
-import { mkdirSync, existsSync, cpSync, readdirSync } from 'node:fs';
+import { mkdirSync, existsSync, cpSync, readdirSync, rmSync } from 'node:fs';
 
 const URL = 'file://' + process.cwd() + '/dist/web/index.html';
 const OUT = process.cwd() + '/.selftest';
@@ -10,6 +10,8 @@ mkdirSync(OUT, { recursive: true });
 // 复刻部署布局: vite 把 public/assets 拷到 dist/assets, 但 html 在 dist/web/。
 // 部署时 workflow 会把 assets/ 与 index.html 同级; 本地测试同样把 assets 拷到 dist/web 下, 让真图按 key 加载。
 if (existsSync(process.cwd() + '/dist/assets')) {
+  rmSync(process.cwd() + '/dist/web/assets', { recursive: true, force: true });
+  mkdirSync(process.cwd() + '/dist/web', { recursive: true });
   cpSync(process.cwd() + '/dist/assets', process.cwd() + '/dist/web/assets', { recursive: true });
 }
 // 已交付的美术 key (按 public/assets 实际存在者校验加载, 不臆测)。
@@ -35,7 +37,14 @@ const DEVICES = [
 const findings = [];
 function flag(dev, panel, msg) { findings.push(`[${dev}] ${panel}: ${msg}`); }
 
-const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
+const chromeCandidates = [
+  process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
+  '/opt/pw-browsers/chromium',
+  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+  '/Applications/Chromium.app/Contents/MacOS/Chromium',
+].filter(Boolean);
+const executablePath = chromeCandidates.find((p) => existsSync(p));
+const b = await chromium.launch(executablePath ? { executablePath } : undefined);
 
 for (const dev of DEVICES) {
   const ctx = await b.newContext({ viewport: { width: dev.w, height: dev.h }, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
@@ -54,10 +63,38 @@ for (const dev of DEVICES) {
   // 游戏内按钮监听 pointerdown, 故用派发 pointerdown 模拟真实点击 (Playwright .click 对 emoji div 不可靠)。
   const click = async (t) => {
     const ok = await pg.evaluate((txt) => {
-      const el = [...document.querySelectorAll('div,button,span')].find((e) => e.textContent.trim() === txt && e.offsetParent !== null);
+      const aliases = { '📖': 'skilltree', '🎒': 'inventory', '🧍': 'character' };
+      const ui = aliases[txt];
+      const candidates = ui
+        ? [`[data-ui="${ui}"]`, `[aria-label="${ui}"]`]
+        : [];
+      let el = null;
+      for (const sel of candidates) {
+        el = document.querySelector(sel);
+        if (el && el.offsetParent !== null) break;
+      }
+      if (!el) {
+        el = [...document.querySelectorAll('div,button,span')]
+          .filter((e) => e.textContent.trim() === txt && e.offsetParent !== null)
+          .sort((a, b) => {
+            const ar = a.getBoundingClientRect(), br = b.getBoundingClientRect();
+            return (ar.width * ar.height) - (br.width * br.height);
+          })[0];
+      }
+      if (!el) {
+        el = [...document.querySelectorAll('div,button,span')]
+          .filter((e) => e.textContent.includes(txt) && e.offsetParent !== null)
+          .sort((a, b) => {
+            const ar = a.getBoundingClientRect(), br = b.getBoundingClientRect();
+            return (ar.width * ar.height) - (br.width * br.height);
+          })[0];
+      }
       if (!el) return false;
       const r = el.getBoundingClientRect();
-      for (const type of ['pointerdown', 'mousedown', 'click']) el.dispatchEvent(new MouseEvent(type, { bubbles: true, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2 }));
+      for (const type of ['pointerdown', 'mousedown', 'click']) {
+        const E = type === 'pointerdown' ? PointerEvent : MouseEvent;
+        el.dispatchEvent(new E(type, { bubbles: true, cancelable: true, clientX: r.x + r.width / 2, clientY: r.y + r.height / 2, pointerType: 'touch', isPrimary: true }));
+      }
       return true;
     }, t);
     await pg.waitForTimeout(400);

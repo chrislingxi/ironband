@@ -52,7 +52,7 @@ function injectStyle(): void {
   #charp .attr .nm { width:42px; color:#e8d8a8; }
   #charp .attr .v { font-weight:800; color:#fff; min-width:36px; text-align:right; }
   #charp .attr .d { flex:1; font-size:11px; opacity:.55; }
-  #charp .plus { width:30px; height:30px; border-radius:7px; border:1px solid #4a7a3a; background:#1c2a16; color:#7bd66a; font-size:18px; font-weight:800; line-height:28px; text-align:center; }
+  #charp .plus { width:30px; height:30px; border-radius:7px; border:1px solid #4a7a3a; background:#1c2a16; color:#7bd66a; font-size:18px; font-weight:800; line-height:28px; text-align:center; cursor:pointer; touch-action:none; -webkit-user-select:none; user-select:none; }
   #charp .plus:active { transform:scale(.9); }
   #charp .guide { font-size:12px; line-height:1.6; color:#cbb88a; background:#241a0f88; border:1px dashed #6a5a3a; border-radius:8px; padding:8px 10px; }
   #charp .stat { font-size:13px; line-height:1.85; }
@@ -124,10 +124,18 @@ export class CharacterPanel {
         </div>
       </div>`;
 
-    this.body.querySelectorAll('.plus').forEach((el) => el.addEventListener('pointerdown', (e) => {
-      e.preventDefault(); e.stopPropagation();
-      g.allocateStat((el as HTMLElement).dataset.a as 'str' | 'dex' | 'vit' | 'energy'); this.refresh();
-    }));
+    this.body.querySelectorAll('.plus').forEach((el) => {
+      const btn = el as HTMLElement;
+      const block = (e: Event) => { e.preventDefault(); e.stopPropagation(); };
+      btn.addEventListener('pointerdown', (e) => {
+        block(e);
+        g.allocateStat(btn.dataset.a as 'str' | 'dex' | 'vit' | 'energy');
+        this.refresh();
+      });
+      btn.addEventListener('click', block);
+      btn.addEventListener('dblclick', block);
+      btn.addEventListener('touchend', block, { passive: false });
+    });
     const respec = this.body.querySelector('.respec');
     if (respec) respec.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); if (g.respecStats()) this.refresh(); });
   }

@@ -16,8 +16,9 @@
     "test:watch": "vitest",
     "selftest:lint": "node scripts/selftest-lint.mjs",
     "selftest:ui": "node scripts/selftest-ui.mjs",
-    "selftest": "npm run selftest:lint && npm run typecheck && npm test && npm run build && npm run selftest:ui",
-    "loop:check": "npm run selftest:lint && npm run typecheck && npm test && npm run build"
+    "selftest:mobile-zoom": "node scripts/selftest-mobile-zoom.mjs",
+    "selftest": "npm run selftest:lint && npm run typecheck && npm test && npm run build && npm run selftest:ui && npm run selftest:mobile-zoom",
+    "loop:check": "npm run selftest:lint && npm run typecheck && npm test && npm run build && npm run selftest:mobile-zoom"
   },
   "dependencies": {
     "pixi.js": "^8.6.6"

@@ -35,6 +35,7 @@ import { listWaypoints } from '@game/systems/waypoint/waypoint.ts';
 import { dist } from '@engine/math/vec.ts';
 import { FirstRunCoach } from '@game/ui/firstRunCoach.ts';
 import { injectV4Skin } from '@game/ui/v4skin.ts';
+import { installViewportGuards } from '@engine/input/viewportGuards.ts';
 
 const areaName = (id: string): string => AREAS[id]?.name ?? id;
 
@@ -60,35 +61,9 @@ function showError(msg: string): void {
 // Phase0 等距脊柱 + T3 战斗内核 + T4 怪物AI 的可玩集成.
 // 占位形状渲染 (T1 并行会替换为 FLARE 等距精灵 + 光照).
 
-// iOS Safari 忽略 user-scalable=no: 手动拦截双击缩放/多指手势, 并用 visualViewport 锁住可视高度。
-// 否则连续点击会触发页面缩放/滚动, 横屏时还可能露出浏览器地址栏并截断游戏画布。
-function installZoomGuards(): void {
-  const lockViewport = () => {
-    const height = window.visualViewport?.height ?? window.innerHeight ?? document.documentElement.clientHeight;
-    document.documentElement.style.setProperty('--app-height', `${Math.round(height)}px`);
-    document.documentElement.style.overflow = 'hidden';
-    document.body.style.overflow = 'hidden';
-    window.scrollTo(0, 0);
-  };
-  lockViewport();
-  window.addEventListener('resize', lockViewport, { passive: true });
-  window.addEventListener('orientationchange', () => window.setTimeout(lockViewport, 80), { passive: true });
-  window.visualViewport?.addEventListener('resize', lockViewport, { passive: true });
-  let lastTouchEnd = 0;
-  document.addEventListener('touchend', (e) => {
-    const now = performance.now();
-    if (now - lastTouchEnd < 350) e.preventDefault(); // 阻止双击缩放
-    lastTouchEnd = now;
-    window.setTimeout(lockViewport, 0);
-  }, { passive: false });
-  for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) {
-    document.addEventListener(ev, (e) => e.preventDefault());
-  }
-}
-
 async function main() {
   injectV4Skin();
-  installZoomGuards();
+  installViewportGuards();
   const app = new Application();
   // iOS Safari 的 WebGPU 不稳定 → 强制 WebGL; 失败再退默认(自动选择)
   const initOpts = {
@@ -544,6 +519,9 @@ async function main() {
   let paused = false;
   const panel = new InventoryPanel(game, () => { panel.hide(); paused = false; });
   const bagBtn = document.createElement('div');
+  bagBtn.setAttribute('role', 'button');
+  bagBtn.setAttribute('aria-label', '背包');
+  bagBtn.dataset.ui = 'inventory';
   setIcon(bagBtn, 'bag', '🎒');
   bagBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(60px + env(safe-area-inset-top));' +
@@ -562,6 +540,9 @@ async function main() {
 
   // 角色按钮 (属性/加点/装备/导向)
   const charBtn = document.createElement('div');
+  charBtn.setAttribute('role', 'button');
+  charBtn.setAttribute('aria-label', '角色');
+  charBtn.dataset.ui = 'character';
   setIcon(charBtn, 'char', '🧍');
   charBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(330px + env(safe-area-inset-top));' +
@@ -576,6 +557,9 @@ async function main() {
 
   // 技能树按钮
   const skillBtn = document.createElement('div');
+  skillBtn.setAttribute('role', 'button');
+  skillBtn.setAttribute('aria-label', '技能树');
+  skillBtn.dataset.ui = 'skilltree';
   setIcon(skillBtn, 'skilltree', '📖');
   skillBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(114px + env(safe-area-inset-top));' +
