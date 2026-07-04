@@ -907,6 +907,7 @@ export class Game {
     // 全屏自动拾取地面物品 (背包未满); 满了给一次提示 (防止"踩着不捡"困惑)
     if (!p.dead) {
       this.groundItems = this.groundItems.filter((gi) => {
+        if (this.tryAutoEquipBuildItem(gi.item)) { this.bagFullWarned = false; return false; }
         if (this.inventory.length < this.invCap) { this.inventory.push(gi.item); this.bagFullWarned = false; return false; }
         if (!this.bagFullWarned) { this.notices.push('⚠ 背包已满! 回营地出售或丢弃'); this.bagFullWarned = true; }
         return true;
@@ -993,6 +994,20 @@ export class Game {
 
   private equippedHasUnique(id: string): boolean {
     return Object.values(this.character.equipment).some((it) => it?.affixes.some((a) => a.id.startsWith(`${id}_`)));
+  }
+
+  private isUniqueItem(it: ItemInstance, id: string): boolean {
+    return it.affixes.some((a) => a.id.startsWith(`${id}_`));
+  }
+
+  private tryAutoEquipBuildItem(it: ItemInstance): boolean {
+    if ((this.character.cls as CharClass) !== 'amazon' || !this.isUniqueItem(it, 'ravenneedle') || !this.canEquip(it)) return false;
+    const prev = this.character.equipment.weapon;
+    this.character.equipment.weapon = it;
+    if (prev && this.inventory.length < this.invCap) this.inventory.push(prev);
+    this.recompute();
+    this.notices.push('鸦羽穿心已装备: 箭矢获得穿透');
+    return true;
   }
 
   /**
@@ -1119,6 +1134,7 @@ export class Game {
     this.missiles.push(createMissile({
       pos: this.player.pos, dir, speed: this.missileSpeed(kind), dmg, kind, fromPlayer: true,
       range: ravenNeedle ? 18 : 14, pierce: ravenNeedle ? 2 : kind === 'bolt' ? 1 : 0,
+      stunMs: key.stun ? key.stun * 1000 : undefined,
       radius: kind === 'fireball' || kind === 'nova' ? 0.6 : 0.35, color: this.missileColor(key.damageType),
     }));
   }
@@ -1192,7 +1208,10 @@ export class Game {
     const killed = target.combat.hp <= 0;
     const immune = total === 0 && m.dmg.length > 0; // 抗性≥100 → 免疫
     this.events.push({ pos: { ...target.pos }, amount: total, killed, toPlayer: target.kind === 'player', dmgType: dominantDamageType(byType), immune, crit });
-    if (!killed && m.kind === 'iceball') target.combat.stunUntilMs = Math.max(target.combat.stunUntilMs, this.timeMs + 1000);
+    if (!killed) {
+      const stunMs = m.stunMs ?? (m.kind === 'iceball' ? 1000 : 0);
+      if (stunMs > 0) target.combat.stunUntilMs = Math.max(target.combat.stunUntilMs, this.timeMs + stunMs);
+    }
     if (killed) {
       target.dead = true;
       if (target === this.player) this.playerKilledBy = `敌方${m.kind === 'arrow' ? '箭矢' : '法术'}`;

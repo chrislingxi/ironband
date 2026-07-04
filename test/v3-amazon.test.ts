@@ -33,4 +33,26 @@ describe('V3 亚马逊垂直切片', () => {
     expect(arrows.length).toBe(9);
     expect(arrows.every((m) => m.pierce === 2 && m.range === 18)).toBe(true);
   });
+
+  it('冰冻箭命中后真正控住目标', () => {
+    const g = new Game(9, 'amazon');
+    g.spawnMonster('brute', g.player.pos.x + 3, g.player.pos.y);
+    const target = g.monsters[0];
+    target.combat.hp = 999;
+    target.combat.maxHp = 999;
+    expect(g.useSkill(2)).toBe(true);
+    expect(g.missiles[0]?.stunMs).toBe(1000);
+    for (let i = 0; i < 16 && target.combat.stunUntilMs === 0; i++) g.update(0.05, { move: { x: 0, y: 0 } });
+    expect(target.combat.stunUntilMs).toBeGreaterThan(g.timeMs);
+  });
+
+  it('拾取鸦羽穿心会自动装备, 立即进入穿透构筑', () => {
+    const g = new Game(11, 'amazon');
+    const item = makeUniqueItem('ravenneedle', 3, true);
+    g.groundItems.push({ id: 999, pos: { ...g.player.pos }, item });
+    g.update(0.01, { move: { x: 0, y: 0 } });
+    expect(g.character.equipment.weapon?.name).toBe('鸦羽穿心');
+    expect(g.inventory.some((it) => it.base.id === 'short_bow')).toBe(true);
+    expect(g.notices.some((n) => n.includes('箭矢获得穿透'))).toBe(true);
+  });
 });

@@ -17,6 +17,7 @@ export interface Missile {
   range: number; // 最大飞行距离(格), 超出即消失
   traveled: number; // 已飞行距离(格)
   pierce: number; // 可穿透目标数, <0 时消失
+  stunMs?: number; // 命中控制时长 (冰冻箭等)
   kind: MissileKind;
   color: number; // 渲染色
   dead: boolean; // 标记销毁
@@ -34,6 +35,7 @@ export interface CreateMissileOpts {
   fromPlayer: boolean;
   range?: number;
   pierce?: number;
+  stunMs?: number;
   radius?: number;
   color?: number;
 }
@@ -52,6 +54,7 @@ export function createMissile(opts: CreateMissileOpts): Missile {
     range: opts.range ?? 12,
     traveled: 0,
     pierce: opts.pierce ?? 0,
+    stunMs: opts.stunMs,
     kind: opts.kind,
     color: opts.color ?? 0xffffff,
     dead: false,
