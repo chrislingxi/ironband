@@ -16,6 +16,12 @@ const REQUIRED_ASSETS = [
   'public/assets/icon/skill-frost-arrow.svg',
   'public/assets/icon/skill-ice-arrow.svg',
   'public/assets/icon/skill-exploding-arrow.svg',
+  'assets/mon/mephisto.png',
+  'assets/mon/diablo.png',
+  'assets/mon/baal.png',
+  'public/assets/mon/mephisto.png',
+  'public/assets/mon/diablo.png',
+  'public/assets/mon/baal.png',
 ];
 
 describe('V4 visual asset pack', () => {

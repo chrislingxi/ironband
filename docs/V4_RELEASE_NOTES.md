@@ -48,3 +48,14 @@ This pass removes two visible environment fallbacks from late-game areas:
 - Added `npm run assets:v4-tiles` so the tile assets are reproducible from `scripts/gen-v4-tiles.mjs`.
 
 The runtime tile preload now resolves `tile/hell` and `tile/snow` to real PNG textures instead of procedural fallback.
+
+## Boss Art Pass - Prime Evils
+
+This pass removes three high-impact monster fallbacks from late-game encounters:
+
+- Added transparent V4 PNG boss art for `mephisto.png`, `diablo.png`, and `baal.png`.
+- Added `scripts/chroma-key-png.mjs` to convert green-background AI renders into alpha PNG game assets without needing Pillow.
+- Kept `scripts/gen-v4-bosses.mjs` as a deterministic placeholder generator only, exposed as `npm run assets:v4-boss-placeholders`, so final boss art is not accidentally overwritten.
+- Extended the V4 asset regression test to require both dev and GitHub Pages copies of the three boss PNGs.
+
+The runtime already resolves monsters by `mon/<defId>.png`, so these assets are picked up without additional gameplay code.

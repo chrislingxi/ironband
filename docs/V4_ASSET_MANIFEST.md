@@ -66,6 +66,9 @@
 
 | 优先级 | key | 文件 | 规格 | 用途 | 验收重点 |
 |---|---|---|---|---|---|
+| P0 | `mon/mephisto` | `mephisto.png` | 1200px+ transparent PNG | 后期 Boss | 紫色幽魂/诅咒剪影明确，移动端小尺寸仍可读 |
+| P0 | `mon/diablo` | `diablo.png` | 1200px+ transparent PNG | 后期 Boss | 红黑重甲恶魔剪影明确，尖角/爪刃/熔火核心可读 |
+| P0 | `mon/baal` | `baal.png` | 1200px+ transparent PNG | 后期 Boss | 腐蚀绿与骨质王冠明确，不与毒怪混淆 |
 | P0 | `mon/elite_aura_red` | `mon/elite_aura_red.png` | 512x512 PNG | 精英危险标识 | 光环不遮怪物轮廓 |
 | P1 | `mon/boss_bloodroot` | `mon/boss_bloodroot.png` | 768x768 PNG | 首个原创小 Boss | 树根/血肉/骨刺组合，原创且非现成 IP |
 | P2 | `mon/boss_plague_matriarch` | `mon/boss_plague_matriarch.png` | 768x768 PNG | 毒巢 Boss | 虫巢/毒腺/祭祀感，危险色独立 |
