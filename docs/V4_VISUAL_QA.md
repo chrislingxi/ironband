@@ -57,7 +57,7 @@ Then do a browser smoke check against the built page or local dev server:
 Known remaining art gaps:
 
 - `assets/v4-dark/` path is ready, but the first true V4 replacement pack is not yet populated.
-- `tile/hell.png` and `tile/snow.png` are still procedural fallback rather than painted tiles.
+- `tile/hell.png` and `tile/snow.png` now resolve to generated V4 PNG tiles; they should later be replaced by hand-painted final tiles.
 - Mephisto/Diablo/Baal runtime keys still need real boss PNGs.
 - Amazon starter skill icons now have bespoke V4 SVGs; remaining class trees still need the same treatment.
 - Character and monster runtime art is single-frame PNG, not directional animation sheets.

@@ -38,3 +38,13 @@ This pass replaces the most visible Amazon starter skill icon fallbacks with ori
 - `skill-exploding-arrow.svg`
 
 The runtime emoji mapping now routes Amazon bow/cold/burst symbols into these bespoke dark framed icons instead of generic library symbols.
+
+## Environment Tile Pass - Hell and Snow
+
+This pass removes two visible environment fallbacks from late-game areas:
+
+- Added generated V4 isometric `hell.png` tile assets for Act IV-style scorched red stone.
+- Added generated V4 isometric `snow.png` tile assets for Act V-style cold cracked stone.
+- Added `npm run assets:v4-tiles` so the tile assets are reproducible from `scripts/gen-v4-tiles.mjs`.
+
+The runtime tile preload now resolves `tile/hell` and `tile/snow` to real PNG textures instead of procedural fallback.
