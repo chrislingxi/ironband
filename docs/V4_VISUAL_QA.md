@@ -40,3 +40,24 @@ Then do a browser smoke check against the built page or local dev server:
 - inventory opens and closes
 - skill tree opens and closes
 - town NPC panel opens from camp
+
+## 2026-07-05 V4 Foundation QA Record
+
+- Local build: passed.
+- Unit/regression tests: 43 files, 187 tests passed.
+- Safe-area lint: passed.
+- Mobile browser smoke: passed at 390x844.
+- Online GitHub Pages smoke: passed at `https://chrislingxi.github.io/ironband/?v=a219c59`.
+- V4 skin injection: passed.
+- Title footer no longer contains toy/Q positioning language.
+- Amazon class art exists on title page.
+- Camp NPC PNG route exists online.
+- First-run coach no longer overlaps the four skill buttons in mobile portrait.
+
+Known remaining art gaps:
+
+- `assets/v4-dark/` path is ready, but the first true V4 replacement pack is not yet populated.
+- `tile/hell.png` and `tile/snow.png` are still procedural fallback rather than painted tiles.
+- Mephisto/Diablo/Baal runtime keys still need real boss PNGs.
+- Amazon skill icons still use semantic SVG treatment, not bespoke painted icons.
+- Character and monster runtime art is single-frame PNG, not directional animation sheets.
