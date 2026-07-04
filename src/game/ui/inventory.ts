@@ -29,37 +29,71 @@ function injectStyle(): void {
   styled = true;
   const css = `
   #inv { position:fixed; inset:0; height:var(--app-height, 100dvh); display:none; z-index:80; color:#e8dcc0;
-    background:radial-gradient(120% 90% at 50% 0%, #221a22f5, #0a0709fb);
+    background:
+      radial-gradient(90% 60% at 50% 0%, #392018d8, transparent 62%),
+      radial-gradient(80% 80% at 12% 72%, #101820aa, transparent 62%),
+      linear-gradient(180deg,#0a0706fb,#030202fd);
     font-family:-apple-system,"PingFang SC",sans-serif;
     padding:max(14px,env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left)); overflow:auto; }
   #inv.show { display:block; }
-  #inv .hd { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #5a4f6a; padding-bottom:8px; margin-bottom:10px; }
-  #inv .ttl { font-family:Georgia,"Songti SC",serif; font-size:19px; font-weight:800; color:#cdb8e8; letter-spacing:2px; text-shadow:0 2px 6px #000; }
-  #inv .x { width:38px; height:38px; border-radius:9px; border:1px solid #5a4f6a; background:#1a1420cc; text-align:center; line-height:36px; font-size:20px; }
+  #inv .hd { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid #8c6630; padding-bottom:8px; margin-bottom:10px; }
+  #inv .ttl { font-family:Georgia,"Songti SC",serif; font-size:19px; font-weight:800; color:#ffe2a0; letter-spacing:2px; text-shadow:0 2px 6px #000; }
+  #inv .x { width:38px; height:38px; border-radius:7px; border:1px solid #8c6630; background:#140d09cc; text-align:center; line-height:36px; font-size:20px; }
   #inv .sect { font-family:Georgia,serif; color:#c79433; font-size:13px; letter-spacing:1px; margin:4px 0 8px; display:flex; align-items:center; gap:8px; }
   #inv .sect .ln { flex:1; height:1px; background:linear-gradient(90deg,#6a5a3a88,transparent); }
-  /* 装备区: 9 槽网格 */
-  #inv .equip { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:7px; margin-bottom:6px; }
-  #inv .slot { position:relative; display:flex; align-items:center; gap:8px; padding:8px 9px; border:1px solid #3a3024; border-radius:9px;
-    background:linear-gradient(#16100acc,#0f0b07cc); min-height:38px; box-shadow:inset 0 1px 0 #ffffff0c; }
-  #inv .slot.empty { opacity:.45; border-style:dashed; }
-  #inv .slot .ic { font-size:18px; width:22px; text-align:center; opacity:.9; }
-  #inv .slot .nm { flex:1; font-size:12px; line-height:1.25; overflow:hidden; }
-  #inv .slot .nm small { opacity:.45; }
-  #inv .slot .off { color:#d88; border:1px solid #6a4a4a; border-radius:5px; padding:1px 7px; font-size:11px; }
+  #inv .cols { display:grid; grid-template-columns:minmax(320px,420px) minmax(280px,1fr); gap:16px; align-items:start; }
+  #inv .col-l, #inv .col-r { min-width:0; }
+  #inv .equip { position:relative; height:430px; max-width:420px; margin:0 auto 8px;
+    border:1px solid #5f4526; border-radius:8px;
+    background:
+      radial-gradient(ellipse at 50% 48%, #21140ecc 0%, #0a0706f0 62%, #030202 100%),
+      linear-gradient(135deg,#4b351855 0 1px, transparent 1px 34px);
+    box-shadow:inset 0 1px 0 #ffe7a018, inset 0 0 36px #000, 0 14px 30px #0009; overflow:hidden; }
+  #inv .equip::before { content:""; position:absolute; left:50%; top:52%; width:118px; height:286px; transform:translate(-50%,-50%);
+    background:
+      radial-gradient(ellipse at 50% 9%, #8c663055 0 18px, transparent 19px),
+      linear-gradient(90deg, transparent 0 19px, #8c663025 20px 24px, transparent 25px 93px, #8c663025 94px 98px, transparent 99px),
+      radial-gradient(ellipse at 50% 37%, #8c663022 0 44px, transparent 45px),
+      linear-gradient(180deg, transparent 0 70px, #8c66301d 71px 190px, transparent 191px);
+    border:1px solid #8c663020; clip-path:polygon(42% 0,58% 0,66% 15%,82% 26%,70% 40%,67% 63%,83% 100%,57% 100%,50% 73%,43% 100%,17% 100%,33% 63%,30% 40%,18% 26%,34% 15%); opacity:.9; }
+  #inv .equip::after { content:""; position:absolute; left:50%; top:49%; width:1px; height:300px; transform:translateX(-50%); background:linear-gradient(transparent,#d7a84b44,transparent); }
+  #inv .slot { position:absolute; width:132px; min-height:56px; display:grid; grid-template-columns:26px 1fr auto; gap:7px; align-items:center;
+    padding:7px 8px; border:1px solid #4d3920; border-radius:7px;
+    background:linear-gradient(180deg,#1d130eed,#090605f6); box-shadow:inset 0 1px 0 #ffe7a016, 0 8px 18px #0008; }
+  #inv .slot.empty { opacity:.58; border-style:dashed; background:linear-gradient(180deg,#120d0aed,#080504f6); }
+  #inv .slot .ic { width:24px; height:24px; display:flex; align-items:center; justify-content:center; opacity:.9; }
+  #inv .slot .nm { min-width:0; font-size:11px; line-height:1.2; overflow:hidden; }
+  #inv .slot .nm b { display:block; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #inv .slot .nm small { opacity:.55; }
+  #inv .slot .off { color:#ffb3a5; border:1px solid #70443a; border-radius:4px; padding:1px 6px; font-size:10px; background:#160909; }
+  #inv .slot[data-slot="helm"] { left:50%; top:16px; transform:translateX(-50%); }
+  #inv .slot[data-slot="amulet"] { right:18px; top:68px; }
+  #inv .slot[data-slot="weapon"] { left:16px; top:112px; }
+  #inv .slot[data-slot="shield"] { right:16px; top:148px; }
+  #inv .slot[data-slot="armor"] { left:50%; top:154px; transform:translateX(-50%); }
+  #inv .slot[data-slot="gloves"] { left:18px; top:242px; }
+  #inv .slot[data-slot="belt"] { left:50%; top:258px; transform:translateX(-50%); }
+  #inv .slot[data-slot="ring"] { right:18px; top:246px; }
+  #inv .slot[data-slot="boots"] { left:50%; bottom:18px; transform:translateX(-50%); }
   #inv .slot:active { transform:scale(.985); }
+  #inv .slot[data-slot="helm"]:active, #inv .slot[data-slot="armor"]:active, #inv .slot[data-slot="belt"]:active, #inv .slot[data-slot="boots"]:active { transform:translateX(-50%) scale(.985); }
   #inv .bar2 { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:6px 0 10px; }
   #inv .equipbest { cursor:pointer; font-weight:700; font-size:13px; color:#1a1208; padding:7px 14px; border-radius:9px;
     background:radial-gradient(circle at 50% 20%,#e8c878,#a8842c); border:1px solid #ffe9a0; box-shadow:0 2px 6px #0008; }
   #inv .equipbest:active { transform:scale(.96); }
   #inv .cap { font-size:12px; opacity:.65; }
   #inv .runes { font-size:12px; color:#caa24a; }
-  #inv .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(108px,1fr)); gap:8px; }
-  #inv .cell { position:relative; border:1px solid #3a3448; border-radius:9px; background:linear-gradient(#16121e,#0f0c16);
-    padding:8px 9px; font-size:12px; box-shadow:inset 0 1px 0 #ffffff0c; }
-  #inv .cell .nm { display:block; line-height:1.3; max-height:2.6em; overflow:hidden; }
+  #inv .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:8px; }
+  #inv .cell { position:relative; min-height:84px; border:1px solid #3a3024; border-radius:7px;
+    background:radial-gradient(circle at 50% 20%,#292018,#090706 78%);
+    padding:9px 9px 24px; font-size:12px; box-shadow:inset 0 1px 0 #ffe7a012, 0 8px 18px #0008; overflow:hidden; }
+  #inv .cell::before { content:""; position:absolute; inset:5px; border-radius:5px; border:1px solid #ffffff0a; pointer-events:none; }
+  #inv .cell.rarity-magic { border-color:#446aa0; box-shadow:0 0 14px #2f78ff22, inset 0 1px 0 #ffe7a012; }
+  #inv .cell.rarity-rare { border-color:#b18a32; box-shadow:0 0 14px #d7a84b24, inset 0 1px 0 #ffe7a012; }
+  #inv .cell.rarity-unique { border-color:#b56d35; box-shadow:0 0 16px #d66b2a34, inset 0 1px 0 #ffe7a012; }
+  #inv .cell .nm { display:block; line-height:1.25; max-height:3.75em; overflow:hidden; font-weight:700; text-shadow:0 1px 2px #000; }
   #inv .cell .sock { font-size:10px; opacity:.55; }
-  #inv .cell .wear { position:absolute; right:6px; bottom:6px; font-size:11px; color:#8d8; border:1px solid #4a6a4a; border-radius:5px; padding:0 6px; background:#11180fdd; }
+  #inv .cell .wear { position:absolute; right:6px; bottom:6px; font-size:11px; color:#14200c; border:1px solid #d7c07a; border-radius:4px; padding:0 7px; background:linear-gradient(#d7c07a,#8c6630); font-weight:800; }
   #inv .cell .pw { display:block; font-size:10px; color:#caa24a; margin-top:3px; }
   #inv .cell:active { transform:scale(.97); }
   #inv .empty-bag { opacity:.4; padding:18px 4px; }
@@ -98,10 +132,35 @@ function injectStyle(): void {
   @media (orientation:landscape) {
     #inv { display:none; flex-direction:column; overflow:hidden; }
     #inv.show { display:flex; }
-    #inv .cols { display:flex; gap:16px; flex:1; min-height:0; }
-    #inv .col-l { flex:0 0 42%; overflow-y:auto; overflow-x:hidden; padding-right:6px; }
+    #inv .cols { display:grid; grid-template-columns:minmax(320px,42%) minmax(360px,1fr); gap:16px; flex:1; min-height:0; }
+    #inv .col-l { overflow-y:auto; overflow-x:hidden; padding-right:6px; }
     #inv .col-r { flex:1; min-width:0; overflow-y:auto; overflow-x:hidden; padding-right:4px; }
+    #inv .equip { height:300px; max-width:360px; }
+    #inv .equip::before { height:220px; width:90px; }
+    #inv .slot { width:112px; min-height:48px; grid-template-columns:22px 1fr auto; gap:5px; padding:6px; }
+    #inv .slot .nm b { font-size:11px; }
+    #inv .slot[data-slot="helm"] { top:10px; }
+    #inv .slot[data-slot="amulet"] { right:10px; top:46px; }
+    #inv .slot[data-slot="weapon"] { left:10px; top:74px; }
+    #inv .slot[data-slot="shield"] { right:10px; top:108px; }
+    #inv .slot[data-slot="armor"] { top:104px; }
+    #inv .slot[data-slot="gloves"] { left:10px; top:174px; }
+    #inv .slot[data-slot="belt"] { top:182px; }
+    #inv .slot[data-slot="ring"] { right:10px; top:180px; }
+    #inv .slot[data-slot="boots"] { bottom:10px; }
     #inv .tip { margin-top:10px; flex:0 0 auto; }
+  }
+  @media (max-width:680px) and (orientation:portrait) {
+    #inv .cols { grid-template-columns:1fr; }
+    #inv .equip { height:386px; max-width:360px; }
+    #inv .slot { width:112px; min-height:52px; grid-template-columns:22px 1fr auto; gap:5px; padding:6px; }
+    #inv .slot .nm b { font-size:11px; }
+    #inv .slot[data-slot="amulet"] { right:10px; top:62px; }
+    #inv .slot[data-slot="weapon"] { left:10px; top:108px; }
+    #inv .slot[data-slot="shield"] { right:10px; top:142px; }
+    #inv .slot[data-slot="gloves"] { left:10px; top:226px; }
+    #inv .slot[data-slot="ring"] { right:10px; top:230px; }
+    #inv .grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
   }
   `;
   const t = document.createElement('style');
@@ -136,7 +195,7 @@ export class InventoryPanel {
           <div class="grid"></div>
         </div>
       </div>
-      <div class="tip">点击物品查看 · 点「穿」装备 · 点已装备「卸」卸下</div>`;
+      <div class="tip">战利品详情</div>`;
     document.body.appendChild(this.root);
     this.equipEl = this.root.querySelector('.equip') as HTMLElement;
     this.gridEl = this.root.querySelector('.grid') as HTMLElement;
@@ -195,13 +254,14 @@ export class InventoryPanel {
       const it = g.character.equipment[slot];
       const cell = document.createElement('div');
       cell.className = 'slot' + (it ? '' : ' empty');
+      cell.dataset.slot = slot;
       if (it) {
         const nm = it.identified ? it.name : `${it.base.name}(未鉴)`;
-        cell.innerHTML = `<span class="ic">${slotIcon(slot)}</span><span class="nm" style="color:${RARITY_HEX[it.rarity]}">${nm}<br><small>${SLOT_LABEL[slot]} · <b style="color:#e7c66a">战力 ${itemPower(it)}</b></small></span><span class="off">卸</span>`;
+        cell.innerHTML = `<span class="ic">${slotIcon(slot)}</span><span class="nm" style="color:${RARITY_HEX[it.rarity]}"><b>${nm}</b><small>${SLOT_LABEL[slot]} · 战力 ${itemPower(it)}</small></span><span class="off">卸</span>`;
         (cell.querySelector('.nm') as HTMLElement).addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.showTip(it, { kind: 'equip', slot }); });
         (cell.querySelector('.off') as HTMLElement).addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); g.unequip(slot); this.refresh(); });
       } else {
-        cell.innerHTML = `<span class="ic">${slotIcon(slot)}</span><span class="nm">${SLOT_LABEL[slot]} · 空</span>`;
+        cell.innerHTML = `<span class="ic">${slotIcon(slot)}</span><span class="nm"><b>${SLOT_LABEL[slot]}</b><small>空位</small></span>`;
       }
       this.equipEl.appendChild(cell);
     }
@@ -214,7 +274,7 @@ export class InventoryPanel {
     if (g.inventory.length === 0) { this.gridEl.innerHTML = '<div class="empty-bag">背包空空。</div>'; return; }
     g.inventory.forEach((it, i) => {
       const cell = document.createElement('div');
-      cell.className = 'cell';
+      cell.className = `cell rarity-${it.rarity}`;
       const nm = it.identified ? it.name : `${it.base.name}(未鉴)`;
       const col = it.identified ? RARITY_HEX[it.rarity] : '#c8c8c8';
       const sock = it.sockets ? `<span class="sock">[${(it.socketed?.length ?? 0)}/${it.sockets}孔]</span>` : '';

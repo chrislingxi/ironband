@@ -94,3 +94,12 @@ This pass upgrades the most-used Amazon HUD buttons from generic SVG symbols to 
 - Added PNG versions of Magic Arrow, Multiple Shot, and Frost Arrow.
 - Updated `iconImg` so those three semantic keys prefer PNG while the rest of the icon library continues to use SVG.
 - Extended the V4 asset regression test to require both dev and GitHub Pages copies of the three PNG skill icons.
+
+## Inventory Page Pass - Paper Doll Equipment
+
+This pass rebuilds the inventory page from a flat list into a darker ARPG equipment screen:
+
+- Replaced the equipped-item list with a paper-doll layout for weapon, helm, armor, shield, gloves, boots, belt, ring, and amulet.
+- Added rarity-framed loot cells for the bag grid so magic, rare, and unique items read as distinct materials.
+- Rebalanced portrait and landscape layouts so the inventory no longer becomes a full-screen blocker on mobile landscape.
+- Removed instructional filler copy from the default detail panel; the page now opens as a finished UI surface instead of a prototype help screen.

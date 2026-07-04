@@ -16,7 +16,7 @@ The build is acceptable only when a player can open the live GitHub Pages versio
 - Title: no toy-like "Q版" positioning; class cards feel like dark fantasy character cards.
 - HUD: health, level, objective, potion, and four skills are legible over combat.
 - Skill icons: no naked emoji in normal operation when a semantic SVG exists.
-- Inventory: equipment and bag cells feel like the same material system as HUD.
+- Inventory: paper-doll equipment slots and rarity-framed bag cells feel like the same material system as HUD.
 - Skill tree: learned, selected, locked, and investable states are visually distinct.
 - NPCs: camp NPCs use PNG art when available.
 - Combat: canvas filter must not make monsters or loot unreadable.
@@ -63,4 +63,5 @@ Known remaining art gaps:
 - Runtime player and camp NPC PNGs are larger than the old procedural markers, reducing the title-to-combat quality drop.
 - Rogue Encampment now has V4 campfire, exit gate, and blacksmith workstation props as low-risk scene anchors.
 - Amazon Magic Arrow, Multiple Shot, and Frost Arrow now have bespoke V4 PNG HUD icons; remaining class trees still need the same treatment.
+- Inventory now uses a paper-doll equipment page with rarity-framed bag cells and verified portrait/landscape mobile bounds.
 - Character and monster runtime art is single-frame PNG, not directional animation sheets.
