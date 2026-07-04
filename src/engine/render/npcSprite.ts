@@ -77,7 +77,7 @@ export function buildNpcSpriteWithArt(role: NpcRole, id: string, s = 13): Contai
     c.addChild(new Graphics().ellipse(0, s * 0.7, s * 1.18, s * 0.45).fill({ color: 0x000000, alpha: 0.42 }));
     const sp = new Sprite(tex);
     sp.anchor.set(0.5, 0.84);
-    sp.scale.set((s * 3.35) / tex.height);
+    sp.scale.set((s * 5.8) / tex.height);
     c.addChild(sp);
   })();
   return c;

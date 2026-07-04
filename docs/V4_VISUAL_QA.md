@@ -60,5 +60,6 @@ Known remaining art gaps:
 - Title-screen Barbarian/Amazon/Sorceress class portraits now use full-body V4 dark fantasy PNGs instead of Q-style chibi art.
 - `tile/hell.png` and `tile/snow.png` now resolve to generated V4 PNG tiles; they should later be replaced by hand-painted final tiles.
 - Mephisto/Diablo/Baal runtime keys now resolve to V4 transparent PNG boss art; next upgrade is directional animation and in-game scale tuning.
+- Runtime player and camp NPC PNGs are larger than the old procedural markers, reducing the title-to-combat quality drop.
 - Amazon starter skill icons now have bespoke V4 SVGs; remaining class trees still need the same treatment.
 - Character and monster runtime art is single-frame PNG, not directional animation sheets.

@@ -69,3 +69,11 @@ This pass replaces the most visible chibi/Q-style class portraits on the title s
 - Extended the V4 asset regression test to require both dev and GitHub Pages copies of the three class PNGs.
 
 The first screen now presents the game as a darker ARPG instead of a cute mobile-card prototype.
+
+## Runtime Silhouette Pass - Combat Readability
+
+This pass reduces the quality drop between the title screen and the first playable combat scene:
+
+- Increased runtime player texture height so Amazon/Barbarian/Sorceress silhouettes remain readable on mobile.
+- Increased camp NPC PNG scale so town services no longer collapse into tiny marker figures.
+- Kept logic hitboxes unchanged; only the visual texture layer is larger.

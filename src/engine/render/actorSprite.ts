@@ -79,9 +79,16 @@ export class ActorSprite {
     const s = this.opts.size;
     const sp = new Sprite(tex);
     sp.anchor.set(0.5, 0.82); // 脚部近底
-    // 与矢量身高相称; 但封顶到视口高的 55%, 防大体型 Boss 真图(如 andariel size108→281px)在横屏遮挡战场。
+    // V4 真图要比旧矢量小人更有体量，但只改视觉层，不改逻辑 hitbox。
+    // 玩家需要在手机首五分钟中读出职业轮廓；Boss 保持封顶，避免横屏遮挡战场。
     const vh = (typeof window !== 'undefined' ? window.innerHeight : 800);
-    const targetH = Math.min(s * 2.6, vh * 0.55);
+    const isPlayer = this.opts.subKind === 'barbarian' || this.opts.subKind === 'amazon' || this.opts.subKind === 'sorceress';
+    const isBoss = this.opts.subKind === 'andariel' || this.opts.subKind === 'duriel';
+    const targetH = isPlayer
+      ? Math.min(s * 4.8, vh * 0.32)
+      : isBoss
+        ? Math.min(s * 2.9, vh * 0.55)
+        : Math.min(s * 3.15, vh * 0.36);
     sp.scale.set(targetH / tex.height);
     this.bodyHolder.addChildAt(sp, 0);
     this.sprite = sp;
