@@ -86,3 +86,11 @@ This pass gives the first town scene a stronger sense of place:
 - Added a static prop layer in the isometric scene; props do not affect collision or gameplay logic.
 - Placed a campfire at the town center, an exit gate near the area transition, and a forge workstation near the blacksmith.
 - Extended the V4 asset regression test to require both dev and GitHub Pages copies of the three prop PNGs.
+
+## Skill Icon Pass - Amazon PNG Upgrade
+
+This pass upgrades the most-used Amazon HUD buttons from generic SVG symbols to premium V4 PNG icons:
+
+- Added PNG versions of Magic Arrow, Multiple Shot, and Frost Arrow.
+- Updated `iconImg` so those three semantic keys prefer PNG while the rest of the icon library continues to use SVG.
+- Extended the V4 asset regression test to require both dev and GitHub Pages copies of the three PNG skill icons.

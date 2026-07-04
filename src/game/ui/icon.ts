@@ -1,10 +1,13 @@
-// 去AI感: UI 图标按 key 用 game-icons 真图标(public/assets/icon/<key>.svg, 染金, CC-BY)。
+// 去AI感: UI 图标按 key 用 game-icons 真图标或 V4 PNG 成品图标覆盖 emoji。
 // 命中真图即覆盖 emoji, 缺图(onerror)回退 emoji —— 与精灵「真图覆盖矢量」同构, 优雅降级。
+const PNG_ICON_KEYS = new Set(['skill-magic-arrow', 'skill-multiple-arrow', 'skill-frost-arrow']);
+
 export function iconImg(key: string, emoji: string, px = 28): string {
   const safe = emoji.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  const ext = PNG_ICON_KEYS.has(key) ? 'png' : 'svg';
   return (
-    `<img src="assets/icon/${key}.svg" alt="" ` +
-    `class="v4-icon v4-icon-${key}" style="width:${px}px;height:${px}px;object-fit:contain;pointer-events:none;filter:drop-shadow(0 1px 2px #000a)" ` +
+    `<img src="assets/icon/${key}.${ext}" alt="" ` +
+    `class="v4-icon v4-icon-${key}" data-format="${ext}" style="width:${px}px;height:${px}px;object-fit:contain;pointer-events:none;filter:drop-shadow(0 1px 2px #000a)" ` +
     `onerror="this.replaceWith(document.createTextNode('${safe}'))">`
   );
 }

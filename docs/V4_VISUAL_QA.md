@@ -62,5 +62,5 @@ Known remaining art gaps:
 - Mephisto/Diablo/Baal runtime keys now resolve to V4 transparent PNG boss art; next upgrade is directional animation and in-game scale tuning.
 - Runtime player and camp NPC PNGs are larger than the old procedural markers, reducing the title-to-combat quality drop.
 - Rogue Encampment now has V4 campfire, exit gate, and blacksmith workstation props as low-risk scene anchors.
-- Amazon starter skill icons now have bespoke V4 SVGs; remaining class trees still need the same treatment.
+- Amazon Magic Arrow, Multiple Shot, and Frost Arrow now have bespoke V4 PNG HUD icons; remaining class trees still need the same treatment.
 - Character and monster runtime art is single-frame PNG, not directional animation sheets.
