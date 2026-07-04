@@ -13,6 +13,15 @@ export interface UniqueDef {
 
 export const UNIQUES: UniqueDef[] = [
   {
+    id: 'ravenneedle', name: '鸦羽穿心', baseId: 'short_bow',
+    affixes: [
+      { stat: 'maxdam', value: 10, label: '+10 最大伤害' },
+      { stat: 'ias', value: 25, label: '+25% 攻击速度' },
+      { stat: 'dex', value: 10, label: '+10 敏捷' },
+      { stat: 'tohit', value: 60, label: '+60 命中' },
+    ],
+  },
+  {
     id: 'blooddrinker', name: '噬血者', baseId: 'hand_axe',
     affixes: [
       { stat: 'maxdam', value: 18, label: '+18 最大伤害' },

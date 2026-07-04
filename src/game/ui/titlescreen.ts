@@ -25,12 +25,14 @@ interface ClassCard {
   icon: string;
   name: string;
   blurb: string;
+  fantasy: string;
+  tags: string[];
 }
 
 const CLASS_CARDS: ClassCard[] = [
-  { cls: 'barbarian', icon: '🪓', name: '野蛮人', blurb: '近战狂战, 双手巨斧劈开血路' },
-  { cls: 'amazon', icon: '🏹', name: '亚马逊', blurb: '弓与标枪, 远近皆致命的女猎手' },
-  { cls: 'sorceress', icon: '🔮', name: '法师', blurb: '操弄火冰雷, 以元素法术焚尽群敌' },
+  { cls: 'barbarian', icon: '🪓', name: '野蛮人', blurb: '近战狂战, 双手巨斧劈开血路', fantasy: '冲锋 · 流血 · 战吼', tags: ['近战', '坦度', '爆发'] },
+  { cls: 'amazon', icon: '🏹', name: '亚马逊', blurb: '穿透箭雨, 冰控风筝, 远距离压制兽群', fantasy: '多重箭 · 冰冻箭 · 穿透构筑', tags: ['推荐', '远程', '控场'] },
+  { cls: 'sorceress', icon: '🔮', name: '法师', blurb: '操弄火冰雷, 以元素法术焚尽群敌', fantasy: '冰控 · 火墙 · 雷暴', tags: ['法术', 'AOE', '脆皮'] },
 ];
 
 const CLASS_ICON: Record<CharClass, string> = {
@@ -62,40 +64,75 @@ function injectStyle(): void {
   const css = `
   #title { position:absolute; inset:0; z-index:50; display:flex; flex-direction:column;
     align-items:center; justify-content:safe center; pointer-events:auto; overflow-y:auto; -webkit-overflow-scrolling:touch;
-    background:radial-gradient(120% 90% at 50% 0%, #2a2018 0%, #160f0a 55%, #060403 100%);
+    background:
+      radial-gradient(70% 80% at 55% 28%, #2f3437 0%, transparent 46%),
+      radial-gradient(55% 70% at 22% 45%, #531d16a8 0%, transparent 52%),
+      linear-gradient(180deg, #0d1014 0%, #100b0a 52%, #030303 100%);
     font-family:-apple-system,"PingFang SC",sans-serif; color:#e8e0d0;
     padding:calc(12px + env(safe-area-inset-top)) env(safe-area-inset-right) calc(40px + env(safe-area-inset-bottom)) env(safe-area-inset-left); }
+  #title::before { content:""; position:absolute; inset:0; pointer-events:none;
+    background:
+      linear-gradient(90deg,#000d 0%,transparent 18%,transparent 78%,#000d 100%),
+      radial-gradient(circle at 50% 12%,transparent 0%,#0008 76%);
+    mix-blend-mode:multiply; }
+  #title::after { content:""; position:absolute; inset:0; pointer-events:none; opacity:.28;
+    background:repeating-linear-gradient(115deg, transparent 0 18px, #ffffff06 19px 20px); }
   #title h1 { margin:0 0 6px; font-family:Cinzel,Georgia,"Times New Roman",serif; font-weight:800;
-    font-size:clamp(40px,11vw,84px); letter-spacing:.18em; text-transform:uppercase;
+    position:relative; z-index:1; font-size:clamp(38px,10vw,82px); letter-spacing:.18em; text-transform:uppercase;
     color:#e7c66a;
     background:linear-gradient(#f7e3a0,#c79433 55%,#8a611c); -webkit-background-clip:text; background-clip:text;
     -webkit-text-fill-color:transparent; text-shadow:0 3px 10px #000a; }
-  #title .sub { margin:0 0 28px; font-family:Georgia,serif; font-style:italic; font-size:clamp(12px,3.4vw,17px);
+  #title .sub { margin:0 0 22px; position:relative; z-index:1; font-family:Georgia,serif; font-style:italic; font-size:clamp(12px,3.4vw,17px);
     color:#a99877; letter-spacing:.05em; text-shadow:0 1px 3px #000; }
-  #title .cards { display:flex; flex-wrap:wrap; gap:18px; justify-content:center; max-width:760px; padding:0 16px; }
-  #title .card { width:200px; max-width:38vw; min-width:150px; padding:22px 16px 20px; border-radius:14px;
-    background:linear-gradient(#241b12cc,#140d08cc); border:1px solid #6a5a3a; cursor:pointer;
-    text-align:center; user-select:none; -webkit-user-select:none; pointer-events:auto;
-    box-shadow:0 6px 20px #000a, 0 0 0 1px #0006 inset; transition:transform .08s ease, border-color .15s, box-shadow .15s; }
-  #title .card:hover { border-color:#c79433; box-shadow:0 8px 26px #000c, 0 0 18px #c7943330; }
-  #title .card:active { transform:scale(.95); }
-  #title .card .ic { height:84px; display:flex; align-items:center; justify-content:center; font-size:clamp(40px,9vw,58px); line-height:1; filter:drop-shadow(0 4px 8px #000b); }
-  #title .card .ic img.cimg { height:90px; width:auto; max-width:100%; object-fit:contain; }
-  #title .card .nm { margin:14px 0 8px; font-family:Cinzel,Georgia,serif; font-weight:700;
-    font-size:clamp(18px,4.4vw,22px); letter-spacing:.06em; color:#e7c66a; text-shadow:0 1px 3px #000; }
-  #title .card .bl { font-size:clamp(11px,3vw,13px); line-height:1.5; color:#b8ab92; }
+  #title .body { position:relative; z-index:1; width:100%; display:flex; justify-content:center; }
+  #title .cards { display:grid; grid-template-columns:minmax(170px, .78fr) minmax(230px, 1.25fr) minmax(170px, .78fr);
+    gap:14px; justify-content:center; align-items:stretch; width:min(960px,94vw); padding:0 10px; }
+  #title .card { min-height:360px; position:relative; overflow:hidden; padding:18px 16px 16px; border-radius:18px;
+    background:linear-gradient(180deg,#211813e8,#090807f2); border:1px solid #5e4a31; cursor:pointer;
+    text-align:left; user-select:none; -webkit-user-select:none; pointer-events:auto;
+    box-shadow:0 14px 38px #000d, 0 0 0 1px #000 inset, inset 0 1px 0 #ffe9a01c;
+    transition:transform .08s ease, border-color .15s, box-shadow .15s, filter .15s; }
+  #title .card::before { content:""; position:absolute; inset:0;
+    background:radial-gradient(circle at 50% 22%,#8d6a3520,transparent 45%), linear-gradient(180deg,transparent 35%,#000d 100%);
+    pointer-events:none; z-index:1; }
+  #title .card::after { content:""; position:absolute; left:10px; right:10px; bottom:10px; height:1px; background:linear-gradient(90deg,transparent,#d6a64a88,transparent); z-index:2; }
+  #title .card:hover { border-color:#d6a64a; box-shadow:0 18px 46px #000f, 0 0 26px #c7943330, inset 0 1px 0 #ffe9a028; filter:brightness(1.08); }
+  #title .card:active { transform:scale(.975); }
+  #title .card.amazon { min-height:410px; border-color:#d6a64a; background:linear-gradient(180deg,#2b2118f0,#090807f4); }
+  #title .card.amazon::before { background:radial-gradient(circle at 48% 26%,#45f1d13a,transparent 39%), radial-gradient(circle at 54% 45%,#b0181840,transparent 50%), linear-gradient(180deg,transparent 38%,#000e 100%); }
+  #title .card .ic { position:absolute; inset:0 0 86px; display:flex; align-items:flex-end; justify-content:center; font-size:clamp(44px,9vw,64px); line-height:1; filter:drop-shadow(0 12px 18px #000); }
+  #title .card .ic img.cimg { height:min(255px,38vh); width:auto; max-width:128%; object-fit:contain; transform:translateY(18px); }
+  #title .card.amazon .ic img.cimg { height:min(330px,48vh); transform:translateY(20px) scale(1.08); }
+  #title .card .copy { position:absolute; left:16px; right:16px; bottom:20px; z-index:2; }
+  #title .card .tags { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:8px; }
+  #title .card .tag { padding:2px 7px; border-radius:4px; border:1px solid #71582f; background:#080706cc; color:#e2c36e; font-size:10px; letter-spacing:.08em; }
+  #title .card.amazon .tag:first-child { border-color:#6ee6ce; color:#9fffe9; box-shadow:0 0 10px #40e8c055; }
+  #title .card .nm { margin:0 0 5px; font-family:Cinzel,Georgia,serif; font-weight:800;
+    font-size:clamp(21px,4vw,28px); letter-spacing:.08em; color:#f1d889; text-shadow:0 2px 6px #000; }
+  #title .card .fantasy { font-size:12px; color:#d7b66a; margin-bottom:6px; text-shadow:0 1px 2px #000; }
+  #title .card .bl { font-size:clamp(11px,2.4vw,13px); line-height:1.55; color:#c8bdad; text-shadow:0 1px 2px #000; }
   #title .foot { position:absolute; bottom:calc(14px + env(safe-area-inset-bottom)); left:0; width:100%;
     text-align:center; font-size:11px; color:#6a5e48; letter-spacing:.08em; pointer-events:none; }
   /* 短屏(横屏/小机)紧凑职业卡, 防越界/与页脚重叠堆叠 */
   @media (max-height:620px) {
     #title h1 { font-size:clamp(30px,7vw,52px); margin-bottom:2px; }
     #title .sub { margin-bottom:12px; }
-    #title .cards { gap:10px; }
-    #title .card { padding:12px 12px 12px; min-width:118px; }
-    #title .card .ic { height:50px; } #title .card .ic img.cimg { height:54px; }
-    #title .card .nm { margin:8px 0 4px; font-size:clamp(15px,3.6vw,19px); }
-    #title .card .bl { display:none; }
+    #title .cards { gap:10px; grid-template-columns:1fr 1.25fr 1fr; }
+    #title .card, #title .card.amazon { min-height:236px; padding:12px; border-radius:14px; }
+    #title .card .ic { inset:0 0 62px; } #title .card .ic img.cimg { height:150px; }
+    #title .card.amazon .ic img.cimg { height:190px; }
+    #title .card .copy { left:12px; right:12px; bottom:14px; }
+    #title .card .nm { font-size:clamp(16px,3.4vw,22px); }
+    #title .card .fantasy, #title .card .bl { display:none; }
     #title .foot { display:none; }
+  }
+  @media (max-width:680px) and (orientation:portrait) {
+    #title { justify-content:flex-start; }
+    #title .cards { grid-template-columns:1fr; width:min(420px,92vw); }
+    #title .card, #title .card.amazon { min-height:190px; }
+    #title .card .ic { inset:0 6px 0 auto; width:44%; align-items:center; }
+    #title .card .ic img.cimg, #title .card.amazon .ic img.cimg { height:170px; transform:translateY(10px); }
+    #title .card .copy { right:42%; bottom:18px; }
   }
   /* --- 存档槽列表 --- */
   #title .slots { display:flex; flex-direction:column; gap:12px; width:min(440px,86vw); max-height:62vh; overflow:auto;
@@ -226,11 +263,15 @@ export class TitleScreen {
     const cardsEl = this.body.querySelector('.cards') as HTMLElement;
     for (const c of CLASS_CARDS) {
       const card = document.createElement('div');
-      card.className = 'card';
+      card.className = `card ${c.cls}`;
       card.innerHTML = `
         <div class="ic">${classIconHtml(c.cls)}</div>
-        <div class="nm">${c.name}</div>
-        <div class="bl">${c.blurb}</div>`;
+        <div class="copy">
+          <div class="tags">${c.tags.map((t) => `<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>
+          <div class="nm">${c.name}</div>
+          <div class="fantasy">${escapeHtml(c.fantasy)}</div>
+          <div class="bl">${escapeHtml(c.blurb)}</div>
+        </div>`;
       onTap(card, () => this.renderNameEntry(c.cls));
       cardsEl.appendChild(card);
     }

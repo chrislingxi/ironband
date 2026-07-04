@@ -58,10 +58,10 @@ export const SKILL_EXEC: Record<string, ExecProfile> = {
   thunder_storm: { kind: 'nova', damageMult: 1.8, damageType: 'lightning', cooldown: 2.6, missileKind: 'nova', radius: 5 },
 
   // ===== 亚马逊 =====
-  magic_arrow: { kind: 'projectile', damageMult: 1.0, damageType: 'magic', cooldown: 0.4, missileKind: 'arrow' },
+  magic_arrow: { kind: 'projectile', damageMult: 1.15, damageType: 'magic', cooldown: 0.35, missileKind: 'arrow' },
   fire_arrow: { kind: 'projectile', damageMult: 1.1, damageType: 'fire', cooldown: 0.5, missileKind: 'arrow' },
-  cold_arrow: { kind: 'projectile', damageMult: 1.1, damageType: 'cold', cooldown: 0.6, missileKind: 'arrow', stun: 1.0 },
-  multiple_shot: { kind: 'spread', damageMult: 0.8, damageType: 'physical', cooldown: 1.0, missileKind: 'arrow', count: 5 },
+  cold_arrow: { kind: 'projectile', damageMult: 1.1, damageType: 'cold', cooldown: 0.75, missileKind: 'arrow', stun: 1.0 },
+  multiple_shot: { kind: 'spread', damageMult: 0.75, damageType: 'physical', cooldown: 0.9, missileKind: 'arrow', count: 7 },
   exploding_arrow: { kind: 'projectile', damageMult: 1.4, damageType: 'fire', cooldown: 1.0, missileKind: 'fireball' },
   ice_arrow: { kind: 'projectile', damageMult: 1.3, damageType: 'cold', cooldown: 0.7, missileKind: 'arrow', stun: 1.5 },
   guided_arrow: { kind: 'projectile', damageMult: 1.6, damageType: 'physical', cooldown: 0.7, missileKind: 'arrow' },

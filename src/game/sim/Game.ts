@@ -5,7 +5,7 @@ import { resolveAttack, rollDamage, attackInterval } from '@game/systems/combat/
 import { updateMonsterAI, type AIContext } from '@game/systems/ai/behaviors.ts';
 import { CASTABLE_SKILLS, defaultLoadout, castableById, makeCharacterFor, type ClassSkillKey } from '@game/classes/profiles.ts';
 import { BASIC_ATTACK, BASIC_ATTACK_BY_CLASS } from '@game/classes/exec.ts';
-import { generateItem, makeNormalItem, socketRune, type ItemInstance, type EquipSlot } from '@game/systems/items/index.ts';
+import { generateItem, makeNormalItem, makeUniqueItem, socketRune, type ItemInstance, type EquipSlot } from '@game/systems/items/index.ts';
 import { RUNES, runeById } from '@game/data/runes.ts';
 import { BALANCE } from '@game/data/balance.ts';
 import { deriveCombat, type Character } from '@game/systems/stats/character.ts';
@@ -181,6 +181,10 @@ export class Game {
     this.rng = mulberry32(seed);
     this.character = makeCharacterFor(cls);
     this.assignedSkills = defaultLoadout(cls); // 4 槽默认装载该职业起手技能
+    if (cls === 'amazon') {
+      this.skillTree = { magic_arrow: 1, multiple_shot: 1, cold_arrow: 1, critical_strike: 1 };
+      this.bonusSkillPoints = 4; // V3 亚马逊切片: 起手即给完整射手工具组, 不透支后续升级点。
+    }
     this.player = makePlayer();
     this.recompute(true); // 由角色+装备派生玩家战斗数值
     this.loadArea('rogue_encampment'); // 从罗格营地起步
@@ -273,6 +277,7 @@ export class Game {
     this.travelCd = 1.0;
     if (this.currentArea.isTown) { this.refreshShop(); this.potions = this.potionCap; } // 进城刷新商店 + 补满药水
     if (this.merc) this.merc.pos = { x: this.player.pos.x - 1, y: this.player.pos.y - 1 }; // 雇佣兵随主归队
+    this.seedAmazonTrialPack(bossDefId);
     // 入区引导: 一条提示同时给出地名与目标 (击杀刷装 / 走蓝色出口 / Boss 锁门)
     if (bossDefId) this.notices.push(`进入 ${this.currentArea.name} · ⚔ 击败 Boss 方可离开!`);
     else if (!this.currentArea.isTown) this.notices.push(`进入 ${this.currentArea.name} · 走到蓝色发光出口前往下一区`);
@@ -392,6 +397,21 @@ export class Game {
   spawnMonster(defId: string, x: number, y: number): void {
     // 传入区域 monLevel: 怪物等级与经验按所在区域缩放 (深幕怪更高级、给更多经验)。
     this.monsters.push(makeMonster(defId, x, y, this.rng, this.difficulty, this.currentArea.monLevel));
+  }
+
+  private seedAmazonTrialPack(bossDefId?: string): void {
+    if (bossDefId || (this.character.cls as CharClass) !== 'amazon' || this.currentArea.id !== 'blood_moor') return;
+    const cx = this.player.pos.x + 5;
+    const cy = this.player.pos.y - 2;
+    const captain = makeMonster('brute', cx, cy, this.rng, this.difficulty, this.currentArea.monLevel);
+    captain.elite = { name: '碎角督军', color: 0x61e6c8 };
+    captain.size = Math.round(captain.size * 1.25);
+    (captain as { aura?: boolean }).aura = true;
+    this.monsters.push(captain);
+    this.spawnMonster('hound', cx - 1.4, cy + 1.2);
+    this.spawnMonster('hound', cx + 1.5, cy + 1.1);
+    this.spawnMonster('archer', cx + 2.4, cy - 0.8);
+    this.notices.push('猎手试炼: 先控住督军, 再清掉扑袭兽群');
   }
 
   // 分配一点属性 (力/敏/体/精); 有未分配点则 +1 并重算战力。
@@ -852,11 +872,15 @@ export class Game {
         const rarityBoost = isBoss ? 10 : isElite ? 3 : 1;
         for (let k = 0; k < drops; k++) {
           const off = () => (this.rng() - 0.5) * 0.9;
-          const item = starterDrop && k === 0 ? makeNormalItem('leather_gloves') : generateItem(e.combat.level + (isElite ? 3 : 0), this.rng, rarityBoost);
+          const item = starterDrop && k === 0
+            ? (this.character.cls as CharClass) === 'amazon'
+              ? makeUniqueItem('ravenneedle', e.combat.level + 2, true)
+              : makeNormalItem('leather_gloves')
+            : generateItem(e.combat.level + (isElite ? 3 : 0), this.rng, rarityBoost);
           if (starterDrop && k === 0) {
-            item.name = '营火守望者皮手套';
+            if ((this.character.cls as CharClass) !== 'amazon') item.name = '营火守望者皮手套';
             this.onboardingDropGranted = true;
-            this.notices.push('首件战利品: 营火守望者皮手套');
+            this.notices.push(`首件构筑装备: ${item.name}`);
           }
           this.groundItems.push({
             id: this.nextGoldId++,
@@ -965,6 +989,10 @@ export class Game {
   private playerCritChance(): number {
     const cs = pointsIn('critical_strike', this.skillTree);
     return Math.min(0.6, 0.05 + cs * 0.03);
+  }
+
+  private equippedHasUnique(id: string): boolean {
+    return Object.values(this.character.equipment).some((it) => it?.affixes.some((a) => a.id.startsWith(`${id}_`)));
   }
 
   /**
@@ -1087,15 +1115,17 @@ export class Game {
 
   private spawnMissile(dir: Vec2, key: ClassSkillKey, dmg: DamageInstance[]): void {
     const kind = key.missileKind ?? 'arrow';
+    const ravenNeedle = kind === 'arrow' && this.equippedHasUnique('ravenneedle');
     this.missiles.push(createMissile({
       pos: this.player.pos, dir, speed: this.missileSpeed(kind), dmg, kind, fromPlayer: true,
-      range: 14, pierce: kind === 'bolt' ? 1 : 0,
+      range: ravenNeedle ? 18 : 14, pierce: ravenNeedle ? 2 : kind === 'bolt' ? 1 : 0,
       radius: kind === 'fireball' || kind === 'nova' ? 0.6 : 0.35, color: this.missileColor(key.damageType),
     }));
   }
 
   private execProjectiles(key: ClassSkillKey, dmg: DamageInstance[], count: number): void {
     const p = this.player;
+    if (key.id === 'multiple_shot' && this.equippedHasUnique('ravenneedle')) count += 2;
     const spread = 0.22;
     for (let i = 0; i < count; i++) {
       const a = p.facing + (count > 1 ? (i - (count - 1) / 2) * spread : 0);

@@ -96,6 +96,7 @@ export const CASTABLE_SKILLS: Record<CharClass, ClassSkillKey[]> = {
 
 // 默认装载: 槽0 普通攻击, 槽1-3 留空 (空字符串), 由玩家从技能树指派。
 export function defaultLoadout(_cls: CharClass): string[] {
+  if (_cls === 'amazon') return [BASIC_ATTACK.id, 'multiple_shot', 'cold_arrow', 'magic_arrow'];
   return [BASIC_ATTACK.id, '', '', ''];
 }
 

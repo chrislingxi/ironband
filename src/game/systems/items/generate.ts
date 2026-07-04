@@ -26,6 +26,14 @@ function makeUnique(u: UniqueDef, ilvl: number): ItemInstance {
   return { uid: uidSeq++, base, rarity: 'unique', ilvl, affixes, name: u.name, identified: false };
 }
 
+export function makeUniqueItem(id: string, ilvl = 1, identified = false): ItemInstance {
+  const u = UNIQUES.find((it) => it.id === id);
+  if (!u) throw new Error(`no unique ${id}`);
+  const item = makeUnique(u, ilvl);
+  item.identified = identified;
+  return item;
+}
+
 // 套装件: 随等级抽取 (按基础需求等级)。
 function pickSetItem(ilvl: number, rng: RNG): SetItemDef | null {
   const pool = SET_ITEMS.filter((s) => {
