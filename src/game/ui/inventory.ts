@@ -28,7 +28,7 @@ function injectStyle(): void {
   if (styled) return;
   styled = true;
   const css = `
-  #inv { position:absolute; inset:0; display:none; z-index:80; color:#e8dcc0;
+  #inv { position:fixed; inset:0; height:var(--app-height, 100dvh); display:none; z-index:80; color:#e8dcc0;
     background:radial-gradient(120% 90% at 50% 0%, #221a22f5, #0a0709fb);
     font-family:-apple-system,"PingFang SC",sans-serif;
     padding:max(14px,env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left)); overflow:auto; }
@@ -68,7 +68,7 @@ function injectStyle(): void {
   #inv .codexbtn { cursor:pointer; font-weight:700; font-size:13px; color:#e7c66a; padding:7px 12px; border-radius:9px; border:1px solid #6a5a3a; background:#1a1420cc; display:inline-flex; align-items:center; gap:4px; }
   #inv .codexbtn:active { transform:scale(.96); }
   /* 符文之语图鉴 overlay */
-  #runecodex { position:absolute; inset:0; z-index:90; display:none; flex-direction:column; color:#e8dcc0;
+  #runecodex { position:fixed; inset:0; height:var(--app-height, 100dvh); z-index:90; display:none; flex-direction:column; color:#e8dcc0;
     background:radial-gradient(120% 90% at 50% 0%, #241b1af5, #0a0707fc);
     font-family:-apple-system,"PingFang SC",sans-serif;
     padding:max(14px,env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left)); }

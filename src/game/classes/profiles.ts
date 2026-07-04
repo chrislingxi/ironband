@@ -38,9 +38,9 @@ function makeProfile(
   return ch as Character;
 }
 
-// 亚马逊起手: 力20敏25体20精15, 偏敏捷的攻击型, 起手短剑.
+// 亚马逊起手: 力20敏25体20精15, 偏敏捷的远程攻击型, 起手短弓.
 export function makeAmazon(): Character {
-  return makeProfile('amazon', { str: 20, dex: 25, vit: 20, energy: 15 }, 'short_sword');
+  return makeProfile('amazon', { str: 20, dex: 25, vit: 20, energy: 15 }, 'short_bow');
 }
 
 // 法师起手: 力10敏15体10精35, 高精力低体格, 起手棍棒 (近战很弱, 靠技能输出).

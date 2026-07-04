@@ -5,6 +5,7 @@ export const ITEM_BASES: ItemBase[] = [
   // 武器
   { id: 'hand_axe', name: '手斧', slot: 'weapon', type: 'weapon', baseDamage: [3, 7], reqLevel: 1, reqStr: 12, attackSpeed: 0.6, sprite: 'item/hand_axe', maxDurability: 60 },
   { id: 'short_sword', name: '短剑', slot: 'weapon', type: 'weapon', baseDamage: [2, 7], reqLevel: 1, reqStr: 10, attackSpeed: 0.45, sprite: 'item/short_sword', maxDurability: 60 },
+  { id: 'short_bow', name: '短弓', slot: 'weapon', type: 'weapon', baseDamage: [2, 8], reqLevel: 1, reqDex: 15, attackSpeed: 0.5, sprite: 'item/short_bow', maxDurability: 45 },
   { id: 'club', name: '棍棒', slot: 'weapon', type: 'weapon', baseDamage: [1, 6], reqLevel: 1, attackSpeed: 0.52, sprite: 'item/club', maxDurability: 60 },
   { id: 'mace', name: '钉头锤', slot: 'weapon', type: 'weapon', baseDamage: [3, 10], reqLevel: 6, reqStr: 18, attackSpeed: 0.62, sprite: 'item/mace', maxDurability: 60 },
   { id: 'double_axe', name: '双刃斧', slot: 'weapon', type: 'weapon', baseDamage: [5, 13], reqLevel: 10, reqStr: 28, attackSpeed: 0.7, sprite: 'item/double_axe', maxDurability: 60 },

@@ -7,52 +7,71 @@ function injectStyle(): void {
   if (styleInjected) return;
   styleInjected = true;
   const css = `
-  #hud { position:absolute; inset:0; pointer-events:none; font-family:-apple-system,"PingFang SC",sans-serif;
+  #hud { position:fixed; inset:0; height:var(--app-height, 100dvh); pointer-events:none; font-family:-apple-system,"PingFang SC",sans-serif;
     padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
-  /* 生命条: 金边双框 + 渐变填充 + 顶部高光 (Premium Q版) */
+  #hud::before { content:""; position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(180deg,#0008 0%,transparent 18%,transparent 70%,#0007 100%); mix-blend-mode:multiply; }
+  /* 生命条: 金边双框 + 渐变填充 + 顶部高光 */
   #hud .bar { position:absolute; left:calc(16px + env(safe-area-inset-left)); top:16px; width:216px; height:22px; border-radius:12px;
-    background:linear-gradient(#120806,#241410); border:1.5px solid #c79433;
-    box-shadow:0 2px 6px #000b, 0 0 0 1px #00000080, inset 0 1px 2px #0008; overflow:hidden; }
+    background:linear-gradient(#160d0a,#26120d); border:1px solid #d6a64a;
+    box-shadow:0 2px 9px #000d, 0 0 0 1px #00000090, 0 0 14px #7a2a1870, inset 0 1px 2px #0008; overflow:hidden; }
   #hud .bar > i { display:block; height:100%; width:100%;
     background:linear-gradient(180deg,#ff8a72 0%,#e23a2a 45%,#a81810 100%); transition:width .14s ease-out;
     box-shadow:inset 0 6px 5px -4px #ffffff70, inset 0 -4px 5px -3px #00000060; }
   #hud .hptxt { position:absolute; left:calc(16px + env(safe-area-inset-left)); top:16px; width:216px; height:22px; text-align:center; line-height:22px;
     font-size:12px; font-weight:800; color:#fff; letter-spacing:.5px; text-shadow:0 1px 2px #000,0 0 4px #0008; }
   /* 金币: 药丸徽章 */
-  #hud .gold { position:absolute; left:calc(16px + env(safe-area-inset-left)); top:38px; padding:1px 10px 1px 8px; border-radius:10px;
-    background:#0c0c12cc; border:1px solid #6a5a3a; font-size:13px; color:#ffcf4a; font-weight:800;
-    text-shadow:0 1px 2px #000; box-shadow:0 2px 5px #0008; }
+  #hud .gold { position:absolute; left:calc(16px + env(safe-area-inset-left)); top:38px; padding:2px 10px 2px 8px; border-radius:8px;
+    background:linear-gradient(180deg,#21170bee,#090807ee); border:1px solid #8b6a2d; font-size:13px; color:#ffd66d; font-weight:800;
+    text-shadow:0 1px 2px #000; box-shadow:0 2px 8px #000b, inset 0 1px 0 #ffffff14; }
   /* 治疗药水: 可点红珠 (点击/低血自动饮) */
-  #hud .potion { position:absolute; left:calc(108px + env(safe-area-inset-left)); top:38px; padding:1px 9px 1px 7px; border-radius:11px; pointer-events:auto;
-    background:radial-gradient(circle at 50% 30%,#7a1414,#3a0808); border:1.5px solid #c24a3a; font-size:13px; color:#ffd2c8;
-    font-weight:800; text-shadow:0 1px 2px #000; box-shadow:0 2px 5px #0008, inset 0 1px 3px #ffffff22; user-select:none; }
+  #hud .potion { position:absolute; left:calc(108px + env(safe-area-inset-left)); top:38px; padding:2px 9px 2px 7px; border-radius:8px; pointer-events:auto;
+    background:radial-gradient(circle at 45% 20%,#f08b74 0%,#8e1717 34%,#2b0606 78%); border:1px solid #d66b50; font-size:13px; color:#ffd6cc;
+    font-weight:800; text-shadow:0 1px 2px #000; box-shadow:0 2px 8px #000b, 0 0 12px #9a1b1680, inset 0 1px 4px #ffffff26; user-select:none; }
   #hud .potion:active { transform:scale(.92); }
   #hud .potion.empty { filter:grayscale(1) brightness(.6); }
   /* 等级: 金色徽记 */
-  #hud .lvl { position:absolute; left:calc(244px + env(safe-area-inset-left)); top:15px; padding:2px 11px; border-radius:11px;
-    background:linear-gradient(#3a2c14,#1c1408); border:1.5px solid #c79433;
+  #hud .lvl { position:absolute; left:calc(244px + env(safe-area-inset-left)); top:15px; padding:2px 11px; border-radius:8px;
+    background:linear-gradient(#3a2a13,#130d07); border:1px solid #d6a64a;
     font-family:Cinzel,Georgia,serif; font-size:14px; font-weight:800; color:#ffe08a; text-shadow:0 1px 2px #000;
     box-shadow:0 2px 5px #0008; }
   #hud .xpbar { position:absolute; left:calc(16px + env(safe-area-inset-left)); right:calc(16px + env(safe-area-inset-right)); bottom:6px; height:6px; border-radius:3px;
     background:#000a; overflow:hidden; box-shadow:inset 0 1px 2px #000a, 0 0 0 1px #6a5a3a55; }
   #hud .xpbar > i { display:block; height:100%; width:0; background:linear-gradient(90deg,#e0a020,#ffe9b0); transition:width .2s ease; }
-  #hud .info { position:absolute; left:50%; transform:translateX(-50%); top:14px; padding:3px 12px; border-radius:10px;
-    background:#0c0c12bb; border:1px solid #4a3f2a; font-size:12px; color:#e8e0d0; text-align:center;
-    text-shadow:0 1px 2px #000; }
-  /* 技能键: 金环圆钮 + 内渐变 + 第4技能紫调 */
+  #hud .info { position:absolute; left:50%; transform:translateX(-50%); top:14px; max-width:min(54vw,360px); padding:5px 12px; border-radius:8px;
+    background:linear-gradient(180deg,#14100ce8,#070607e8); border:1px solid #6f5327; font-size:12px; color:#e8e0d0; text-align:center;
+    text-shadow:0 1px 2px #000; box-shadow:0 2px 12px #000b; }
+  /* 技能键: 宝石槽 + 金属边框, 用图标资产替换 emoji 感 */
   #hud .skills { position:absolute; right:calc(18px + env(safe-area-inset-right)); bottom:calc(30px + env(safe-area-inset-bottom));
-    display:grid; grid-template-columns:64px 64px; grid-template-rows:64px 64px; gap:12px; pointer-events:auto; }
-  #hud .skill { width:64px; height:64px; border-radius:50%;
-    background:radial-gradient(circle at 50% 35%, #2c2c3a, #14141c 75%); border:2.5px solid #c79433;
+    display:grid; grid-template-columns:62px 62px; grid-template-rows:62px 62px; gap:12px; pointer-events:auto; }
+  #hud .skill { width:62px; height:62px; border-radius:12px;
+    background:linear-gradient(145deg,#4c3b22 0%,#17110c 28%,#070607 100%); border:1px solid #d2a652;
     display:flex; align-items:center; justify-content:center; font-size:27px; position:relative;
-    box-shadow:0 4px 10px #000b, inset 0 2px 6px #ffffff18, inset 0 -3px 8px #00000060;
-    color:#fff; overflow:hidden; user-select:none; -webkit-user-select:none; transition:transform .07s; }
-  #hud .skill:active { transform:scale(.9); }
-  #hud .skill.skill-4 { border-color:#b07ad0; background:radial-gradient(circle at 50% 35%, #34243e, #1a1024 75%); }
+    box-shadow:0 6px 16px #000d, 0 0 0 1px #000, inset 0 1px 0 #ffe8a126, inset 0 -5px 12px #000b;
+    color:#fff; overflow:hidden; user-select:none; -webkit-user-select:none; transition:transform .07s, filter .12s; }
+  #hud .skill::before { content:""; position:absolute; inset:6px; border-radius:9px;
+    background:radial-gradient(circle at 45% 25%,#567392,#18202b 45%,#07090d 82%);
+    border:1px solid #2f4862; box-shadow:inset 0 1px 6px #ffffff24, inset 0 -8px 12px #000c; }
+  #hud .skill::after { content:""; position:absolute; inset:0; border-radius:12px;
+    background:linear-gradient(135deg,#ffffff24 0%,transparent 28%,transparent 74%,#0009 100%); pointer-events:none; }
+  #hud .skill:active { transform:scale(.92); filter:brightness(1.25); }
+  #hud .skill.skill-4 { border-color:#c991ff; background:linear-gradient(145deg,#53355f 0%,#1c1024 36%,#070607 100%); }
+  #hud .skill.skill-4::before { background:radial-gradient(circle at 45% 25%,#824fb4,#271439 50%,#08050c 85%); border-color:#74469a; }
+  #hud .skill .ic { position:relative; z-index:1; display:flex; align-items:center; justify-content:center; width:42px; height:42px; }
+  #hud .skill-glyph { display:inline-flex; align-items:center; justify-content:center; width:42px; height:42px; }
+  #hud .skill-glyph img { width:38px!important; height:38px!important;
+    filter:sepia(1) saturate(2.1) hue-rotate(350deg) brightness(1.35) contrast(1.05) drop-shadow(0 2px 2px #000) drop-shadow(0 0 7px #e8c46a88)!important; }
   #hud .skill .cd { position:absolute; inset:0; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    font-size:17px; font-weight:800; color:#fff; opacity:0; pointer-events:none; text-shadow:0 1px 2px #000; }
+    z-index:3; font-size:17px; font-weight:800; color:#fff; opacity:0; pointer-events:none; text-shadow:0 1px 2px #000; }
   #hud .skill .cd-arc { position:absolute; inset:0; border-radius:50%; pointer-events:none; }
-  #hud .skill .nm { position:absolute; bottom:-14px; left:0; width:100%; text-align:center; font-size:9px; color:#d8c89a; text-shadow:0 1px 1px #000; }
+  #hud .skill .nm { position:absolute; z-index:2; left:4px; right:4px; bottom:4px; height:13px; overflow:hidden; text-align:center;
+    font-size:9px; line-height:13px; color:#efd895; text-shadow:0 1px 2px #000; background:#0007; border-radius:4px; }
+  @media (max-width: 480px) and (orientation: portrait) {
+    #hud .info { top:56px; max-width:66vw; }
+    #hud .skills { right:calc(10px + env(safe-area-inset-right)); bottom:calc(22px + env(safe-area-inset-bottom)); grid-template-columns:56px 56px; grid-template-rows:56px 56px; gap:10px; }
+    #hud .skill { width:56px; height:56px; }
+    #hud .skill .nm { font-size:8px; }
+  }
   `;
   const tag = document.createElement('style');
   tag.textContent = css;

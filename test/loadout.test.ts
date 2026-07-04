@@ -14,6 +14,18 @@ describe('技能栏 (1普攻 + 3技能树槽)', () => {
     expect(g.skillKey(2)).toBeUndefined();
   });
 
+  it('亚马逊默认普攻是弓箭射击, 不走近战挥击', () => {
+    const g = new Game(1, 'amazon');
+    const basic = g.skillKey(0);
+    expect(basic?.name).toBe('弓箭射击');
+    expect(basic?.kind).toBe('projectile');
+    expect(basic?.missileKind).toBe('arrow');
+    expect(g.character.equipment.weapon?.base.id).toBe('short_bow');
+    g.spawnMonster('zombie', g.player.pos.x + 4, g.player.pos.y);
+    g.useSkill(0);
+    expect(g.missiles.some((m) => m.fromPlayer && m.kind === 'arrow')).toBe(true);
+  });
+
   it('普通攻击专属槽0, 不可指派到其它槽; 槽0不可被改', () => {
     const g = new Game(1, 'barbarian');
     expect(g.canAssignSkill(BASIC_ATTACK.id)).toBe(false);

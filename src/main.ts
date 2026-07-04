@@ -59,14 +59,26 @@ function showError(msg: string): void {
 // Phase0 等距脊柱 + T3 战斗内核 + T4 怪物AI 的可玩集成.
 // 占位形状渲染 (T1 并行会替换为 FLARE 等距精灵 + 光照).
 
-// iOS Safari 忽略 user-scalable=no: 手动拦截双击缩放(350ms 内二次 touchend)与多指捏合手势。
-// 否则连续点击(如角色页加点)会触发页面放大, 体验很差。
+// iOS Safari 忽略 user-scalable=no: 手动拦截双击缩放/多指手势, 并用 visualViewport 锁住可视高度。
+// 否则连续点击会触发页面缩放/滚动, 横屏时还可能露出浏览器地址栏并截断游戏画布。
 function installZoomGuards(): void {
+  const lockViewport = () => {
+    const height = window.visualViewport?.height ?? window.innerHeight ?? document.documentElement.clientHeight;
+    document.documentElement.style.setProperty('--app-height', `${Math.round(height)}px`);
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    window.scrollTo(0, 0);
+  };
+  lockViewport();
+  window.addEventListener('resize', lockViewport, { passive: true });
+  window.addEventListener('orientationchange', () => window.setTimeout(lockViewport, 80), { passive: true });
+  window.visualViewport?.addEventListener('resize', lockViewport, { passive: true });
   let lastTouchEnd = 0;
   document.addEventListener('touchend', (e) => {
     const now = performance.now();
     if (now - lastTouchEnd < 350) e.preventDefault(); // 阻止双击缩放
     lastTouchEnd = now;
+    window.setTimeout(lockViewport, 0);
   }, { passive: false });
   for (const ev of ['gesturestart', 'gesturechange', 'gestureend']) {
     document.addEventListener(ev, (e) => e.preventDefault());
@@ -775,8 +787,10 @@ async function main() {
   // 升级等提示
   const noticeEl = document.createElement('div');
   noticeEl.style.cssText =
-    'position:absolute;top:28%;left:0;width:100%;text-align:center;font-family:Georgia,serif;font-size:34px;' +
-    'font-weight:800;color:#ffe08a;text-shadow:0 2px 10px #000;pointer-events:none;opacity:0;transition:opacity .4s;z-index:60;';
+    'position:fixed;top:calc(72px + env(safe-area-inset-top));left:50%;transform:translateX(-50%);max-width:min(74vw,420px);' +
+    'padding:8px 14px;border:1px solid #8b6a2d;border-radius:8px;background:linear-gradient(180deg,#17100bea,#070607ee);' +
+    'box-shadow:0 5px 18px #000c, inset 0 1px 0 #ffffff18;text-align:center;font-family:Georgia,"Songti SC",serif;font-size:16px;' +
+    'line-height:1.35;font-weight:800;color:#ffe08a;text-shadow:0 2px 8px #000;pointer-events:none;opacity:0;transition:opacity .28s, transform .28s;z-index:60;';
   document.body.appendChild(noticeEl);
   let noticeUntil = 0;
   let noticeReadyAt = 0;            // 上一条淡出后的就绪时刻 (留出淡出间隙再上下一条)
@@ -916,9 +930,13 @@ async function main() {
         const msg = noticeQueue.shift() as string;
         const big = /任务完成|通关|★|全剧终/.test(msg); // 任务/幕完成 = 庆祝级横幅
         noticeEl.textContent = msg;
+        noticeEl.style.top = big ? 'calc(24% + env(safe-area-inset-top))' : 'calc(72px + env(safe-area-inset-top))';
+        noticeEl.style.maxWidth = big ? 'min(82vw,560px)' : 'min(74vw,420px)';
+        noticeEl.style.padding = big ? '12px 22px' : '8px 14px';
         noticeEl.style.color = big ? '#ffd76b' : '#ffe08a';
-        noticeEl.style.fontSize = big ? '30px' : '34px';
-        noticeEl.style.textShadow = big ? '0 2px 18px #c79433aa, 0 0 4px #000' : '0 2px 10px #000';
+        noticeEl.style.fontSize = big ? '28px' : '16px';
+        noticeEl.style.textShadow = big ? '0 2px 18px #c79433aa, 0 0 4px #000' : '0 2px 8px #000';
+        noticeEl.style.transform = 'translateX(-50%) translateY(0)';
         noticeEl.style.opacity = '1';
         noticeUntil = nowMs + (big ? 2600 : 1400);
       }

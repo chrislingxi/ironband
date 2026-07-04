@@ -33,5 +33,6 @@ export const EMOJI_ICON: Record<string, string> = {
 export function skillIconHtml(emoji: string, px = 30): string {
   const e = emoji || '';
   const key = EMOJI_ICON[e] ?? EMOJI_ICON[e.replace(/️/g, '')];
-  return key ? iconImg(key, e, px) : `<span style="font-size:${px - 6}px;line-height:1">${e}</span>`;
+  const inner = key ? iconImg(key, e, px) : `<span style="font-size:${px - 6}px;line-height:1">${e}</span>`;
+  return `<span class="skill-glyph">${inner}</span>`;
 }
