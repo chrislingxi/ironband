@@ -205,7 +205,7 @@ export class TitleScreen {
       <h1>Ironband</h1>
       <p class="sub">选择你的命运</p>
       <div class="body"></div>
-      <div class="foot">暗夜行者 · 单机 Q 版动作 RPG</div>`;
+      <div class="foot">暗夜行者 · 单机暗黑动作 RPG</div>`;
     this.root = root;
     this.body = root.querySelector('.body') as HTMLElement;
     this.renderSlots();

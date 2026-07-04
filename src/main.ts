@@ -8,7 +8,7 @@ import { normalize } from '@engine/math/vec.ts';
 import { mulberry32 } from '@engine/math/rng.ts';
 import { buildGround } from '@engine/render/groundTiles.ts';
 import { createActorSprite, type ActorSprite, type ActorKind, type ActorSubKind } from '@engine/render/actorSprite.ts';
-import { buildNpcSprite } from '@engine/render/npcSprite.ts';
+import { buildNpcSpriteWithArt } from '@engine/render/npcSprite.ts';
 import { Lighting } from '@engine/render/lighting.ts';
 import { Game } from '@game/sim/Game.ts';
 import type { Entity } from '@game/entities/entity.ts';
@@ -34,6 +34,7 @@ import { WorldMapPanel, type WorldArea } from '@game/ui/worldmap.ts';
 import { listWaypoints } from '@game/systems/waypoint/waypoint.ts';
 import { dist } from '@engine/math/vec.ts';
 import { FirstRunCoach } from '@game/ui/firstRunCoach.ts';
+import { injectV4Skin } from '@game/ui/v4skin.ts';
 
 const areaName = (id: string): string => AREAS[id]?.name ?? id;
 
@@ -86,6 +87,7 @@ function installZoomGuards(): void {
 }
 
 async function main() {
+  injectV4Skin();
   installZoomGuards();
   const app = new Application();
   // iOS Safari 的 WebGPU 不稳定 → 强制 WebGL; 失败再退默认(自动选择)
@@ -200,7 +202,7 @@ async function main() {
         const nx = cx + Math.cos(ang) * 6, ny = cy + Math.sin(ang) * 6;
         npcMarkers.push({ name: npc.name, greeting: npc.greeting, role: npc.role, x: nx, y: ny });
         const s = gridToScreen({ x: nx, y: ny });
-        const g = buildNpcSprite(npc.role); // Q版长袍立绘 (按身份配色+道具)
+        const g = buildNpcSpriteWithArt(npc.role, npc.id); // NPC 真图优先, 缺失回退程序化营地立绘
         const t = new Text({ text: npc.name, style: { fontFamily: 'Georgia,serif', fontSize: 11, fill: 0xffe08a, stroke: { color: 0x000000, width: 3 } } });
         t.anchor.set(0.5, 1); t.position.set(s.x, s.y - 24);
         g.position.set(s.x, s.y); g.zIndex = depthKey({ x: nx, y: ny }); t.zIndex = depthKey({ x: nx, y: ny });

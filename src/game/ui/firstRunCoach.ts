@@ -47,7 +47,10 @@ function injectStyle(): void {
     background:radial-gradient(circle at 50% 20%,#f0d07a,#a8792a); box-shadow:0 3px 10px #0008; }
   #coach .cta:active { transform:scale(.96); }
   @media (orientation:portrait) {
-    #coach { width:calc(100vw - 28px); bottom:calc(96px + env(safe-area-inset-bottom)); }
+    #coach { left:calc(14px + env(safe-area-inset-left)); right:auto; transform:none;
+      width:calc(100vw - 164px - env(safe-area-inset-left) - env(safe-area-inset-right)); min-width:210px;
+      bottom:calc(20px + env(safe-area-inset-bottom)); }
+    #coach.hide { transform:translateY(8px); }
     #coach .box { grid-template-columns:auto 1fr; }
     #coach .cta { grid-column:2; justify-self:start; padding:6px 9px; }
   }`;

@@ -4,7 +4,7 @@ export function iconImg(key: string, emoji: string, px = 28): string {
   const safe = emoji.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
   return (
     `<img src="assets/icon/${key}.svg" alt="" ` +
-    `style="width:${px}px;height:${px}px;object-fit:contain;pointer-events:none;filter:drop-shadow(0 1px 2px #000a)" ` +
+    `class="v4-icon v4-icon-${key}" style="width:${px}px;height:${px}px;object-fit:contain;pointer-events:none;filter:drop-shadow(0 1px 2px #000a)" ` +
     `onerror="this.replaceWith(document.createTextNode('${safe}'))">`
   );
 }
@@ -33,6 +33,6 @@ export const EMOJI_ICON: Record<string, string> = {
 export function skillIconHtml(emoji: string, px = 30): string {
   const e = emoji || '';
   const key = EMOJI_ICON[e] ?? EMOJI_ICON[e.replace(/️/g, '')];
-  const inner = key ? iconImg(key, e, px) : `<span style="font-size:${px - 6}px;line-height:1">${e}</span>`;
-  return `<span class="skill-glyph">${inner}</span>`;
+  const inner = key ? iconImg(key, e, px) : `<span class="emoji-fallback" style="font-size:${px - 6}px;line-height:1">${e}</span>`;
+  return `<span class="skill-glyph" data-icon="${key ?? 'emoji'}">${inner}</span>`;
 }

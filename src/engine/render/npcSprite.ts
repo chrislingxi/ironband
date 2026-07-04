@@ -1,4 +1,5 @@
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Sprite } from 'pixi.js';
+import { tryLoadTexture } from '@game/assets/loader.ts';
 import type { NpcRole } from '@game/world/npcs.ts';
 
 // 营地 NPC 的 Q 版立绘 (纯 Graphics): 大头长袍小人, 粗描边, 按身份配色 + 主题道具。
@@ -64,6 +65,21 @@ export function buildNpcSprite(role: NpcRole, s = 11): Container {
   head.circle(s * 0.16, -s * 0.8, s * 0.07).fill({ color: 0x201010 });
   c.addChild(head);
 
+  return c;
+}
+
+export function buildNpcSpriteWithArt(role: NpcRole, id: string, s = 13): Container {
+  const c = buildNpcSprite(role, s);
+  void (async () => {
+    const tex = await tryLoadTexture(`npc/${id}`);
+    if (!tex) return;
+    c.removeChildren();
+    c.addChild(new Graphics().ellipse(0, s * 0.7, s * 1.18, s * 0.45).fill({ color: 0x000000, alpha: 0.42 }));
+    const sp = new Sprite(tex);
+    sp.anchor.set(0.5, 0.84);
+    sp.scale.set((s * 3.35) / tex.height);
+    c.addChild(sp);
+  })();
   return c;
 }
 
