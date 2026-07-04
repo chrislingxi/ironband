@@ -16,8 +16,8 @@
 `public/assets/{char,mon,npc,tile,ui}/*.png` 为本项目自有生成素材
 (生产流程见 `docs/ART_ASSETS.md`)。
 
-## 音频 — Kenney (CC0 1.0)
-`public/assets/audio/*.mp3` 短音效来自 [Kenney.nl](https://kenney.nl) 的免费素材包，
+## 短音效 — Kenney (CC0 1.0)
+`public/assets/audio/{hit,hurt,skill,pickup,coin,levelup,death,select}.mp3` 来自 [Kenney.nl](https://kenney.nl) 的免费素材包，
 许可 **CC0 1.0**(公有领域，https://creativecommons.org/publicdomain/zero/1.0/，无需署名，登记以便追溯)。
 原 `.ogg` 经 ffmpeg 转 mp3(单声道/44.1kHz，因 iOS Safari 不解 Ogg Vorbis)。映射:
 
@@ -32,6 +32,10 @@
 | `death.mp3`   | lowFrequency_explosion_000 | Sci-Fi Sounds |
 | `select.mp3`  | click_001              | Interface Sounds |
 
-BGM 仍用程序化哥特 drone 合成(`src/engine/audio/audio.ts`);如需真音乐,
-丢入 `assets/audio/bgm.mp3`(CC0)即自动启用,并在此登记。
+## 背景音乐 — OpenGameArt: Dungeon Ambience (CC0 1.0)
+`public/assets/audio/bgm.mp3` 来自 OpenGameArt 条目
+[Dungeon Ambience](https://opengameart.org/content/dungeon-ambience)，作者 yd，页面标注许可
+**CC0 1.0**(https://creativecommons.org/publicdomain/zero/1.0/)。
+源文件 `dungeon002.ogg` 经 ffmpeg 转为 mp3，以兼容 iOS Safari。
+
 缺任一文件时该音效自动回退合成,见 `src/engine/audio/samples.ts`。

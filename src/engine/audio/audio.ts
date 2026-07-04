@@ -59,6 +59,7 @@ export class GameAudio {
   // 采样层: 命中真音效(assets/audio/<name>.<ext>)则优先播放, 缺则回退合成。
   private samples = new Map<string, AudioBuffer>();
   private samplesPreloaded = false;
+  private pendingSampleBgm = false;
   private bgmSampleSrc: AudioBufferSourceNode | null = null;
 
   // 构造时不创建 AudioContext, 只解析构造器. 真正实例化推迟到 unlock().
@@ -101,7 +102,14 @@ export class GameAudio {
     const want: Array<[string, string]> = Object.entries(SFX_BASENAMES);
     want.push(['__bgm', BGM_BASENAME]);
     for (const [name, base] of want) {
-      void decodeSample(ctx, base).then((buf) => { if (buf) this.samples.set(name, buf); }).catch(() => undefined);
+      void decodeSample(ctx, base).then((buf) => {
+        if (!buf) return;
+        this.samples.set(name, buf);
+        if (name === '__bgm' && this.pendingSampleBgm && this.bgmRunning && !this.bgmSampleSrc) {
+          this.stopBgm();
+          this.startBgm();
+        }
+      }).catch(() => undefined);
     }
   }
 
@@ -326,6 +334,7 @@ export class GameAudio {
     // 有 BGM 采样(assets/audio/bgm.*)则循环播放真音乐, 不再合成 drone。
     const bgmBuf = this.samples.get('__bgm');
     if (bgmBuf) {
+      this.pendingSampleBgm = false;
       const gain = ctx.createGain();
       gain.gain.setValueAtTime(0, ctx.currentTime);
       gain.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 3);
@@ -339,6 +348,7 @@ export class GameAudio {
       this.bgmGain = gain;
       return;
     }
+    this.pendingSampleBgm = true;
 
     // BGM 总增益(极低, 仅作氛围底噪).
     const bgmGain = ctx.createGain();
