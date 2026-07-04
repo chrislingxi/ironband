@@ -26,3 +26,15 @@ Verification:
 - `npm run build:site`
 - Mobile browser smoke at 390x844
 - GitHub Pages smoke with cachebuster `?v=a219c59`
+
+## Icon Pass - Amazon Starter Skills
+
+This pass replaces the most visible Amazon starter skill icon fallbacks with original V4 SVG assets:
+
+- `skill-magic-arrow.svg`
+- `skill-multiple-arrow.svg`
+- `skill-frost-arrow.svg`
+- `skill-ice-arrow.svg`
+- `skill-exploding-arrow.svg`
+
+The runtime emoji mapping now routes Amazon bow/cold/burst symbols into these bespoke dark framed icons instead of generic library symbols.

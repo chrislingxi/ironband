@@ -17,10 +17,10 @@ export function setIcon(el: HTMLElement, key: string, emoji: string, px = 28): v
 // 技能 emoji → game-icons key (技能 icon 字段=emoji; 按语义映到真图标, 缺映射/缺图回退 emoji)。
 export const EMOJI_ICON: Record<string, string> = {
   '🗡': 'broadsword', '⚔': 'crossed-swords', '💢': 'enrage', '💫': 'knockout', '🪃': 'boomerang',
-  '🎯': 'bullseye', '🔥': 'flame', '🌀': 'tornado', '😡': 'angry-eyes', '🪓': 'battle-axe', '🔨': 'thor-hammer',
+  '🎯': 'skill-multiple-arrow', '🔥': 'flame', '🌀': 'tornado', '😡': 'angry-eyes', '🪓': 'battle-axe', '🔨': 'thor-hammer',
   '🏃': 'run', '💨': 'wingfoot', '🛡': 'round-shield', '🧱': 'brick-wall', '🤺': 'fencer', '📢': 'megaphone',
-  '🗣': 'shouting', '😤': 'screaming', '🎺': 'trumpet', '🔊': 'sonic-shout', '👑': 'crown', '🏹': 'high-shot',
-  '❄': 'snowflake-1', '🧊': 'ice-cube', '💥': 'explosion-rays', '👁': 'eye-target', '⭐': 'star-swirl',
+  '🗣': 'shouting', '😤': 'screaming', '🎺': 'trumpet', '🔊': 'sonic-shout', '👑': 'crown', '🏹': 'skill-magic-arrow',
+  '❄': 'skill-frost-arrow', '🧊': 'skill-ice-arrow', '💥': 'skill-exploding-arrow', '👁': 'eye-target', '⭐': 'star-swirl',
   '🐌': 'snail', '🤸': 'acrobatic', '🦅': 'eagle-emblem', '🔱': 'trident', '⚡': 'lightning-arc', '🟢': 'poison-cloud',
   '🌩': 'lightning-storm', '🔋': 'battery-pack', '☠': 'death-skull', '🌟': 'sparkles', '🔹': 'ice-spear',
   '💠': 'crystal-cluster', '🔮': 'crystal-ball', '🌡': 'flame', '🔆': 'bright-explosion', '☄': 'comet-spark',
