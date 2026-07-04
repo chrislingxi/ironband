@@ -96,7 +96,8 @@ function injectStyle(): void {
   #runecodex .rmissline { color:#d8946a; }
   /* 竖屏: 单列纵向滚动(原行为). 横屏: 左已装备 | 右背包 两栏一屏, 各自局部滚动, 不再上下翻找。*/
   @media (orientation:landscape) {
-    #inv { display:flex; flex-direction:column; overflow:hidden; }
+    #inv { display:none; flex-direction:column; overflow:hidden; }
+    #inv.show { display:flex; }
     #inv .cols { display:flex; gap:16px; flex:1; min-height:0; }
     #inv .col-l { flex:0 0 42%; overflow-y:auto; overflow-x:hidden; padding-right:6px; }
     #inv .col-r { flex:1; min-width:0; overflow-y:auto; overflow-x:hidden; padding-right:4px; }

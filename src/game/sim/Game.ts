@@ -5,7 +5,7 @@ import { resolveAttack, rollDamage, attackInterval } from '@game/systems/combat/
 import { updateMonsterAI, type AIContext } from '@game/systems/ai/behaviors.ts';
 import { CASTABLE_SKILLS, defaultLoadout, castableById, makeCharacterFor, type ClassSkillKey } from '@game/classes/profiles.ts';
 import { BASIC_ATTACK, BASIC_ATTACK_BY_CLASS } from '@game/classes/exec.ts';
-import { generateItem, socketRune, type ItemInstance, type EquipSlot } from '@game/systems/items/index.ts';
+import { generateItem, makeNormalItem, socketRune, type ItemInstance, type EquipSlot } from '@game/systems/items/index.ts';
 import { RUNES, runeById } from '@game/data/runes.ts';
 import { BALANCE } from '@game/data/balance.ts';
 import { deriveCombat, type Character } from '@game/systems/stats/character.ts';
@@ -174,6 +174,7 @@ export class Game {
   questBonuses: Partial<Record<'maxhp' | 'res_all' | 'str' | 'dex' | 'vit' | 'energy', number>> = {}; // 任务永久增益
   private chillUntilMs = 0; // 被寒冷附魔精英命中后的减速截止 (玩家移速×0.5)
   private bagFullWarned = false; // 背包满提示节流 (有空位时重置)
+  onboardingDropGranted = false; // 首战体验: 第一片野外保底给一件可穿装备
   get isChilled(): boolean { return this.timeMs < this.chillUntilMs; } // 玩家是否处于减速
 
   constructor(seed = 1234, cls: CharClass = 'barbarian') {
@@ -845,15 +846,22 @@ export class Game {
           this.gold.push({ id: this.nextGoldId++, pos: { ...e.pos }, amount: randInt(this.rng, isBoss ? 40 : isElite ? 8 : 1, isBoss ? 90 : isElite ? 24 : 6) });
         }
         // 物品掉落 (TreasureClass-lite): 精英必掉且更多, Boss 暴掉
-        const drops = isBoss ? 4 : isElite ? 2 : this.rng() < 0.32 ? 1 : 0;
+        const starterDrop = this.currentArea.id === 'blood_moor' && !this.onboardingDropGranted && !isBoss;
+        const drops = starterDrop ? 1 : isBoss ? 4 : isElite ? 2 : this.rng() < 0.32 ? 1 : 0;
         // 暗金概率放大: Boss×10 / 精英×3 / 普通×1 ("刷Boss/精英出金"成立)
         const rarityBoost = isBoss ? 10 : isElite ? 3 : 1;
         for (let k = 0; k < drops; k++) {
           const off = () => (this.rng() - 0.5) * 0.9;
+          const item = starterDrop && k === 0 ? makeNormalItem('leather_gloves') : generateItem(e.combat.level + (isElite ? 3 : 0), this.rng, rarityBoost);
+          if (starterDrop && k === 0) {
+            item.name = '营火守望者皮手套';
+            this.onboardingDropGranted = true;
+            this.notices.push('首件战利品: 营火守望者皮手套');
+          }
           this.groundItems.push({
             id: this.nextGoldId++,
             pos: { x: e.pos.x + off(), y: e.pos.y + off() },
-            item: generateItem(e.combat.level + (isElite ? 3 : 0), this.rng, rarityBoost),
+            item,
           });
         }
       }

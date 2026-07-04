@@ -21,7 +21,7 @@ import { NPCS, type NpcRole } from '@game/world/npcs.ts';
 import { AREAS } from '@game/world/act1.ts';
 import { TitleScreen, type BootChoice } from '@game/ui/titlescreen.ts';
 import { QuestLogPanel } from '@game/ui/questlog.ts';
-import { maybeShowTutorial, showTutorial } from '@game/ui/tutorial.ts';
+import { showTutorial } from '@game/ui/tutorial.ts';
 import { SettingsPanel } from '@game/ui/settings.ts';
 import { TownPanel, type TownData } from '@game/ui/town.ts';
 import { QUESTS } from '@game/world/quests.ts';
@@ -33,6 +33,7 @@ import { WaypointPanel } from '@game/ui/waypoint.ts';
 import { WorldMapPanel, type WorldArea } from '@game/ui/worldmap.ts';
 import { listWaypoints } from '@game/systems/waypoint/waypoint.ts';
 import { dist } from '@engine/math/vec.ts';
+import { FirstRunCoach } from '@game/ui/firstRunCoach.ts';
 
 const areaName = (id: string): string => AREAS[id]?.name ?? id;
 
@@ -537,10 +538,11 @@ async function main() {
   const skillPanel = new SkillTreePanel(game, () => { skillPanel.hide(); paused = false; });
   const charPanel = new CharacterPanel(game, () => { charPanel.hide(); paused = false; });
   function closePanels(): void { panel.hide(); skillPanel.hide(); questLog.hide(); town.hide(); wp.hide(); worldMap.hide(); charPanel.hide(); paused = false; }
+  const openInventory = (): void => { closePanels(); panel.show(); paused = true; };
   bagBtn.addEventListener('pointerdown', (e) => {
     e.preventDefault(); e.stopPropagation();
     if (panel.open) closePanels();
-    else { closePanels(); panel.show(); paused = true; }
+    else openInventory();
   });
   document.body.appendChild(bagBtn);
 
@@ -816,6 +818,7 @@ async function main() {
     if (game.state === 'dead') game.respawn();
   });
   document.body.appendChild(banner);
+  const coach = new FirstRunCoach(game, openInventory);
 
   const loop = new GameLoop(
     (dt) => {
@@ -898,6 +901,7 @@ async function main() {
         if (damageTexts[i].life <= 0) { damageTexts[i].t.destroy(); damageTexts.splice(i, 1); }
       }
       hud.update();
+      coach.update();
       syncMinimap();
       syncExitArrow();
       // 通知队列: 逐条顺序展示(不再只显最后一条/丢掉多行任务文案); 任务完成类更醒目、停留更久。
@@ -974,8 +978,8 @@ async function main() {
   );
   loop.start();
 
-  // 首次启动: 弹出新手引导(暂停模拟), 看完/跳过后恢复。
-  if (maybeShowTutorial(() => { paused = false; })) paused = true;
+  // 首次启动不再弹说明书式全屏教程; 由 FirstRunCoach 在战斗中非阻塞引导。
+  // 详细教程保留在右上帮助菜单, 需要时可随时打开。
 
   (window as unknown as { __iron: unknown }).__iron = { app, game, scene, joy };
 }

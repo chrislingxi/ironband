@@ -23,7 +23,7 @@ import { defaultLoadout } from '@game/classes/profiles.ts';
 // ---------------------------------------------------------------------------
 
 /** 存档结构版本号。结构变动时递增, 供未来迁移判断之用。 */
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 const DB_NAME = 'ironband';
 const STORE_NAME = 'save';
@@ -157,6 +157,7 @@ export interface SaveData {
   runeBag: Record<string, number>; // 符文背包 (旧档无此字段时按空)
   assignedSkills: string[]; // 4 技能槽绑定 (旧档无此字段时按职业默认装载)
   questBonuses: Partial<Record<string, number>>; // 任务永久增益 (旧档按空)
+  onboardingDropGranted?: boolean; // v2: 首战保底装备是否已发
 }
 
 // ---------------------------------------------------------------------------
@@ -207,6 +208,7 @@ export function serializeGame(game: Game, name?: string): SaveData {
     runeBag: { ...game.runeBag },
     assignedSkills: [...game.assignedSkills],
     questBonuses: { ...game.questBonuses },
+    onboardingDropGranted: game.onboardingDropGranted,
   };
 }
 
@@ -256,6 +258,7 @@ export function applySave(game: Game, data: SaveData): void {
   game.runeBag = { ...(data.runeBag ?? {}) };
   game.assignedSkills = data.assignedSkills ?? defaultLoadout(data.cls); // 旧档按职业默认装载
   game.questBonuses = { ...(data.questBonuses ?? {}) };
+  game.onboardingDropGranted = data.onboardingDropGranted ?? false;
 
   // --- 雇佣兵: 重建最小状态, 位置等瞬态交由 loadArea 归位 ---
   if (data.merc) {
