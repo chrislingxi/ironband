@@ -1,4 +1,4 @@
-import { Application, Container, Graphics, Text, type Texture } from 'pixi.js';
+import { Application, Container, Graphics, Sprite, Text, type Texture } from 'pixi.js';
 import { tryLoadTexture } from '@game/assets/loader.ts';
 import { IsoScene } from '@engine/render/IsoScene.ts';
 import { GameLoop } from '@engine/loop.ts';
@@ -124,6 +124,9 @@ async function main() {
   const mercLayer = new Container();
   const exitLayer = new Container();
   const npcLayer = new Container();
+  const propLayer = new Container();
+  propLayer.sortableChildren = true;
+  scene.entityLayer.addChild(propLayer);
   scene.entityLayer.addChild(exitLayer);
   scene.entityLayer.addChild(npcLayer);
   scene.entityLayer.addChild(corpseLayer);
@@ -140,7 +143,34 @@ async function main() {
   await Promise.all(
     ['wilderness', 'town', 'desert', 'hell', 'snow'].map(async (t) => tileTextures.set(t, await tryLoadTexture(`tile/${t}`))),
   );
+  const propTextures = new Map<string, Texture | null>();
+  await Promise.all(
+    ['campfire', 'exit_gate', 'blacksmith_anvil'].map(async (p) => propTextures.set(p, await tryLoadTexture(`prop/${p}`))),
+  );
   let npcMarkers: { name: string; greeting: string; role: NpcRole; x: number; y: number }[] = [];
+
+  function addCampProp(key: string, x: number, y: number, targetH: number): void {
+    const tex = propTextures.get(key);
+    if (!tex) return;
+    const holder = new Container();
+    holder.sortableChildren = true;
+    if (key === 'campfire') {
+      holder.addChild(new Graphics().ellipse(0, -targetH * 0.28, targetH * 0.48, targetH * 0.24).fill({ color: 0xff8a22, alpha: 0.18 }));
+    } else if (key === 'exit_gate') {
+      holder.addChild(new Graphics().ellipse(0, -targetH * 0.25, targetH * 0.42, targetH * 0.2).fill({ color: 0x4cc8ff, alpha: 0.16 }));
+    } else if (key === 'blacksmith_anvil') {
+      holder.addChild(new Graphics().ellipse(targetH * 0.2, -targetH * 0.18, targetH * 0.28, targetH * 0.16).fill({ color: 0xff6a22, alpha: 0.14 }));
+    }
+    const sp = new Sprite(tex);
+    sp.anchor.set(0.5, 0.86);
+    sp.scale.set(targetH / tex.height);
+    const s = gridToScreen({ x, y });
+    holder.position.set(s.x, s.y);
+    holder.zIndex = depthKey({ x, y }) - 0.1;
+    holder.addChild(sp);
+    propLayer.addChild(holder);
+  }
+
   function syncArea(): void {
     const a = game.currentArea;
     if (a.id === lastAreaId) return;
@@ -157,10 +187,12 @@ async function main() {
       : act === 5 ? 'snow'
       : 'wilderness';
     buildGround(scene.ground, a.size[0], a.size[1], mulberry32(h), groundTheme, tileTextures.get(groundTheme));
+    propLayer.removeChildren();
     // 出口标记
     exitLayer.removeChildren();
     for (const ex of a.exits) {
       const s = gridToScreen(ex.pos);
+      if (a.isTown) addCampProp('exit_gate', ex.pos.x, ex.pos.y + 0.2, 128);
       const g = new Graphics().circle(0, 0, 11).fill({ color: 0x3ad6ff, alpha: 0.32 }).stroke({ color: 0x9af0ff, width: 2 });
       g.position.set(s.x, s.y); g.zIndex = depthKey(ex.pos);
       const t = new Text({ text: '▸ ' + areaName(ex.toId), style: { fontFamily: 'Georgia,serif', fontSize: 12, fill: 0x9af0ff, stroke: { color: 0x000000, width: 3 } } });
@@ -172,9 +204,11 @@ async function main() {
     npcMarkers = [];
     if (a.isTown) {
       const cx = a.size[0] / 2, cy = a.size[1] / 2;
+      addCampProp('campfire', cx + 1.1, cy - 1.9, 118);
       NPCS.forEach((npc, i) => {
         const ang = (i / NPCS.length) * Math.PI * 2;
         const nx = cx + Math.cos(ang) * 6, ny = cy + Math.sin(ang) * 6;
+        if (npc.role === 'vendor') addCampProp('blacksmith_anvil', nx - 1.25, ny + 1.15, 104);
         npcMarkers.push({ name: npc.name, greeting: npc.greeting, role: npc.role, x: nx, y: ny });
         const s = gridToScreen({ x: nx, y: ny });
         const g = buildNpcSpriteWithArt(npc.role, npc.id); // NPC 真图优先, 缺失回退程序化营地立绘

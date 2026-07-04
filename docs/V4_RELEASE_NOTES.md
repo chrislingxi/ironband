@@ -77,3 +77,12 @@ This pass reduces the quality drop between the title screen and the first playab
 - Increased runtime player texture height so Amazon/Barbarian/Sorceress silhouettes remain readable on mobile.
 - Increased camp NPC PNG scale so town services no longer collapse into tiny marker figures.
 - Kept logic hitboxes unchanged; only the visual texture layer is larger.
+
+## Camp Prop Pass - Town Memory Points
+
+This pass gives the first town scene a stronger sense of place:
+
+- Added transparent V4 PNG props for `campfire.png`, `exit_gate.png`, and `blacksmith_anvil.png`.
+- Added a static prop layer in the isometric scene; props do not affect collision or gameplay logic.
+- Placed a campfire at the town center, an exit gate near the area transition, and a forge workstation near the blacksmith.
+- Extended the V4 asset regression test to require both dev and GitHub Pages copies of the three prop PNGs.
