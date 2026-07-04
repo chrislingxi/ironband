@@ -130,9 +130,9 @@ function injectStyle(): void {
     #title { justify-content:flex-start; }
     #title .cards { grid-template-columns:1fr; width:min(420px,92vw); }
     #title .card, #title .card.amazon { min-height:190px; }
-    #title .card .ic { inset:0 6px 0 auto; width:44%; align-items:center; }
-    #title .card .ic img.cimg, #title .card.amazon .ic img.cimg { height:170px; transform:translateY(10px); }
-    #title .card .copy { right:42%; bottom:18px; }
+    #title .card .ic { inset:-8px 0 -6px auto; width:50%; align-items:center; }
+    #title .card .ic img.cimg, #title .card.amazon .ic img.cimg { height:202px; transform:translate(10px, 10px); }
+    #title .card .copy { right:45%; bottom:18px; }
   }
   /* --- 存档槽列表 --- */
   #title .slots { display:flex; flex-direction:column; gap:12px; width:min(440px,86vw); max-height:62vh; overflow:auto;

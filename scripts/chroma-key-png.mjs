@@ -123,6 +123,8 @@ for (let i = 0; i < rgba.length; i += 4) {
     rgba[i] = Math.round(r * 0.35);
     rgba[i + 1] = Math.round(g * 0.15);
     rgba[i + 2] = Math.round(b * 0.35);
+  } else if (rgba[i + 3] < 250 && g > 80 && greenDominance > 28) {
+    rgba[i + 1] = Math.round(Math.max(r, b) * 0.72);
   }
 }
 

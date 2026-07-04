@@ -59,3 +59,13 @@ This pass removes three high-impact monster fallbacks from late-game encounters:
 - Extended the V4 asset regression test to require both dev and GitHub Pages copies of the three boss PNGs.
 
 The runtime already resolves monsters by `mon/<defId>.png`, so these assets are picked up without additional gameplay code.
+
+## Class Art Pass - Title Screen Rebuild
+
+This pass replaces the most visible chibi/Q-style class portraits on the title screen:
+
+- Replaced Amazon, Barbarian, and Sorceress class PNGs with full-body dark fantasy character art.
+- Tuned mobile title-card image sizing so the new character silhouettes are larger and more readable on 390px-wide phones.
+- Extended the V4 asset regression test to require both dev and GitHub Pages copies of the three class PNGs.
+
+The first screen now presents the game as a darker ARPG instead of a cute mobile-card prototype.

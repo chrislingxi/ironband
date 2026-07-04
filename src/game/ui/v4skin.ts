@@ -46,7 +46,7 @@ export function injectV4Skin(): void {
     text-shadow:0 2px 4px #000, 0 0 18px #9b641c66 !important;
   }
   #title .card .ic img.cimg {
-    filter:drop-shadow(0 18px 16px #000) drop-shadow(0 0 18px #d7a84b2c);
+    filter:brightness(1.08) contrast(1.08) saturate(1.08) drop-shadow(0 18px 16px #000) drop-shadow(0 0 18px #d7a84b36);
   }
   #hud::before {
     background:

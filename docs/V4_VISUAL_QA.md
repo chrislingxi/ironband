@@ -57,6 +57,7 @@ Then do a browser smoke check against the built page or local dev server:
 Known remaining art gaps:
 
 - `assets/v4-dark/` path is ready, but the first true V4 replacement pack is not yet populated.
+- Title-screen Barbarian/Amazon/Sorceress class portraits now use full-body V4 dark fantasy PNGs instead of Q-style chibi art.
 - `tile/hell.png` and `tile/snow.png` now resolve to generated V4 PNG tiles; they should later be replaced by hand-painted final tiles.
 - Mephisto/Diablo/Baal runtime keys now resolve to V4 transparent PNG boss art; next upgrade is directional animation and in-game scale tuning.
 - Amazon starter skill icons now have bespoke V4 SVGs; remaining class trees still need the same treatment.
