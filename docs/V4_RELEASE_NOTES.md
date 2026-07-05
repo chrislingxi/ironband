@@ -170,3 +170,11 @@ This pass reduces the remaining early-game skill-tree quality drop for Barbarian
 - Added PNG icons for Stun, Double Throw, Sword Mastery, Axe Mastery, Howl, and Shout.
 - Routed those Barbarian skill ids through the bespoke PNG icon layer.
 - Extended the V4 asset regression test to require both dev and GitHub Pages copies of the six new Barbarian skill PNGs.
+
+## Monster Runtime Pass - Boss Identity Routing
+
+This pass fixes an art-routing inconsistency before adding more monster assets:
+
+- Preserved distinct runtime subKinds for Mephisto, Diablo, and Baal instead of routing them through the Andariel fallback.
+- Expanded Boss texture scaling recognition to all five act bosses.
+- Added Hound and Spitter monster PNGs to the V4 asset regression test, since their existing art already meets the current dark-fantasy bar.

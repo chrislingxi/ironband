@@ -293,9 +293,8 @@ async function main() {
 
   function actorSubKind(e: Entity): ActorSubKind {
     if (e.kind === 'player') return game.character.cls as ActorSubKind;
-    // 各幕 Boss 暂复用现有 Boss 立绘 (真图 mon/<id>.png 将覆盖); 督瑞尔有专属矢量
-    if (e.defId === 'duriel') return 'duriel';
-    if (e.defId === 'andariel' || e.defId === 'mephisto' || e.defId === 'diablo' || e.defId === 'baal') return 'andariel';
+    // 各幕 Boss 保留各自 subKind, 让真图缩放/后续特效分支不再被安达莉尔兜底吞掉。
+    if (e.defId === 'andariel' || e.defId === 'duriel' || e.defId === 'mephisto' || e.defId === 'diablo' || e.defId === 'baal') return e.defId as ActorSubKind;
     if (e.ai === 'fallen') return 'fallen';
     if (e.ai === 'skeleton') return 'skeleton';
     if (e.ai === 'zombie') return 'zombie';

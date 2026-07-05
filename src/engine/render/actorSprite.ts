@@ -11,7 +11,8 @@ export type ActorKind = 'humanoid' | 'beast' | 'caster';
 // 可选 subKind 细分职业/怪物外观
 export type ActorSubKind =
   | 'barbarian' | 'amazon' | 'sorceress'   // 玩家职业
-  | 'fallen' | 'skeleton' | 'zombie' | 'hound' | 'brute' | 'spitter' | 'andariel' | 'duriel' // 怪物
+  | 'fallen' | 'skeleton' | 'zombie' | 'hound' | 'brute' | 'spitter'
+  | 'andariel' | 'duriel' | 'mephisto' | 'diablo' | 'baal' // 怪物/Boss
   | undefined;
 
 export interface ActorSpriteOpts {
@@ -83,7 +84,8 @@ export class ActorSprite {
     // 玩家需要在手机首五分钟中读出职业轮廓；Boss 保持封顶，避免横屏遮挡战场。
     const vh = (typeof window !== 'undefined' ? window.innerHeight : 800);
     const isPlayer = this.opts.subKind === 'barbarian' || this.opts.subKind === 'amazon' || this.opts.subKind === 'sorceress';
-    const isBoss = this.opts.subKind === 'andariel' || this.opts.subKind === 'duriel';
+    const isBoss = this.opts.subKind === 'andariel' || this.opts.subKind === 'duriel' ||
+      this.opts.subKind === 'mephisto' || this.opts.subKind === 'diablo' || this.opts.subKind === 'baal';
     const targetH = isPlayer
       ? Math.min(s * 4.8, vh * 0.32)
       : isBoss

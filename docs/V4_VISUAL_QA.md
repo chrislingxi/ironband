@@ -68,6 +68,7 @@ Known remaining art gaps:
 - Inventory now uses a paper-doll equipment page with rarity-framed bag cells and verified portrait/landscape mobile bounds.
 - Camp NPCs now use mature 512x768 transparent PNG sprites instead of Q-style placeholder portraits.
 - Fallen, Zombie, Skeleton, Shaman, Archer, and Brute now use V4 transparent monster sprites with larger runtime silhouette height.
+- Hound and Spitter V4 monster PNGs are now covered by asset regression tests; all five act bosses keep distinct runtime subKinds.
 - Barbarian Bash/Double Swing/War Cry and Sorceress Ice Bolt/Fire Bolt/Charged Bolt now have bespoke V4 PNG skill icons.
 - Amazon Fire Arrow/Exploding Arrow/Ice Arrow/Guided Arrow/Strafe/Valkyrie now have bespoke V4 PNG skill icons.
 - Sorceress Frozen Armor/Ice Blast/Warmth/Inferno/Static Field/Telekinesis now have bespoke V4 PNG skill icons.
