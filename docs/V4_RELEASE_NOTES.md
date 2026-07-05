@@ -129,3 +129,11 @@ This pass broadens premium PNG skill icons beyond the Amazon starter kit:
 - Added skill-id based icon routing so a combat skill can use a bespoke PNG without replacing generic equipment/system icons that share the same emoji.
 - Updated HUD and skill-tree rendering to pass skill ids into the icon resolver.
 - Extended the V4 asset regression test to require both dev and GitHub Pages copies of the six new skill PNGs.
+
+## Skill Icon Pass - Amazon Bow Kit
+
+This pass closes the most visible Amazon bow fantasy gap after the starter icons:
+
+- Added PNG icons for Fire Arrow, Exploding Arrow, Ice Arrow, Guided Arrow, Strafe, and Valkyrie.
+- Routed those Amazon skill ids through the same bespoke icon layer used by the HUD and skill tree.
+- Extended the V4 asset regression test to require both dev and GitHub Pages copies of the six new Amazon skill PNGs.

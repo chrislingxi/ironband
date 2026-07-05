@@ -4,6 +4,12 @@ const PNG_ICON_KEYS = new Set([
   'skill-magic-arrow',
   'skill-multiple-arrow',
   'skill-frost-arrow',
+  'skill-fire-arrow',
+  'skill-exploding-arrow',
+  'skill-ice-arrow',
+  'skill-guided-arrow',
+  'skill-strafe',
+  'skill-valkyrie',
   'skill-bash',
   'skill-double-swing',
   'skill-war-cry',
@@ -22,6 +28,12 @@ const SKILL_ID_ICON: Record<string, string> = {
   magic_arrow: 'skill-magic-arrow',
   multiple_shot: 'skill-multiple-arrow',
   cold_arrow: 'skill-frost-arrow',
+  fire_arrow: 'skill-fire-arrow',
+  exploding_arrow: 'skill-exploding-arrow',
+  ice_arrow: 'skill-ice-arrow',
+  guided_arrow: 'skill-guided-arrow',
+  strafe: 'skill-strafe',
+  valkyrie: 'skill-valkyrie',
 };
 
 export function iconImg(key: string, emoji: string, px = 28): string {

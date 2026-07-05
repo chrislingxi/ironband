@@ -67,4 +67,5 @@ Known remaining art gaps:
 - Camp NPCs now use mature 512x768 transparent PNG sprites instead of Q-style placeholder portraits.
 - Fallen, Zombie, Skeleton, Shaman, Archer, and Brute now use V4 transparent monster sprites with larger runtime silhouette height.
 - Barbarian Bash/Double Swing/War Cry and Sorceress Ice Bolt/Fire Bolt/Charged Bolt now have bespoke V4 PNG skill icons.
+- Amazon Fire Arrow/Exploding Arrow/Ice Arrow/Guided Arrow/Strafe/Valkyrie now have bespoke V4 PNG skill icons.
 - Character, NPC, and monster runtime art is single-frame PNG, not directional animation sheets.
