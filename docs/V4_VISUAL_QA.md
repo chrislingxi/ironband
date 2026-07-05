@@ -14,6 +14,7 @@ The build is acceptable only when a player can open the live GitHub Pages versio
 ## Visual Checks
 
 - Title: no toy-like "Q版" positioning; class cards feel like dark fantasy character cards.
+- Title background: first viewport should show a real dark gothic scene behind the class cards, not a CSS-only gradient.
 - HUD: health, level, objective, potion, and four skills are legible over combat.
 - Skill icons: core class skills should use bespoke PNGs when a skill-id art asset exists; generic SVGs are only fallback.
 - Inventory: paper-doll equipment slots and rarity-framed bag cells feel like the same material system as HUD.
@@ -68,4 +69,5 @@ Known remaining art gaps:
 - Fallen, Zombie, Skeleton, Shaman, Archer, and Brute now use V4 transparent monster sprites with larger runtime silhouette height.
 - Barbarian Bash/Double Swing/War Cry and Sorceress Ice Bolt/Fire Bolt/Charged Bolt now have bespoke V4 PNG skill icons.
 - Amazon Fire Arrow/Exploding Arrow/Ice Arrow/Guided Arrow/Strafe/Valkyrie now have bespoke V4 PNG skill icons.
+- Title screen now uses a full-screen dark gothic cathedral-gate PNG background.
 - Character, NPC, and monster runtime art is single-frame PNG, not directional animation sheets.

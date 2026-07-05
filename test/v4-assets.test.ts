@@ -6,6 +6,8 @@ const REQUIRED_ASSETS = [
   'assets/tile/snow.png',
   'public/assets/tile/hell.png',
   'public/assets/tile/snow.png',
+  'assets/ui/title-bg.png',
+  'public/assets/ui/title-bg.png',
   'assets/icon/skill-magic-arrow.svg',
   'assets/icon/skill-multiple-arrow.svg',
   'assets/icon/skill-frost-arrow.svg',

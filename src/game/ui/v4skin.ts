@@ -26,9 +26,12 @@ export function injectV4Skin(): void {
   canvas { filter:saturate(.9) contrast(1.12) brightness(.72); }
   #title {
     background:
-      radial-gradient(56% 48% at 50% 22%, #6d2d1d52 0%, transparent 58%),
-      radial-gradient(38% 36% at 72% 36%, #16615d28 0%, transparent 70%),
+      linear-gradient(90deg,#020202e8 0%,#0008 22%,#0004 50%,#0008 78%,#020202e8 100%),
+      radial-gradient(60% 54% at 50% 18%, #22150a20 0%, transparent 62%),
+      url("assets/ui/title-bg.png"),
       linear-gradient(180deg,#080706 0%,#140b08 52%,#030202 100%) !important;
+    background-size:cover, cover, cover, cover !important;
+    background-position:center, center, center, center !important;
   }
   #title .sub { color:#d7b66f !important; text-transform:uppercase; }
   #title .foot { color:#8c7750 !important; }

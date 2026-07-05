@@ -137,3 +137,12 @@ This pass closes the most visible Amazon bow fantasy gap after the starter icons
 - Added PNG icons for Fire Arrow, Exploding Arrow, Ice Arrow, Guided Arrow, Strafe, and Valkyrie.
 - Routed those Amazon skill ids through the same bespoke icon layer used by the HUD and skill tree.
 - Extended the V4 asset regression test to require both dev and GitHub Pages copies of the six new Amazon skill PNGs.
+
+## Title Screen Art Pass - Cathedral Gate
+
+This pass upgrades the first impression of the game before combat starts:
+
+- Added a full-screen dark gothic cathedral-gate background for the title screen.
+- Reworked title-screen layering so class cards sit on a real scene instead of a pure CSS gradient.
+- Kept the class-select flow and mobile safe-area structure intact while increasing card material contrast.
+- Extended the V4 asset regression test to require both dev and GitHub Pages copies of the title background.
