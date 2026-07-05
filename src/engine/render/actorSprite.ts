@@ -88,7 +88,7 @@ export class ActorSprite {
       ? Math.min(s * 4.8, vh * 0.32)
       : isBoss
         ? Math.min(s * 2.9, vh * 0.55)
-        : Math.min(s * 3.15, vh * 0.36);
+        : Math.min(s * 4.1, vh * 0.36);
     sp.scale.set(targetH / tex.height);
     this.bodyHolder.addChildAt(sp, 0);
     this.sprite = sp;

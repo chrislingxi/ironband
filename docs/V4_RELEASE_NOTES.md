@@ -112,3 +112,11 @@ This pass replaces the Q-style camp NPC art with mature dark fantasy PNG sprites
 - Kept each NPC's role readable at mobile scale: priestess orb, rogue bow, blacksmith hammer, gambler purse, caravan map/lantern, scholar staff/scrolls.
 - Updated both runtime and GitHub Pages asset copies.
 - Extended the V4 asset regression test to require both dev and GitHub Pages copies of all six camp NPC sprites.
+
+## Common Monster Art Pass - Act I Readability
+
+This pass replaces the highest-frequency early combat monsters with mature dark fantasy PNG sprites:
+
+- Replaced Fallen, Zombie, Skeleton, Shaman, Archer, and Brute with transparent V4 monster art.
+- Increased generic runtime monster sprite height so the new art reads in the first five minutes without changing collision or combat values.
+- Extended the V4 asset regression test to require both dev and GitHub Pages copies of the six common monster sprites.

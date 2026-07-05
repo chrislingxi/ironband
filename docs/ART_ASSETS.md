@@ -63,15 +63,16 @@
 | `tile/desert` | tile/desert.png | 沙漠沙地，沙纹、碎石、干裂。同上等距菱形 256×128 可平铺。 |
 
 ### Tier 2 怪物 — `public/assets/mon/`
+> V4 当前已替换首章高频怪物为透明暗黑写实 PNG；后续怪物继续按“非 Q 版、非玩具、清晰轮廓”标准推进。
 | key | 文件 | 描述 |
 |---|---|---|
-| `mon/fallen` | mon/fallen.png | 堕落者：小型橙红恶魔小鬼，尖耳獠牙，持简陋短矛，鬼祟。 |
-| `mon/skeleton` | mon/skeleton.png | 骷髅兵：灰白骨架，破损锈剑+小圆盾，空洞眼窝红光。 |
-| `mon/zombie` | mon/zombie.png | 僵尸：病绿臃肿，腐肉斑驳，伸出残臂，蹒跚。 |
-| `mon/shaman` | mon/shaman.png | 萨满：紫袍施法小鬼，骨杖顶火焰，兜帽。 |
-| `mon/archer` | mon/archer.png | 腐化弓手：兜帽斗篷，骷髅手持长弓。 |
+| `mon/fallen` | mon/fallen.png | 堕落者：写实红皮恶魔小鬼，裂角、獠牙、骨甲、匕首。 |
+| `mon/skeleton` | mon/skeleton.png | 骷髅兵：锈剑+残盾，破甲碎布，冷色骨骼高光。 |
+| `mon/zombie` | mon/zombie.png | 僵尸：腐败尸体、破布、外露肋骨，拖拽步态。 |
+| `mon/shaman` | mon/shaman.png | 萨满：恶魔巫医，骨饰、尖杖、火焰护符。 |
+| `mon/archer` | mon/archer.png | 腐化弓手：破皮甲、长弓、箭袋、冷月轮廓。 |
 | `mon/hound` | mon/hound.png | 恶犬：深棕四足野兽，獠牙鬃毛，红眼，低伏。**3/4 侧身。** |
-| `mon/brute` | mon/brute.png | 蛮兽：魁梧巨汉怪，厚重肌肉，巨拳，小头缩肩。 |
+| `mon/brute` | mon/brute.png | 蛮兽：巨型角兽，骨甲、厚肩、重武器，压迫感明确。 |
 | `mon/spitter` | mon/spitter.png | 吐酸怪：蹲伏绿色蟾形，背部毒疣，凸眼阔嘴。**3/4 侧身。** |
 
 ### Tier 2 Boss — `public/assets/mon/`

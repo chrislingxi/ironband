@@ -19,7 +19,7 @@ The build is acceptable only when a player can open the live GitHub Pages versio
 - Inventory: paper-doll equipment slots and rarity-framed bag cells feel like the same material system as HUD.
 - Skill tree: learned, selected, locked, and investable states are visually distinct.
 - NPCs: camp NPCs use mature dark fantasy PNG art, with role props readable on mobile.
-- Combat: canvas filter must not make monsters or loot unreadable.
+- Combat: common monsters must read as gritty dark fantasy creatures, not toy-like/chibi markers.
 
 ## Regression Checks
 
@@ -65,4 +65,5 @@ Known remaining art gaps:
 - Amazon Magic Arrow, Multiple Shot, and Frost Arrow now have bespoke V4 PNG HUD icons; remaining class trees still need the same treatment.
 - Inventory now uses a paper-doll equipment page with rarity-framed bag cells and verified portrait/landscape mobile bounds.
 - Camp NPCs now use mature 512x768 transparent PNG sprites instead of Q-style placeholder portraits.
+- Fallen, Zombie, Skeleton, Shaman, Archer, and Brute now use V4 transparent monster sprites with larger runtime silhouette height.
 - Character, NPC, and monster runtime art is single-frame PNG, not directional animation sheets.
