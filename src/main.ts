@@ -548,7 +548,14 @@ async function main() {
 
   const joy = new Joystick(document.body);
   // 左侧 UI 按钮列设为摇杆死区, 防按钮缝隙误触出摇杆(按钮 x≈10-58, y≈56-380)。
-  joy.deadZones = [{ x: 0, y: 50, w: 68, h: 340 }];
+  function syncJoyDeadZones(): void {
+    const compactLandscape = window.innerWidth > window.innerHeight && window.innerHeight <= 520;
+    joy.deadZones = compactLandscape
+      ? [{ x: 0, y: Math.max(0, window.innerHeight - 72), w: 330, h: 72 }]
+      : [{ x: 0, y: 50, w: 68, h: 340 }];
+  }
+  syncJoyDeadZones();
+  window.addEventListener('resize', syncJoyDeadZones);
   const hud = new HUD(game, (slot) => { const ok = game.useSkill(slot); if (ok) audio.sfx('skill'); return ok; });
 
   // 背包/装备面板 (打开时暂停模拟)
@@ -558,6 +565,7 @@ async function main() {
   bagBtn.setAttribute('role', 'button');
   bagBtn.setAttribute('aria-label', '背包');
   bagBtn.dataset.ui = 'inventory';
+  bagBtn.className = 'side-tool side-inventory';
   setIcon(bagBtn, 'bag', '🎒');
   bagBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(60px + env(safe-area-inset-top));' +
@@ -579,6 +587,7 @@ async function main() {
   charBtn.setAttribute('role', 'button');
   charBtn.setAttribute('aria-label', '角色');
   charBtn.dataset.ui = 'character';
+  charBtn.className = 'side-tool side-character';
   setIcon(charBtn, 'char', '🧍');
   charBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(330px + env(safe-area-inset-top));' +
@@ -596,6 +605,7 @@ async function main() {
   skillBtn.setAttribute('role', 'button');
   skillBtn.setAttribute('aria-label', '技能树');
   skillBtn.dataset.ui = 'skilltree';
+  skillBtn.className = 'side-tool side-skilltree';
   setIcon(skillBtn, 'skilltree', '📖');
   skillBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(114px + env(safe-area-inset-top));' +
@@ -611,6 +621,10 @@ async function main() {
   // 任务日志按钮
   const questLog = new QuestLogPanel(() => { questLog.hide(); paused = false; });
   const questBtn = document.createElement('div');
+  questBtn.setAttribute('role', 'button');
+  questBtn.setAttribute('aria-label', '任务');
+  questBtn.dataset.ui = 'questlog';
+  questBtn.className = 'side-tool side-quest';
   setIcon(questBtn, 'quest', '📜');
   questBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(168px + env(safe-area-inset-top));' +
@@ -653,6 +667,10 @@ async function main() {
     onClose: () => { town.hide(); paused = false; },
   });
   const townBtn = document.createElement('div');
+  townBtn.setAttribute('role', 'button');
+  townBtn.setAttribute('aria-label', '营地');
+  townBtn.dataset.ui = 'town';
+  townBtn.className = 'side-tool side-town';
   setIcon(townBtn, 'camp', '🏛');
   townBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(222px + env(safe-area-inset-top));' +
@@ -688,6 +706,10 @@ async function main() {
   // 航点: 提为常驻左侧按钮 (高频核心移动手段, 不再藏进菜单)
   const wp = new WaypointPanel((id) => { game.loadArea(id); wp.hide(); paused = false; }, () => { wp.hide(); paused = false; });
   const wpBtn = document.createElement('div');
+  wpBtn.setAttribute('role', 'button');
+  wpBtn.setAttribute('aria-label', '航点');
+  wpBtn.dataset.ui = 'waypoint';
+  wpBtn.className = 'side-tool side-waypoint';
   setIcon(wpBtn, 'waypoint', '🗺');
   wpBtn.style.cssText =
     'position:absolute;left:calc(10px + env(safe-area-inset-left));top:calc(276px + env(safe-area-inset-top));' +
@@ -733,6 +755,10 @@ async function main() {
     menuBtn.textContent = menuOpen ? '✕' : '☰';
   }
   const menuBtn = document.createElement('div');
+  menuBtn.setAttribute('role', 'button');
+  menuBtn.setAttribute('aria-label', '菜单');
+  menuBtn.dataset.ui = 'menu';
+  menuBtn.className = 'corner-tool corner-menu';
   setIcon(menuBtn, 'menu', '☰');
   menuBtn.style.cssText =
     'position:absolute;right:calc(12px + env(safe-area-inset-right));top:calc(108px + env(safe-area-inset-top));' +
@@ -769,6 +795,30 @@ async function main() {
   respStyle.textContent = `
     @media (orientation: portrait) {
       #hud .skills { bottom: calc(104px + env(safe-area-inset-bottom)) !important; }
+    }
+    @media (orientation: landscape) and (max-height: 520px) {
+      .side-tool {
+        top:auto !important;
+        bottom:calc(10px + env(safe-area-inset-bottom)) !important;
+        width:42px !important;
+        height:42px !important;
+        border-radius:9px !important;
+      }
+      .side-inventory { left:calc(10px + env(safe-area-inset-left)) !important; }
+      .side-skilltree { left:calc(58px + env(safe-area-inset-left)) !important; }
+      .side-quest { left:calc(106px + env(safe-area-inset-left)) !important; }
+      .side-town { left:calc(154px + env(safe-area-inset-left)) !important; }
+      .side-waypoint { left:calc(202px + env(safe-area-inset-left)) !important; }
+      .side-character { left:calc(250px + env(safe-area-inset-left)) !important; }
+      .hud-mini {
+        width:104px !important;
+        height:74px !important;
+      }
+      .corner-menu {
+        top:calc(94px + env(safe-area-inset-top)) !important;
+        width:40px !important;
+        height:40px !important;
+      }
     }`;
   document.head.appendChild(respStyle);
   const mmctx = mm.getContext('2d');

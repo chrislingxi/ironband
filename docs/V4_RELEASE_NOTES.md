@@ -146,3 +146,11 @@ This pass upgrades the first impression of the game before combat starts:
 - Reworked title-screen layering so class cards sit on a real scene instead of a pure CSS gradient.
 - Kept the class-select flow and mobile safe-area structure intact while increasing card material contrast.
 - Extended the V4 asset regression test to require both dev and GitHub Pages copies of the title background.
+
+## Landscape HUD Pass - Compact Side Tools
+
+This pass reduces accidental obstruction in short landscape play:
+
+- Collapsed the six left-side utility buttons into a compact bottom row in landscape view.
+- Made the joystick dead zone switch with the responsive HUD layout instead of blocking a tall left strip in landscape.
+- Added semantic roles and data-ui hooks to the side/corner utility buttons for more reliable self-tests.
