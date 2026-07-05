@@ -120,3 +120,12 @@ This pass replaces the highest-frequency early combat monsters with mature dark 
 - Replaced Fallen, Zombie, Skeleton, Shaman, Archer, and Brute with transparent V4 monster art.
 - Increased generic runtime monster sprite height so the new art reads in the first five minutes without changing collision or combat values.
 - Extended the V4 asset regression test to require both dev and GitHub Pages copies of the six common monster sprites.
+
+## Skill Icon Pass - Barbarian and Sorceress Core
+
+This pass broadens premium PNG skill icons beyond the Amazon starter kit:
+
+- Added PNG icons for Bash, Double Swing, War Cry, Ice Bolt, Fire Bolt, and Charged Bolt.
+- Added skill-id based icon routing so a combat skill can use a bespoke PNG without replacing generic equipment/system icons that share the same emoji.
+- Updated HUD and skill-tree rendering to pass skill ids into the icon resolver.
+- Extended the V4 asset regression test to require both dev and GitHub Pages copies of the six new skill PNGs.

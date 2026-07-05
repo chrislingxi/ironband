@@ -1,6 +1,28 @@
 // 去AI感: UI 图标按 key 用 game-icons 真图标或 V4 PNG 成品图标覆盖 emoji。
 // 命中真图即覆盖 emoji, 缺图(onerror)回退 emoji —— 与精灵「真图覆盖矢量」同构, 优雅降级。
-const PNG_ICON_KEYS = new Set(['skill-magic-arrow', 'skill-multiple-arrow', 'skill-frost-arrow']);
+const PNG_ICON_KEYS = new Set([
+  'skill-magic-arrow',
+  'skill-multiple-arrow',
+  'skill-frost-arrow',
+  'skill-bash',
+  'skill-double-swing',
+  'skill-war-cry',
+  'skill-ice-bolt',
+  'skill-fire-bolt',
+  'skill-charged-bolt',
+]);
+
+const SKILL_ID_ICON: Record<string, string> = {
+  bash: 'skill-bash',
+  double_swing: 'skill-double-swing',
+  war_cry: 'skill-war-cry',
+  ice_bolt: 'skill-ice-bolt',
+  fire_bolt: 'skill-fire-bolt',
+  charged_bolt: 'skill-charged-bolt',
+  magic_arrow: 'skill-magic-arrow',
+  multiple_shot: 'skill-multiple-arrow',
+  cold_arrow: 'skill-frost-arrow',
+};
 
 export function iconImg(key: string, emoji: string, px = 28): string {
   const safe = emoji.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
@@ -33,9 +55,9 @@ export const EMOJI_ICON: Record<string, string> = {
 
 // 技能图标 HTML: emoji → 真图标(无映射回退 emoji)。
 // FE0F 容错为单向: 源数据 emoji 均为裸码点, 故 EMOJI_ICON 键也用裸码点; 这里去掉传入的变体选择符再查, 保证带/不带 FE0F 都命中。
-export function skillIconHtml(emoji: string, px = 30): string {
+export function skillIconHtml(emoji: string, px = 30, skillId?: string): string {
   const e = emoji || '';
-  const key = EMOJI_ICON[e] ?? EMOJI_ICON[e.replace(/️/g, '')];
+  const key = (skillId ? SKILL_ID_ICON[skillId] : undefined) ?? EMOJI_ICON[e] ?? EMOJI_ICON[e.replace(/️/g, '')];
   const inner = key ? iconImg(key, e, px) : `<span class="emoji-fallback" style="font-size:${px - 6}px;line-height:1">${e}</span>`;
   return `<span class="skill-glyph" data-icon="${key ?? 'emoji'}">${inner}</span>`;
 }

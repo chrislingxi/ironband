@@ -15,7 +15,7 @@ The build is acceptable only when a player can open the live GitHub Pages versio
 
 - Title: no toy-like "Q版" positioning; class cards feel like dark fantasy character cards.
 - HUD: health, level, objective, potion, and four skills are legible over combat.
-- Skill icons: no naked emoji in normal operation when a semantic SVG exists.
+- Skill icons: core class skills should use bespoke PNGs when a skill-id art asset exists; generic SVGs are only fallback.
 - Inventory: paper-doll equipment slots and rarity-framed bag cells feel like the same material system as HUD.
 - Skill tree: learned, selected, locked, and investable states are visually distinct.
 - NPCs: camp NPCs use mature dark fantasy PNG art, with role props readable on mobile.
@@ -66,4 +66,5 @@ Known remaining art gaps:
 - Inventory now uses a paper-doll equipment page with rarity-framed bag cells and verified portrait/landscape mobile bounds.
 - Camp NPCs now use mature 512x768 transparent PNG sprites instead of Q-style placeholder portraits.
 - Fallen, Zombie, Skeleton, Shaman, Archer, and Brute now use V4 transparent monster sprites with larger runtime silhouette height.
+- Barbarian Bash/Double Swing/War Cry and Sorceress Ice Bolt/Fire Bolt/Charged Bolt now have bespoke V4 PNG skill icons.
 - Character, NPC, and monster runtime art is single-frame PNG, not directional animation sheets.
