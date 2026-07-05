@@ -162,3 +162,11 @@ This pass reduces the remaining early-game skill-tree quality drop for Sorceress
 - Added PNG icons for Frozen Armor, Ice Blast, Warmth, Inferno, Static Field, and Telekinesis.
 - Routed those Sorceress skill ids through the bespoke PNG icon layer.
 - Extended the V4 asset regression test to require both dev and GitHub Pages copies of the six new Sorceress skill PNGs.
+
+## Skill Icon Pass - Barbarian Early Kit
+
+This pass reduces the remaining early-game skill-tree quality drop for Barbarian:
+
+- Added PNG icons for Stun, Double Throw, Sword Mastery, Axe Mastery, Howl, and Shout.
+- Routed those Barbarian skill ids through the bespoke PNG icon layer.
+- Extended the V4 asset regression test to require both dev and GitHub Pages copies of the six new Barbarian skill PNGs.
