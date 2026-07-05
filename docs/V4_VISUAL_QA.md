@@ -70,6 +70,7 @@ Known remaining art gaps:
 - Fallen, Zombie, Skeleton, Shaman, Archer, and Brute now use V4 transparent monster sprites with larger runtime silhouette height.
 - Barbarian Bash/Double Swing/War Cry and Sorceress Ice Bolt/Fire Bolt/Charged Bolt now have bespoke V4 PNG skill icons.
 - Amazon Fire Arrow/Exploding Arrow/Ice Arrow/Guided Arrow/Strafe/Valkyrie now have bespoke V4 PNG skill icons.
+- Sorceress Frozen Armor/Ice Blast/Warmth/Inferno/Static Field/Telekinesis now have bespoke V4 PNG skill icons.
 - Title screen now uses a full-screen dark gothic cathedral-gate PNG background.
 - Short landscape play now uses a compact bottom utility row and matching joystick dead zone.
 - Character, NPC, and monster runtime art is single-frame PNG, not directional animation sheets.

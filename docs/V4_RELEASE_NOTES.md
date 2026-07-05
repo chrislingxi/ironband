@@ -154,3 +154,11 @@ This pass reduces accidental obstruction in short landscape play:
 - Collapsed the six left-side utility buttons into a compact bottom row in landscape view.
 - Made the joystick dead zone switch with the responsive HUD layout instead of blocking a tall left strip in landscape.
 - Added semantic roles and data-ui hooks to the side/corner utility buttons for more reliable self-tests.
+
+## Skill Icon Pass - Sorceress Early Kit
+
+This pass reduces the remaining early-game skill-tree quality drop for Sorceress:
+
+- Added PNG icons for Frozen Armor, Ice Blast, Warmth, Inferno, Static Field, and Telekinesis.
+- Routed those Sorceress skill ids through the bespoke PNG icon layer.
+- Extended the V4 asset regression test to require both dev and GitHub Pages copies of the six new Sorceress skill PNGs.
