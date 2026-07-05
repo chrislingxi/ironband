@@ -1,4 +1,4 @@
-import { Container, Graphics, Sprite } from 'pixi.js';
+import { Container, Graphics, Sprite, type Texture } from 'pixi.js';
 import { tryLoadTexture } from '@game/assets/loader.ts';
 import type { NpcRole } from '@game/world/npcs.ts';
 
@@ -68,17 +68,25 @@ export function buildNpcSprite(role: NpcRole, s = 11): Container {
   return c;
 }
 
-export function buildNpcSpriteWithArt(role: NpcRole, id: string, s = 13): Container {
-  const c = buildNpcSprite(role, s);
+function applyNpcTexture(c: Container, tex: Texture, s: number): void {
+  c.removeChildren();
+  c.addChild(new Graphics().ellipse(0, s * 0.7, s * 1.18, s * 0.45).fill({ color: 0x000000, alpha: 0.42 }));
+  const sp = new Sprite(tex);
+  sp.anchor.set(0.5, 0.84);
+  sp.scale.set((s * 5.8) / tex.height);
+  c.addChild(sp);
+}
+
+export function buildNpcSpriteWithArt(role: NpcRole, id: string, s = 13, preloaded?: Texture | null): Container {
+  const c = preloaded ? new Container() : buildNpcSprite(role, s);
+  if (preloaded) {
+    applyNpcTexture(c, preloaded, s);
+    return c;
+  }
   void (async () => {
     const tex = await tryLoadTexture(`npc/${id}`);
     if (!tex) return;
-    c.removeChildren();
-    c.addChild(new Graphics().ellipse(0, s * 0.7, s * 1.18, s * 0.45).fill({ color: 0x000000, alpha: 0.42 }));
-    const sp = new Sprite(tex);
-    sp.anchor.set(0.5, 0.84);
-    sp.scale.set((s * 5.8) / tex.height);
-    c.addChild(sp);
+    applyNpcTexture(c, tex, s);
   })();
   return c;
 }

@@ -147,6 +147,8 @@ async function main() {
   await Promise.all(
     ['campfire', 'exit_gate', 'blacksmith_anvil'].map(async (p) => propTextures.set(p, await tryLoadTexture(`prop/${p}`))),
   );
+  const npcTextures = new Map<string, Texture | null>();
+  await Promise.all(NPCS.map(async (npc) => npcTextures.set(npc.id, await tryLoadTexture(`npc/${npc.id}`))));
   let npcMarkers: { name: string; greeting: string; role: NpcRole; x: number; y: number }[] = [];
 
   function addCampProp(key: string, x: number, y: number, targetH: number): void {
@@ -211,9 +213,9 @@ async function main() {
         if (npc.role === 'vendor') addCampProp('blacksmith_anvil', nx - 1.25, ny + 1.15, 104);
         npcMarkers.push({ name: npc.name, greeting: npc.greeting, role: npc.role, x: nx, y: ny });
         const s = gridToScreen({ x: nx, y: ny });
-        const g = buildNpcSpriteWithArt(npc.role, npc.id); // NPC 真图优先, 缺失回退程序化营地立绘
+        const g = buildNpcSpriteWithArt(npc.role, npc.id, 13, npcTextures.get(npc.id)); // NPC 真图优先, 缺失回退程序化营地立绘
         const t = new Text({ text: npc.name, style: { fontFamily: 'Georgia,serif', fontSize: 11, fill: 0xffe08a, stroke: { color: 0x000000, width: 3 } } });
-        t.anchor.set(0.5, 1); t.position.set(s.x, s.y - 24);
+        t.anchor.set(0.5, 1); t.position.set(s.x, s.y - (npcTextures.get(npc.id) ? 78 : 24));
         g.position.set(s.x, s.y); g.zIndex = depthKey({ x: nx, y: ny }); t.zIndex = depthKey({ x: nx, y: ny });
         npcLayer.addChild(g, t);
       });

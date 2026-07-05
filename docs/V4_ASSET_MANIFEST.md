@@ -89,7 +89,7 @@ Boss 命名使用原创描述名，不沿用任何知名暗黑系列 Boss 名。
 | P2 | `npc/caravan` | `npc/caravan.png` | 768x768 PNG | 传送/章节入口 | 路牌、车轮、地图卷轴明确 |
 | P2 | `npc/scholar` | `npc/scholar.png` | 768x768 PNG | 鉴定/任务知识 | 古卷、书、烛台明确 |
 
-现有旧名 NPC 可作为历史兼容，不作为 V4 命名方向。V4 文档和后续资产使用功能型原创名。
+当前运行时仍使用 `npc/akara`、`npc/kashya`、`npc/charsi`、`npc/gheed`、`npc/warriv`、`npc/cain` 这六个兼容 key。V4 2026-07-05 已将它们全部替换为 512x768 透明暗黑写实角色图；后续若切功能型原创名，需要同时改 `src/game/world/npcs.ts` 与存档/任务文案兼容。
 
 ## 6. UI 资产
 

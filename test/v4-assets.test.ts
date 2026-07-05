@@ -40,6 +40,18 @@ const REQUIRED_ASSETS = [
   'public/assets/mon/mephisto.png',
   'public/assets/mon/diablo.png',
   'public/assets/mon/baal.png',
+  'assets/npc/akara.png',
+  'assets/npc/kashya.png',
+  'assets/npc/charsi.png',
+  'assets/npc/gheed.png',
+  'assets/npc/warriv.png',
+  'assets/npc/cain.png',
+  'public/assets/npc/akara.png',
+  'public/assets/npc/kashya.png',
+  'public/assets/npc/charsi.png',
+  'public/assets/npc/gheed.png',
+  'public/assets/npc/warriv.png',
+  'public/assets/npc/cain.png',
 ];
 
 describe('V4 visual asset pack', () => {

@@ -21,12 +21,32 @@ function candidatePaths(key: string): string[] {
 // 按 key 记忆加载结果 (含"缺失"=null), 避免每个实体生成都重复发起 404 请求。
 const _texCache = new Map<string, Promise<Texture | null>>();
 
+async function probeImage(url: string): Promise<boolean> {
+  if (typeof location !== 'undefined' && location.protocol !== 'file:' && typeof fetch !== 'undefined') {
+    try {
+      const res = await fetch(url, { method: 'HEAD' });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+  if (typeof location !== 'undefined' && location.protocol === 'file:' && (url.includes('/extracted/') || url.includes('/v4-dark/') || !url.startsWith('assets/'))) return false;
+  if (typeof Image === 'undefined') return Promise.resolve(false);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img.naturalWidth > 0 && img.naturalHeight > 0);
+    img.onerror = () => resolve(false);
+    img.src = url;
+  });
+}
+
 export function tryLoadTexture(key: string): Promise<Texture | null> {
   const cached = _texCache.get(key);
   if (cached) return cached;
   const p = (async () => {
     for (const url of candidatePaths(key)) {
       try {
+        if (!(await probeImage(url))) continue;
         const tex = (await Assets.load(url)) as Texture;
         if (tex) return tex;
       } catch {

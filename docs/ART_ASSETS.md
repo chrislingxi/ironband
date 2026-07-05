@@ -81,15 +81,15 @@
 | `mon/duriel` | mon/duriel.png | 督瑞尔：痛苦之王，矮壮蛆形巨兽，巨颚獠牙，短角，钳爪，分节苍白蛆身，寒冷冷光眼。**输出 768×768。** |
 
 ### Tier 3 营地 NPC — `public/assets/npc/`
-> 6 位镇民立绘。可共用「长袍站立镇民」基底，按身份配色/道具。
+> 6 位镇民立绘。V4 当前版已替换为 512x768 透明暗黑写实角色图，后续只做同标准迭代，不回到 Q 版比例。
 | key | 文件 | 身份/描述 |
 |---|---|---|
-| `npc/akara` | npc/akara.png | 阿卡拉：白金长袍女祭司，发光宝珠。 |
-| `npc/kashya` | npc/kashya.png | 卡夏：红甲弓队长，背弓。 |
-| `npc/charsi` | npc/charsi.png | 查西：棕围裙女铁匠，持铁锤。 |
-| `npc/gheed` | npc/gheed.png | 吉德：紫袍胖赌商，金币。 |
-| `npc/warriv` | npc/warriv.png | 沃里夫：蓝袍宽檐帽车队商。 |
-| `npc/cain` | npc/cain.png | 迪卡凯恩：灰袍白须老智者，持古卷。 |
+| `npc/akara` | npc/akara.png | 阿卡拉：成熟女祭司，象牙/旧金长袍，发光宝珠。 |
+| `npc/kashya` | npc/kashya.png | 卡夏：红黑皮甲弓队长，长弓、箭袋、披风剪影。 |
+| `npc/charsi` | npc/charsi.png | 查西：女铁匠，焦黑围裙、铁锤、砧台火光。 |
+| `npc/gheed` | npc/gheed.png | 吉德：紫袍赌商，钱袋、骰子、层叠商旅服饰。 |
+| `npc/warriv` | npc/warriv.png | 沃里夫：蓝灰车队向导，宽檐帽、地图、提灯。 |
+| `npc/cain` | npc/cain.png | 迪卡凯恩：白须老学者，手杖、古卷、灯盏。 |
 
 ### Tier 3 UI 皮肤 — `public/assets/ui/`
 > 这些是**九宫格(9-slice)可拉伸**框，决定界面质感。

@@ -18,7 +18,7 @@ The build is acceptable only when a player can open the live GitHub Pages versio
 - Skill icons: no naked emoji in normal operation when a semantic SVG exists.
 - Inventory: paper-doll equipment slots and rarity-framed bag cells feel like the same material system as HUD.
 - Skill tree: learned, selected, locked, and investable states are visually distinct.
-- NPCs: camp NPCs use PNG art when available.
+- NPCs: camp NPCs use mature dark fantasy PNG art, with role props readable on mobile.
 - Combat: canvas filter must not make monsters or loot unreadable.
 
 ## Regression Checks
@@ -64,4 +64,5 @@ Known remaining art gaps:
 - Rogue Encampment now has V4 campfire, exit gate, and blacksmith workstation props as low-risk scene anchors.
 - Amazon Magic Arrow, Multiple Shot, and Frost Arrow now have bespoke V4 PNG HUD icons; remaining class trees still need the same treatment.
 - Inventory now uses a paper-doll equipment page with rarity-framed bag cells and verified portrait/landscape mobile bounds.
-- Character and monster runtime art is single-frame PNG, not directional animation sheets.
+- Camp NPCs now use mature 512x768 transparent PNG sprites instead of Q-style placeholder portraits.
+- Character, NPC, and monster runtime art is single-frame PNG, not directional animation sheets.
