@@ -1,6 +1,8 @@
 # Ironband Mobile Design Specification
 ## A Diablo 2-Style Mobile ARPG
 
+> Historical mobile implementation spec. V4 keeps the mobile ergonomics, but the art target has moved from procedural chibi proportions to high-end dark fantasy PNG-first presentation. Current art direction lives in `docs/V4_DARK_VISUAL_REBUILD.md`.
+
 ---
 
 ## 1. Visual Design Language
@@ -26,11 +28,12 @@
 | UI Text Primary | `#e8e0d0` | Body text |
 | UI Text Gold | `#ffe08a` | Highlight text |
 
-### 1.2 Character Proportions (Q-Version / Chibi)
+### 1.2 Character Proportions (Historical Procedural Fallback)
 
-- **Head-to-body ratio**: 1:2.5 (large head = ~40% of total height)
-- **Body width**: Wider than realistic (shoulder width ≥ 0.7× body height)
-- **Limbs**: Stubby, rounded — no realistic anatomy
+- **Runtime target in V4**: load class/monster/NPC PNG art first; use procedural proportions only when an asset is missing.
+- **Fallback head-to-body ratio**: 1:2.5 (large head = ~40% of total height)
+- **Fallback body width**: Wider than realistic (shoulder width ≥ 0.7× body height)
+- **Fallback limbs**: Stubby, rounded; intended only as readable missing-art fallback.
 - **Outline weight**: 2–3px dark stroke (`#2d1b00` or `#000000`) on all character shapes
 - **Shadow**: Soft ellipse beneath character, 35% alpha black
 - **Size baseline**: Player radius = 10px (game units map to ~20px screen units at default zoom)

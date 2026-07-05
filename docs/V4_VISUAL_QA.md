@@ -58,13 +58,13 @@ Then do a browser smoke check against the built page or local dev server:
 
 Known remaining art gaps:
 
-- `assets/v4-dark/` path is ready, but the first true V4 replacement pack is not yet populated.
+- `assets/v4-dark/` path is ready, but the first external override pack is not yet populated.
 - Title-screen Barbarian/Amazon/Sorceress class portraits now use full-body V4 dark fantasy PNGs instead of Q-style chibi art.
-- `tile/hell.png` and `tile/snow.png` now resolve to generated V4 PNG tiles; they should later be replaced by hand-painted final tiles.
-- Mephisto/Diablo/Baal runtime keys now resolve to V4 transparent PNG boss art; next upgrade is directional animation and in-game scale tuning.
+- `tile/hell.png`, `tile/snow.png`, and `tile/desert.png` now resolve to generated V4 PNG tiles; they should later be replaced by final hand-painted-feeling tiles.
+- All five act bosses now resolve to V4 transparent PNG boss art and keep distinct runtime subKinds; next upgrade is directional/attack animation.
 - Runtime player and camp NPC PNGs are larger than the old procedural markers, reducing the title-to-combat quality drop.
 - Rogue Encampment now has V4 campfire, exit gate, and blacksmith workstation props as low-risk scene anchors.
-- Amazon Magic Arrow, Multiple Shot, and Frost Arrow now have bespoke V4 PNG HUD icons; remaining class trees still need the same treatment.
+- Skill icon coverage is partial: 27 of 74 skill definitions now have bespoke V4 PNG icons; remaining mid/late tree skills still need the same treatment.
 - Inventory now uses a paper-doll equipment page with rarity-framed bag cells and verified portrait/landscape mobile bounds.
 - Camp NPCs now use mature 512x768 transparent PNG sprites instead of Q-style placeholder portraits.
 - Fallen, Zombie, Skeleton, Shaman, Archer, and Brute now use V4 transparent monster sprites with larger runtime silhouette height.

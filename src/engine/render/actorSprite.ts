@@ -1,10 +1,9 @@
 import { Container, Graphics, Sprite } from 'pixi.js';
 import { tryLoadTexture } from '@game/assets/loader.ts';
 
-// ── 程序化等距角色精灵 (Q版/Chibi 升级) ──
-// 用纯 PixiJS Graphics 画"Q版"风格人形/怪物: 大头(1:2.5 头身比), 粗描边, 班底色彩.
-// 三职业有各自独特轮廓 (野蛮人=宽肩大剑, 亚马逊=细长弓, 法师=尖帽法袍).
-// 怪物按类型分色 (堕落=橙红, 骷髅=灰蓝, 僵尸=病绿, 等).
+// ── 等距角色精灵兜底层 ──
+// V4 正式表现优先加载 assets/<key>.png 的暗黑写实资产；以下 PixiJS Graphics 只作为缺图时的低保真兜底。
+// 三职业/怪物仍保留可读剪影，避免任何资源缺失直接变成空白。
 
 export type ActorKind = 'humanoid' | 'beast' | 'caster';
 
@@ -104,7 +103,7 @@ export class ActorSprite {
 
   private drawStatic(): void {
     const s = this.opts.size;
-    // 更大、更柔和的阴影 (Q版特征)
+    // 程序化兜底用更大、更柔和的阴影，避免缺图时角色漂浮。
     this.shadow
       .ellipse(0, s * 0.6, s * 1.1, s * 0.45)
       .fill({ color: 0x000000, alpha: 0.3 });
@@ -182,7 +181,7 @@ export class ActorSprite {
     // 剑护手
     this.accessory.rect(s * 0.4, -s * 0.55, s * 0.5, s * 0.14).fill({ color: 0x6a4a20 }).stroke({ color: OUTLINE, width: 1 });
 
-    // Q版大头 (1:2.5比例)
+    // 低保真兜底比例：头部放大以保证手机小尺寸可读。
     this.head
       .circle(0, -s * 1.05, s * 0.52)
       .fill({ color: shade(main, 1.08) })
@@ -231,7 +230,7 @@ export class ActorSprite {
       .lineTo(-s * 0.55, s * 0.0)
       .stroke({ color: 0xc0b090, width: 1.5 }); // 弓弦
 
-    // Q版大头
+    // 低保真兜底比例：头部放大以保证手机小尺寸可读。
     this.head
       .circle(0, -s * 1.02, s * 0.48)
       .fill({ color: shade(main, 1.06) })
@@ -279,7 +278,7 @@ export class ActorSprite {
     // 法杖主体
     this.accessory.moveTo(s * 0.6, -s * 0.3).lineTo(s * 0.85, -s * 0.5).stroke({ color: 0x6a4a1a, width: 4 });
 
-    // Q版大头
+    // 低保真兜底比例：头部放大以保证手机小尺寸可读。
     this.head
       .circle(0, -s * 1.0, s * 0.46)
       .fill({ color: shade(main, 1.1) })
@@ -566,7 +565,7 @@ export class ActorSprite {
       }
       case 'humanoid':
       default: {
-        // Q版加大头 (1:2.5)
+        // 低保真兜底比例：头部放大以保证手机小尺寸可读。
         this.body
           .moveTo(-s * 0.55, -s * 0.62)
           .lineTo(s * 0.55, -s * 0.62)
