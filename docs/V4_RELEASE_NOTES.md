@@ -178,3 +178,11 @@ This pass fixes an art-routing inconsistency before adding more monster assets:
 - Preserved distinct runtime subKinds for Mephisto, Diablo, and Baal instead of routing them through the Andariel fallback.
 - Expanded Boss texture scaling recognition to all five act bosses.
 - Added Hound and Spitter monster PNGs to the V4 asset regression test, since their existing art already meets the current dark-fantasy bar.
+
+## UI Material Pass - Black Iron Panels
+
+This pass upgrades the global material base used by most panels and skill buttons:
+
+- Replaced the light parchment/wood `ui/panel.png` with a dark leather and blackened iron panel texture.
+- Replaced the bright silver `ui/btn_frame.png` with a tarnished black iron and bronze skill-button frame.
+- Kept the same asset keys so inventory, skill tree, character, town, settings, and HUD surfaces inherit the darker material treatment without code churn.

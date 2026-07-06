@@ -19,6 +19,7 @@ The build is acceptable only when a player can open the live GitHub Pages versio
 - Landscape HUD: side utility buttons should collapse into a compact bottom row and not block the left combat lane.
 - Skill icons: core class skills should use bespoke PNGs when a skill-id art asset exists; generic SVGs are only fallback.
 - Inventory: paper-doll equipment slots and rarity-framed bag cells feel like the same material system as HUD.
+- UI materials: global panel and button-frame textures should read as dark leather/black iron, not bright parchment or chrome.
 - Skill tree: learned, selected, locked, and investable states are visually distinct.
 - NPCs: camp NPCs use mature dark fantasy PNG art, with role props readable on mobile.
 - Combat: common monsters must read as gritty dark fantasy creatures, not toy-like/chibi markers.
@@ -75,4 +76,5 @@ Known remaining art gaps:
 - Barbarian Stun/Double Throw/Sword Mastery/Axe Mastery/Howl/Shout now have bespoke V4 PNG skill icons.
 - Title screen now uses a full-screen dark gothic cathedral-gate PNG background.
 - Short landscape play now uses a compact bottom utility row and matching joystick dead zone.
+- Global `ui/panel.png` and `ui/btn_frame.png` now use darker black-iron V4 material art.
 - Character, NPC, and monster runtime art is single-frame PNG, not directional animation sheets.
