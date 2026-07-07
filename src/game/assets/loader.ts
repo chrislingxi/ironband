@@ -1,10 +1,11 @@
 import { Assets, type Texture } from 'pixi.js';
 
 // ── 资产覆盖式加载器 ──
-// 按 docs/ASSET_PIPELINE.md 的加载契约解析顺序:
-//   1) assets/extracted/<key>.png  (玩家本地从自有安装提取的授权瓦片/精灵, 不入库)
-//   2) assets/v4-dark/<key>.png    (V4 暗黑高质感主题包)
-//   3) assets/<key>.png            (入库的可替换开箱占位素材)
+// 线上优先加载入库素材, 避免 GitHub Pages/iOS 对缺失覆盖目录的探测拖住开局。
+// 不存在时再按 docs/ASSET_PIPELINE.md 的覆盖目录查找:
+//   1) assets/<key>.png            (入库的可替换开箱占位素材)
+//   2) assets/extracted/<key>.png  (玩家本地从自有安装提取的授权瓦片/精灵, 不入库)
+//   3) assets/v4-dark/<key>.png    (V4 暗黑高质感主题包)
 //   4) 都不存在 → 返回 null, 调用方回退到程序化 Graphics 绘制.
 // 即: 真实 FLARE/原版精灵 PNG 一旦放入对应目录, 即自动覆盖程序化绘制.
 //
@@ -14,7 +15,7 @@ export const hasRealArt = false;
 
 // 候选路径生成 (覆盖式回退). 相对站点根, Vite 会从 /public 或同源静态目录解析.
 function candidatePaths(key: string): string[] {
-  return [`assets/extracted/${key}.png`, `assets/v4-dark/${key}.png`, `assets/${key}.png`];
+  return [`assets/${key}.png`, `assets/extracted/${key}.png`, `assets/v4-dark/${key}.png`];
 }
 
 // 尝试按契约顺序加载某 key 的纹理; 全部缺失则返回 null (不抛错).
