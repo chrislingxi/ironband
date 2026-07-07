@@ -103,6 +103,15 @@ for (const dev of DEVICES) {
   await click('法师'); await click('踏入暗黑之地'); await pg.waitForTimeout(1500);
   for (const t of ['跳过引导', '跳过', '知道了', '开始游戏', '开始']) await click(t);
   await pg.waitForTimeout(300);
+  const booted = await pg.evaluate(() => ({
+    hud: !!document.querySelector('#hud'),
+    text: document.body.innerText.trim(),
+    title: !!document.querySelector('#title'),
+    canvasCount: document.querySelectorAll('canvas').length,
+  }));
+  if (!booted.hud || booted.title || booted.text.length < 20) {
+    flag(dev.name, 'boot', `进入游戏后未出现 HUD/正文: hud=${booted.hud} title=${booted.title} textLen=${booted.text.length} canvas=${booted.canvasCount}`);
+  }
 
   // 通用断言: 给定面板根选择器, 检查可交互元素是否越出视口 / 落在安全区内
   async function audit(panel, sel) {
