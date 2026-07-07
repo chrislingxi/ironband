@@ -140,15 +140,8 @@ async function main() {
   let lastAreaId = '';
   // 地砖真图 (按主题预加载; 缺失则 buildGround 回退程序化菱形)
   const tileTextures = new Map<string, Texture | null>();
-  await Promise.all(
-    ['wilderness', 'town', 'desert', 'hell', 'snow'].map(async (t) => tileTextures.set(t, await tryLoadTexture(`tile/${t}`))),
-  );
   const propTextures = new Map<string, Texture | null>();
-  await Promise.all(
-    ['campfire', 'exit_gate', 'blacksmith_anvil'].map(async (p) => propTextures.set(p, await tryLoadTexture(`prop/${p}`))),
-  );
   const npcTextures = new Map<string, Texture | null>();
-  await Promise.all(NPCS.map(async (npc) => npcTextures.set(npc.id, await tryLoadTexture(`npc/${npc.id}`))));
   let npcMarkers: { name: string; greeting: string; role: NpcRole; x: number; y: number }[] = [];
 
   function addCampProp(key: string, x: number, y: number, targetH: number): void {
@@ -221,6 +214,16 @@ async function main() {
       });
     }
   }
+  // 静态美术后台加载: 首屏不能因为某张图慢/缺失而黑屏。纹理到达后强制下帧重建当前区域。
+  void Promise.all(
+    ['wilderness', 'town', 'desert', 'hell', 'snow'].map(async (t) => tileTextures.set(t, await tryLoadTexture(`tile/${t}`))),
+  ).then(() => { lastAreaId = ''; });
+  void Promise.all(
+    ['campfire', 'exit_gate', 'blacksmith_anvil'].map(async (p) => propTextures.set(p, await tryLoadTexture(`prop/${p}`))),
+  ).then(() => { lastAreaId = ''; });
+  void Promise.all(NPCS.map(async (npc) => npcTextures.set(npc.id, await tryLoadTexture(`npc/${npc.id}`))))
+    .then(() => { lastAreaId = ''; });
+
   const damageTexts: { t: Text; life: number; vy: number; pop: number }[] = [];
   const flashedSwings = new WeakSet<object>(); // 已放过施法迸发的挥砍 (防重复)
   // 打击粒子: 受击迸溅 / 击杀爆裂. 屏幕空间, 整体随相机平移。
