@@ -65,7 +65,7 @@ Known remaining art gaps:
 - All five act bosses now resolve to V4 transparent PNG boss art and keep distinct runtime subKinds; next upgrade is directional/attack animation.
 - Runtime player and camp NPC PNGs are larger than the old procedural markers, reducing the title-to-combat quality drop.
 - Rogue Encampment now has V4 campfire, exit gate, and blacksmith workstation props as low-risk scene anchors.
-- Skill icon coverage is partial: 33 of 74 skill definitions now have bespoke V4 PNG icons; remaining mid/late tree skills still need the same treatment.
+- Skill icon coverage is partial but materially improved: 47 of 74 skill definitions now have bespoke V4 PNG icons; remaining Amazon passive/javelin and Sorceress lightning/fire utility skills still need the same treatment.
 - Inventory now uses a paper-doll equipment page with rarity-framed bag cells and verified portrait/landscape mobile bounds.
 - Camp NPCs now use mature 512x768 transparent PNG sprites instead of Q-style placeholder portraits.
 - Fallen, Zombie, Skeleton, Shaman, Archer, and Brute now use V4 transparent monster sprites with larger runtime silhouette height.
@@ -75,6 +75,7 @@ Known remaining art gaps:
 - Sorceress Frozen Armor/Ice Blast/Warmth/Inferno/Static Field/Telekinesis now have bespoke V4 PNG skill icons.
 - Sorceress Frost Nova/Glacial Spike/Blizzard/Frozen Orb/Fire Ball/Meteor now have bespoke V4 PNG skill icons.
 - Barbarian Stun/Double Throw/Sword Mastery/Axe Mastery/Howl/Shout now have bespoke V4 PNG skill icons.
+- Barbarian Concentrate/Frenzy/Whirlwind/Berserk, remaining masteries/passives, and battle shout utility skills now have bespoke V4 PNG skill icons.
 - Title screen now uses a full-screen dark gothic cathedral-gate PNG background.
 - Short landscape play now uses a compact bottom utility row and matching joystick dead zone.
 - Global `ui/panel.png` and `ui/btn_frame.png` now use darker black-iron V4 material art.

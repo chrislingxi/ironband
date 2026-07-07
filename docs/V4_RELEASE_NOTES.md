@@ -194,3 +194,12 @@ This pass extends Sorceress PNG coverage into the mid/late fantasy spells player
 - Added PNG icons for Frost Nova, Glacial Spike, Blizzard, Frozen Orb, Fire Ball, and Meteor.
 - Routed those Sorceress skill ids through the bespoke PNG icon layer.
 - Extended the V4 asset regression test to require both dev and GitHub Pages copies of the six new Sorceress power-skill PNGs.
+
+## Skill Icon Pass - Barbarian Tree Completion
+
+This pass removes the largest remaining Barbarian skill-tree quality drop:
+
+- Added reproducible PNG icons for Concentrate, Frenzy, Whirlwind, Berserk, Mace Mastery, Increased Stamina, Increased Speed, Iron Skin, Natural Resistance, Weapon Block, Taunt, Battle Cry, Battle Orders, and Battle Command.
+- Routed those fourteen Barbarian skill ids through the bespoke PNG icon layer used by HUD and skill tree surfaces.
+- Added `npm run assets:v4-barbarian-icons` so the Barbarian icon batch can be regenerated without external copyrighted source art.
+- Extended the V4 asset regression test to require both dev and GitHub Pages copies of the fourteen new skill PNGs.
