@@ -186,3 +186,11 @@ This pass upgrades the global material base used by most panels and skill button
 - Replaced the light parchment/wood `ui/panel.png` with a dark leather and blackened iron panel texture.
 - Replaced the bright silver `ui/btn_frame.png` with a tarnished black iron and bronze skill-button frame.
 - Kept the same asset keys so inventory, skill tree, character, town, settings, and HUD surfaces inherit the darker material treatment without code churn.
+
+## Skill Icon Pass - Sorceress Power Kit
+
+This pass extends Sorceress PNG coverage into the mid/late fantasy spells players recognize:
+
+- Added PNG icons for Frost Nova, Glacial Spike, Blizzard, Frozen Orb, Fire Ball, and Meteor.
+- Routed those Sorceress skill ids through the bespoke PNG icon layer.
+- Extended the V4 asset regression test to require both dev and GitHub Pages copies of the six new Sorceress power-skill PNGs.
