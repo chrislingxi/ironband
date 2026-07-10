@@ -223,5 +223,6 @@ This pass replaces the five procedural-looking ground tiles with an authored sou
 - Lifted runtime canvas midtones so dark-fantasy atmosphere comes from material, local light, and palette instead of a global near-black exposure penalty.
 - Added regression checks for all five source textures, all ten runtime copies, exact 256x128 RGBA output, and byte-identical dev/Pages assets.
 - Added one release-aware asset URL builder for textures, portraits, UI materials, icons, and audio so GitHub Pages/iOS caches cannot combine new code with stale art.
+- Extended the primary PNG probe window from 0.9s to 6.5s so large character and NPC art can replace fallbacks on real mobile networks without delaying game boot; missing optional override packs still fail fast.
 
 Visual QA passed at 1280x720, 390x844, and 844x390. Inventory and skill-tree panels opened and closed successfully in landscape, page overflow remained zero, and the browser console stayed clean.

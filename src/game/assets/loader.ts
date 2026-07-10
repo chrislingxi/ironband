@@ -27,7 +27,8 @@ function candidatePaths(key: string): string[] {
 // 按 key 记忆加载结果 (含"缺失"=null), 避免每个实体生成都重复发起 404 请求。
 const _texCache = new Map<string, Promise<Texture | null>>();
 
-const PROBE_TIMEOUT_MS = 900;
+const PRIMARY_ASSET_TIMEOUT_MS = 6_500;
+const OPTIONAL_OVERRIDE_TIMEOUT_MS = 1_200;
 
 async function loadTextureCandidate(url: string): Promise<PixiTexture | null> {
   if (typeof location !== 'undefined' && location.protocol === 'file:') {
@@ -40,7 +41,9 @@ async function loadTextureCandidate(url: string): Promise<PixiTexture | null> {
   }
   if (typeof Image === 'undefined') return Promise.resolve(null);
   const img = await new Promise<HTMLImageElement | null>((resolve) => {
-    const timer = globalThis.setTimeout(() => resolve(null), PROBE_TIMEOUT_MS);
+    const isOptionalOverride = url.includes('/extracted/') || url.includes('/v4-dark/');
+    const timeoutMs = isOptionalOverride ? OPTIONAL_OVERRIDE_TIMEOUT_MS : PRIMARY_ASSET_TIMEOUT_MS;
+    const timer = globalThis.setTimeout(() => resolve(null), timeoutMs);
     const img = new Image();
     img.onload = () => {
       globalThis.clearTimeout(timer);
