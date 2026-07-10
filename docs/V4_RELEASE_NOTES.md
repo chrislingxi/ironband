@@ -203,3 +203,12 @@ This pass removes the largest remaining Barbarian skill-tree quality drop:
 - Routed those fourteen Barbarian skill ids through the bespoke PNG icon layer used by HUD and skill tree surfaces.
 - Added `npm run assets:v4-barbarian-icons` so the Barbarian icon batch can be regenerated without external copyrighted source art.
 - Extended the V4 asset regression test to require both dev and GitHub Pages copies of the fourteen new skill PNGs.
+
+## Skill Icon Pass - Full Current Tree Coverage
+
+This pass closes the remaining current skill-icon coverage gap:
+
+- Added reproducible PNG icons for Amazon passive/magic skills, javelin/spear skills, and the remaining Sorceress fire/lightning utility skills.
+- Routed every current class skill id in `amazon.ts`, `barbarianTree.ts`, and `sorceress.ts` through the bespoke PNG icon layer.
+- Added `npm run assets:v4-remaining-skill-icons` so the final skill icon batch can be regenerated without external copyrighted source art.
+- Expanded the V4 asset regression test so all current skill PNGs must exist in both dev and GitHub Pages asset locations.

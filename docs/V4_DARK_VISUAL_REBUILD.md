@@ -60,4 +60,4 @@ Required key families:
 2. Repaint `tile/hell.png`, `tile/snow.png`, and `tile/desert.png` from generated placeholders into final hand-painted-feeling ground packs.
 3. Add directional/attack animation sheets for player, common monsters, and act bosses; current PNGs are single-frame runtime art.
 4. Create separate class portrait variants for title/class select and in-game actor scale.
-5. Continue replacing generic SVG skill icons with class-specific painted PNG icons; 47 of 74 skill definitions currently have bespoke PNG coverage.
+5. Skill icon replacement is complete for the current data set: all 67 current class skill definitions have bespoke PNG coverage. New future skills should ship with PNG icons and asset-regression coverage in the same pass.
