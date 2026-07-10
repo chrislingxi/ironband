@@ -90,4 +90,4 @@ Known remaining art gaps:
 - iPhone portrait 390x844: no page overflow; HUD and objective panel remained inside the viewport.
 - iPhone landscape 844x390: inventory and skill tree filled the viewport without trapping the player; both close controls remained reachable and worked.
 - Browser warnings/errors: none.
-- Online GitHub Pages verification: initial deployment exposed stale browser asset caching and a 0.9s large-art timeout; release-aware asset URLs and a non-blocking 6.5s primary-art window were added before final republish.
+- Online GitHub Pages verification: passed at `c58ca13` after fixing stale browser asset caching and the 0.9s large-art timeout. Portrait loaded painted tiles plus full character/NPC art with zero overflow or console errors; landscape inventory stayed bounded with a reachable close control.
