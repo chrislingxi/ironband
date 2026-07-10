@@ -34,6 +34,7 @@ import { WorldMapPanel, type WorldArea } from '@game/ui/worldmap.ts';
 import { listWaypoints } from '@game/systems/waypoint/waypoint.ts';
 import { dist } from '@engine/math/vec.ts';
 import { FirstRunCoach } from '@game/ui/firstRunCoach.ts';
+import type { CharClass } from '@game/data/schema.ts';
 import { injectV4Skin } from '@game/ui/v4skin.ts';
 import { installViewportGuards } from '@engine/input/viewportGuards.ts';
 
@@ -319,9 +320,11 @@ async function main() {
 
   function makeSprite(e: Entity): Container {
     const c = new Container();
+    const playerClass = game.character.cls as CharClass;
     // 贴图 key: 玩家=char/<职业>, 怪物/Boss=mon/<defId>。命中 assets/<key>.png 即用真图。
-    const textureKey = e.kind === 'player' ? `char/${game.character.cls}` : `mon/${e.defId}`;
-    const actor = createActorSprite({ kind: actorKind(e), color: e.color, size: e.size, subKind: actorSubKind(e), textureKey, showFacing: e.kind === 'player' });
+    const textureKey = e.kind === 'player' ? `char/${playerClass}` : `mon/${e.defId}`;
+    const attackTextureKey = e.kind === 'player' && playerClass === 'amazon' ? 'char/amazon_attack' : undefined;
+    const actor = createActorSprite({ kind: actorKind(e), color: e.color, size: e.size, subKind: actorSubKind(e), textureKey, attackTextureKey, showFacing: e.kind === 'player' });
     actors.set(e.id, actor);
     c.addChild(actor.container);
     // 精英描边光环 + 名牌
@@ -354,10 +357,11 @@ async function main() {
     if (actor) {
       // 朝向是格子空间角; 投到屏幕空间(等距 2:1)再给精灵, 这样倾身/朝向尖角指向"看着的方向"而非格子方向
       const fd = gridToScreen({ x: Math.cos(e.facing), y: Math.sin(e.facing) });
+      const attackWindow = e.kind === 'player' && (game.character.cls as CharClass) === 'amazon' ? 0.3 : 0.18;
       actor.update({
         facing: Math.atan2(fd.y, fd.x),
         moving: e.moving,
-        attacking: e.attackInterval > 0 && e.attackCd > e.attackInterval - 0.18,
+        attacking: e.attackInterval > 0 && e.attackCd > e.attackInterval - attackWindow,
         flash: e.hitFlash > 0 ? Math.min(1, e.hitFlash) : 0,
         timeMs: performance.now(),
       });

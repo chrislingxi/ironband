@@ -1,4 +1,4 @@
-import { Container, Graphics, Sprite } from 'pixi.js';
+import { Container, Graphics, Sprite, type Texture } from 'pixi.js';
 import { tryLoadTexture } from '@game/assets/loader.ts';
 
 // ── 等距角色精灵兜底层 ──
@@ -21,6 +21,8 @@ export interface ActorSpriteOpts {
   subKind?: ActorSubKind;
   /** 可选贴图 key (如 'char/barbarian'): 命中 assets/<key>.png 即用真图覆盖矢量, 缺失回退。 */
   textureKey?: string;
+  /** 可选攻击姿态贴图; 有资源时在 attacking 窗口替换 idle，不影响逻辑 hitbox。 */
+  attackTextureKey?: string;
   /** 玩家专用: 移动时显示朝向尖角, 让"走的方向"一目了然 (修地图方向与走路方向看着不一致)。 */
   showFacing?: boolean;
 }
@@ -59,6 +61,7 @@ export class ActorSprite {
   private readonly accessory = new Graphics();    // 职业/怪物特征件 (武器/帽/弓)
   private readonly pointer = new Graphics();      // 朝向尖角
   private sprite?: Sprite;        // 命中真图时的精灵 (替代矢量)
+  private attackSprite?: Sprite;  // 可选攻击姿态精灵
   private usingTexture = false;   // 是否已切换到真图渲染
 
   constructor(private readonly opts: ActorSpriteOpts) {
@@ -70,12 +73,10 @@ export class ActorSprite {
     this.container.addChild(this.pointer);
     this.drawStatic();
     if (this.opts.textureKey) void this.loadTexture(this.opts.textureKey);
+    if (this.opts.attackTextureKey) void this.loadAttackTexture(this.opts.attackTextureKey);
   }
 
-  // 异步加载真图: 命中则切到精灵渲染并隐藏矢量; 缺失静默保持矢量。
-  private async loadTexture(key: string): Promise<void> {
-    const tex = await tryLoadTexture(key);
-    if (!tex) return; // 没这张图 → 维持程序化绘制
+  private createTextureSprite(tex: Texture): Sprite {
     const s = this.opts.size;
     const sp = new Sprite(tex);
     sp.anchor.set(0.5, 0.82); // 脚部近底
@@ -91,6 +92,14 @@ export class ActorSprite {
         ? Math.min(s * 2.9, vh * 0.55)
         : Math.min(s * 4.1, vh * 0.36);
     sp.scale.set(targetH / tex.height);
+    return sp;
+  }
+
+  // 异步加载真图: 命中则切到精灵渲染并隐藏矢量; 缺失静默保持矢量。
+  private async loadTexture(key: string): Promise<void> {
+    const tex = await tryLoadTexture(key);
+    if (!tex) return; // 没这张图 → 维持程序化绘制
+    const sp = this.createTextureSprite(tex);
     this.bodyHolder.addChildAt(sp, 0);
     this.sprite = sp;
     this.usingTexture = true;
@@ -99,6 +108,15 @@ export class ActorSprite {
     this.head.visible = false;
     this.accessory.visible = false;
     this.pointer.visible = false;
+  }
+
+  private async loadAttackTexture(key: string): Promise<void> {
+    const tex = await tryLoadTexture(key);
+    if (!tex) return;
+    const sp = this.createTextureSprite(tex);
+    sp.visible = false;
+    this.bodyHolder.addChildAt(sp, 0);
+    this.attackSprite = sp;
   }
 
   private drawStatic(): void {
@@ -597,7 +615,16 @@ export class ActorSprite {
 
     if (this.usingTexture) {
       // 真图: 不重绘矢量; 受击轻微提亮 (tint 只能压暗, 故用 alpha 微闪近似)
-      if (this.sprite) this.sprite.alpha = flash > 0 ? 0.7 + 0.3 * (1 - Math.min(1, flash)) : 1;
+      const showAttack = attacking && !!this.attackSprite;
+      const alpha = flash > 0 ? 0.7 + 0.3 * (1 - Math.min(1, flash)) : 1;
+      if (this.sprite) {
+        this.sprite.visible = !showAttack;
+        this.sprite.alpha = alpha;
+      }
+      if (this.attackSprite) {
+        this.attackSprite.visible = showAttack;
+        this.attackSprite.alpha = alpha;
+      }
     } else {
       const lightFactor = 1 + 0.18 * Math.sin(facing);
       const base = flash > 0 ? towardWhite(this.opts.color, Math.min(1, flash)) : this.opts.color;

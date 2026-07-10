@@ -55,10 +55,11 @@ Required key families:
 - Removed the visible "Q版" positioning from the title footer.
 - Replaced all five environment tiles with painted source textures and a reproducible isometric projection pipeline.
 - Removed the global canvas brightness penalty after real-device QA showed it crushed character and NPC midtones.
+- Added a dedicated Amazon bow-draw attack pose so ranged attacks no longer reuse a generic idle/lunge silhouette.
 
 ## Next Art Production Queue
 
-1. Add directional/attack animation sheets for player, common monsters, and act bosses; current PNGs are single-frame runtime art.
+1. Expand the Amazon two-pose state into directional/run frames, then add attack animation sheets for the other players, common monsters, and act bosses.
 2. Create separate class portrait variants for title/class select and in-game actor scale.
 3. Complete authored combat FX, item/service icons, status icons, and rarity frames from the asset manifest.
 4. Replace remaining legacy instructional copy and emoji fallback marks inside operational panels.

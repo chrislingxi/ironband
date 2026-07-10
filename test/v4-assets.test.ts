@@ -124,11 +124,14 @@ const REQUIRED_ASSETS = [
   'public/assets/icon/skill-static-field.png',
   'public/assets/icon/skill-telekinesis.png',
   'assets/char/amazon.png',
+  'assets/char/amazon_attack.png',
   'assets/char/barbarian.png',
   'assets/char/sorceress.png',
   'public/assets/char/amazon.png',
+  'public/assets/char/amazon_attack.png',
   'public/assets/char/barbarian.png',
   'public/assets/char/sorceress.png',
+  'art_source/v4/char/amazon_attack_source.png',
   'assets/prop/campfire.png',
   'assets/prop/exit_gate.png',
   'assets/prop/blacksmith_anvil.png',
@@ -228,5 +231,14 @@ describe('V4 visual asset pack', () => {
       expect(dev.readUInt32BE(20), `${name} tile height`).toBe(128);
       expect(dev[25], `${name} tile should be RGBA`).toBe(6);
     }
+  });
+
+  it('keeps the Amazon bow attack pose mirrored and alpha-enabled', () => {
+    const dev = readFileSync('assets/char/amazon_attack.png');
+    const pages = readFileSync('public/assets/char/amazon_attack.png');
+    expect(dev.equals(pages)).toBe(true);
+    expect(dev.readUInt32BE(16)).toBe(512);
+    expect(dev.readUInt32BE(20)).toBe(768);
+    expect(dev[25]).toBe(6);
   });
 });

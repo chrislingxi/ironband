@@ -226,3 +226,10 @@ This pass replaces the five procedural-looking ground tiles with an authored sou
 - Extended the primary PNG probe window from 0.9s to 6.5s so large character and NPC art can replace fallbacks on real mobile networks without delaying game boot; missing optional override packs still fail fast.
 
 Visual QA passed at 1280x720, 390x844, and 844x390. Inventory and skill-tree panels opened and closed successfully in landscape, page overflow remained zero, and the browser console stayed clean.
+
+## Amazon Combat Pose Pass - Bow Draw
+
+- Added a dedicated 512x768 transparent Amazon attack sprite derived from the existing character identity and costume language.
+- The runtime now swaps from idle to a fully drawn, visibly nocked bow pose during the attack window and mirrors it with facing direction.
+- Kept projectile logic, damage timing, movement, and hitboxes unchanged; this is a presentation-only upgrade.
+- Added source provenance plus regression checks for alpha format, exact dimensions, and byte-identical dev/Pages copies.
