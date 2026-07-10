@@ -13,8 +13,8 @@ export function injectV4Skin(): void {
   body::before {
     content:""; position:fixed; inset:0; pointer-events:none; z-index:1;
     background:
-      radial-gradient(80% 62% at 50% 38%, transparent 42%, #0008 86%),
-      linear-gradient(180deg,#0007 0%,transparent 22%,transparent 64%,#000b 100%);
+      radial-gradient(80% 62% at 50% 38%, transparent 48%, #0005 88%),
+      linear-gradient(180deg,#0005 0%,transparent 24%,transparent 68%,#0008 100%);
   }
   body::after {
     content:""; position:fixed; inset:0; pointer-events:none; z-index:2; opacity:.14;
@@ -23,7 +23,7 @@ export function injectV4Skin(): void {
       linear-gradient(0deg, transparent 0 47px, #000 48px 49px, transparent 50px);
     mix-blend-mode:overlay;
   }
-  canvas { filter:saturate(.9) contrast(1.12) brightness(.72); }
+  canvas { filter:saturate(.98) contrast(1.08) brightness(.9); }
   #title {
     background:
       linear-gradient(90deg,#020202e8 0%,#0008 22%,#0004 50%,#0008 78%,#020202e8 100%),
@@ -53,8 +53,8 @@ export function injectV4Skin(): void {
   }
   #hud::before {
     background:
-      radial-gradient(40% 42% at 50% 48%, transparent 40%, #00000058 100%),
-      linear-gradient(180deg,#000c 0%,transparent 18%,transparent 68%,#000d 100%) !important;
+      radial-gradient(44% 44% at 50% 48%, transparent 44%, #00000038 100%),
+      linear-gradient(180deg,#0009 0%,transparent 18%,transparent 70%,#000a 100%) !important;
   }
   #hud .bar, #hud .gold, #hud .lvl, #hud .info, #hud .potion {
     border-radius:6px !important;

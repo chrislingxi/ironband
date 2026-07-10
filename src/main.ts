@@ -57,6 +57,10 @@ function showError(msg: string): void {
   d.textContent = 'Ironband 启动信息:\n' + msg;
 }
 
+function clearError(): void {
+  document.getElementById('booterr')?.remove();
+}
+
 // ── M1 战斗沙盒 ──
 // Phase0 等距脊柱 + T3 战斗内核 + T4 怪物AI 的可玩集成.
 // 占位形状渲染 (T1 并行会替换为 FLARE 等距精灵 + 光照).
@@ -72,10 +76,16 @@ async function main() {
   };
   try {
     await app.init({ ...initOpts, preference: 'webgl' as const });
-  } catch (err) {
-    showError('WebGL 初始化失败, 尝试默认渲染器…\n' + errText(err));
-    await app.init(initOpts); // 回退: 让 Pixi 自动选 (可能 WebGPU)
+  } catch (webglErr) {
+    console.warn('WebGL init failed, retrying with Pixi auto renderer', webglErr);
+    try {
+      await app.init(initOpts); // 回退: 让 Pixi 自动选 (可能 WebGPU/Canvas fallback)
+    } catch (fallbackErr) {
+      showError('图形初始化失败。请关闭页面后重新打开, 或清理浏览器缓存后再试。\n\nWebGL:\n' + errText(webglErr) + '\n\nFallback:\n' + errText(fallbackErr));
+      throw fallbackErr;
+    }
   }
+  clearError();
   document.getElementById('boot')?.remove(); // 移除"加载中"指示
   document.getElementById('app')!.appendChild(app.canvas);
 
