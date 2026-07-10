@@ -1,3 +1,5 @@
+import { assetUrl } from '@engine/assets/url.ts';
+
 let injected = false;
 
 export function injectV4Skin(): void {
@@ -28,7 +30,7 @@ export function injectV4Skin(): void {
     background:
       linear-gradient(90deg,#020202e8 0%,#0008 22%,#0004 50%,#0008 78%,#020202e8 100%),
       radial-gradient(60% 54% at 50% 18%, #22150a20 0%, transparent 62%),
-      url("assets/ui/title-bg.png"),
+      url("${assetUrl('assets/ui/title-bg.png')}"),
       linear-gradient(180deg,#080706 0%,#140b08 52%,#030202 100%) !important;
     background-size:cover, cover, cover, cover !important;
     background-position:center, center, center, center !important;
@@ -40,7 +42,7 @@ export function injectV4Skin(): void {
     border-color:#8c6630 !important;
     background-image:
       linear-gradient(180deg,#2b1b12ea,#0b0706f4),
-      url("assets/ui/panel.png") !important;
+      url("${assetUrl('assets/ui/panel.png')}") !important;
     background-size:auto, 220px 220px !important;
     box-shadow:0 18px 44px #000e, inset 0 1px 0 #ffe7a026, inset 0 0 0 1px #000 !important;
   }
@@ -59,7 +61,7 @@ export function injectV4Skin(): void {
   #hud .bar, #hud .gold, #hud .lvl, #hud .info, #hud .potion {
     border-radius:6px !important;
     border-color:var(--v4-line) !important;
-    background-image:linear-gradient(180deg,#22150fef,#080605ef), url("assets/ui/panel.png") !important;
+    background-image:linear-gradient(180deg,#22150fef,#080605ef), url("${assetUrl('assets/ui/panel.png')}") !important;
     background-size:auto, 190px 190px !important;
   }
   #hud .bar { height:24px !important; width:236px !important; }
@@ -71,7 +73,7 @@ export function injectV4Skin(): void {
   #hud .skills { gap:10px !important; }
   #hud .skill {
     border-radius:8px !important;
-    background-image:linear-gradient(145deg,#5b4020,#120c08 42%,#050403), url("assets/ui/btn_frame.png") !important;
+    background-image:linear-gradient(145deg,#5b4020,#120c08 42%,#050403), url("${assetUrl('assets/ui/btn_frame.png')}") !important;
     background-size:auto, cover !important;
     border-color:#c99745 !important;
   }
@@ -103,7 +105,7 @@ export function injectV4Skin(): void {
   #settings .card, #tut .card {
     border-radius:7px !important;
     border-color:#5f4526 !important;
-    background-image:linear-gradient(180deg,#1d130eed,#0b0706f4), url("assets/ui/panel.png") !important;
+    background-image:linear-gradient(180deg,#1d130eed,#0b0706f4), url("${assetUrl('assets/ui/panel.png')}") !important;
     background-size:auto, 230px 230px !important;
     box-shadow:0 10px 24px #0009, inset 0 1px 0 #ffe7a018 !important;
   }

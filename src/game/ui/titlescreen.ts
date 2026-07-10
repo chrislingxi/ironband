@@ -1,5 +1,6 @@
 import type { CharClass, Difficulty } from '@game/data/schema.ts';
 import type { SlotMeta } from '@game/systems/save/index.ts';
+import { assetUrl } from '@engine/assets/url.ts';
 
 // 全屏哥特风标题 + 存档槽/选职/命名流程 (纯 DOM). 深色 + 金色, Cinzel/Georgia 衬线.
 // 流程: 存档槽列表 → (续玩直接开始) | (新建: 选职 → 命名). 触屏友好, 适配安全区.
@@ -48,7 +49,7 @@ const CLASS_NAME: Record<CharClass, string> = {
 // 去AI感: 职业卡/存档槽用真实角色立绘(assets/char/<cls>.png)替 emoji; 缺图回退 emoji。
 function classIconHtml(cls: CharClass): string {
   const emoji = CLASS_ICON[cls];
-  return `<img class="cimg" src="assets/char/${cls}.png" alt="" `
+  return `<img class="cimg" src="${assetUrl(`assets/char/${cls}.png`)}" alt="" `
     + `onerror="this.style.display='none';this.insertAdjacentText('afterend','${emoji}')">`;
 }
 const DIFF_NAME: Record<Difficulty, string> = {
@@ -67,7 +68,7 @@ function injectStyle(): void {
     background:
       linear-gradient(90deg,#020202e8 0%,#0008 22%,#0004 50%,#0008 78%,#020202e8 100%),
       radial-gradient(60% 54% at 50% 18%, #22150a20 0%, transparent 62%),
-      url("assets/ui/title-bg.png"),
+      url("${assetUrl('assets/ui/title-bg.png')}"),
       linear-gradient(180deg, #080706 0%, #100b0a 54%, #020202 100%);
     background-size:cover, cover, cover, cover;
     background-position:center, center, center, center;
@@ -96,7 +97,7 @@ function injectStyle(): void {
   #title .card { min-height:360px; position:relative; overflow:hidden; padding:18px 16px 16px; border-radius:10px;
     background:
       linear-gradient(180deg,#26170ff0,#080605f7),
-      url("assets/ui/panel.png");
+      url("${assetUrl('assets/ui/panel.png')}");
     background-size:auto, 240px 240px;
     border:1px solid #7a5a2b; cursor:pointer;
     text-align:left; user-select:none; -webkit-user-select:none; pointer-events:auto;
@@ -242,7 +243,7 @@ export class TitleScreen {
           <div class="snm">${escapeHtml(s.name)}</div>
           <div class="sde">${CLASS_NAME[s.cls]} · Lv ${s.level} · ${DIFF_NAME[s.difficulty]}</div>
         </div>
-        <div class="del" title="删除"><img src="assets/icon/trash-can.svg" alt="" style="width:16px;height:16px;vertical-align:middle;opacity:.85" onerror="this.style.display='none';this.insertAdjacentText('afterend','🗑')"></div>`;
+        <div class="del" title="删除"><img src="${assetUrl('assets/icon/trash-can.svg')}" alt="" style="width:16px;height:16px;vertical-align:middle;opacity:.85" onerror="this.style.display='none';this.insertAdjacentText('afterend','🗑')"></div>`;
       onTap(row, () => {
         this.hide();
         this.onStart({ kind: 'continue', slotId: s.slotId });

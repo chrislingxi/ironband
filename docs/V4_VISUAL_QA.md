@@ -84,10 +84,10 @@ Known remaining art gaps:
 
 ## 2026-07-11 Painted Environment QA Record
 
-- Full self-test: 44 files, 189 tests passed.
+- Full self-test: 45 files, 191 tests passed.
 - Asset gate: all five painted source textures and both runtime copies are required; output dimensions, RGBA format, and copy identity are tested.
 - Desktop 1280x720: title and game entered successfully; town ground material and character silhouettes remained readable.
 - iPhone portrait 390x844: no page overflow; HUD and objective panel remained inside the viewport.
 - iPhone landscape 844x390: inventory and skill tree filled the viewport without trapping the player; both close controls remained reachable and worked.
 - Browser warnings/errors: none.
-- Online GitHub Pages verification: pending this pass's push.
+- Online GitHub Pages verification: initial deployment exposed stale browser asset caching; release-aware asset URLs were added and covered by regression tests before final republish.

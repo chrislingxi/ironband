@@ -1,4 +1,5 @@
 import { Assets, Texture, type Texture as PixiTexture } from 'pixi.js';
+import { assetUrl } from '@engine/assets/url.ts';
 
 // ── 资产覆盖式加载器 ──
 // 线上优先加载入库素材, 避免 GitHub Pages/iOS 对缺失覆盖目录的探测拖住开局。
@@ -15,7 +16,11 @@ export const hasRealArt = false;
 
 // 候选路径生成 (覆盖式回退). 相对站点根, Vite 会从 /public 或同源静态目录解析.
 function candidatePaths(key: string): string[] {
-  return [`assets/${key}.png`, `assets/extracted/${key}.png`, `assets/v4-dark/${key}.png`];
+  return [
+    assetUrl(`assets/${key}.png`),
+    assetUrl(`assets/extracted/${key}.png`),
+    assetUrl(`assets/v4-dark/${key}.png`),
+  ];
 }
 
 // 尝试按契约顺序加载某 key 的纹理; 全部缺失则返回 null (不抛错).

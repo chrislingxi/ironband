@@ -3,6 +3,7 @@
 //
 // 与渲染层的 loader.ts 同思路(按 key 找文件, 缺则回退), 不臆造素材存在性。
 // 时间/随机不参与: 纯 IO + 解码, 失败静默。
+import { assetUrl } from '@engine/assets/url.ts';
 
 // 短音效逻辑名 → 候选文件基名 (扩展名在加载时按 EXT 顺序探测)。
 export const SFX_BASENAMES: Record<string, string> = {
@@ -22,7 +23,7 @@ const EXT = ['mp3', 'ogg', 'm4a', 'wav'];
 export async function decodeSample(ctx: AudioContext, basename: string): Promise<AudioBuffer | null> {
   for (const ext of EXT) {
     try {
-      const res = await fetch(`${ROOT}${basename}.${ext}`);
+      const res = await fetch(assetUrl(`${ROOT}${basename}.${ext}`));
       if (!res.ok) continue;
       const buf = await res.arrayBuffer();
       // decodeAudioData 在部分浏览器只支持回调式, 这里包一层兼容。
