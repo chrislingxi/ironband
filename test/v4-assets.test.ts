@@ -1,9 +1,20 @@
-import { existsSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, statSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const REQUIRED_ASSETS = [
+  'art_source/v4/tiles/wilderness_source.png',
+  'art_source/v4/tiles/town_source.png',
+  'art_source/v4/tiles/desert_source.png',
+  'art_source/v4/tiles/hell_source.png',
+  'art_source/v4/tiles/snow_source.png',
+  'assets/tile/wilderness.png',
+  'assets/tile/town.png',
+  'assets/tile/desert.png',
   'assets/tile/hell.png',
   'assets/tile/snow.png',
+  'public/assets/tile/wilderness.png',
+  'public/assets/tile/town.png',
+  'public/assets/tile/desert.png',
   'public/assets/tile/hell.png',
   'public/assets/tile/snow.png',
   'assets/ui/title-bg.png',
@@ -205,6 +216,17 @@ describe('V4 visual asset pack', () => {
     for (const file of REQUIRED_ASSETS) {
       expect(existsSync(file), `${file} should exist`).toBe(true);
       expect(statSync(file).size, `${file} should not be empty`).toBeGreaterThan(512);
+    }
+  });
+
+  it('keeps painted isometric tiles mirrored at the runtime and Pages paths', () => {
+    for (const name of ['wilderness', 'town', 'desert', 'hell', 'snow']) {
+      const dev = readFileSync(`assets/tile/${name}.png`);
+      const pages = readFileSync(`public/assets/tile/${name}.png`);
+      expect(dev.equals(pages), `${name} tile copies should be identical`).toBe(true);
+      expect(dev.readUInt32BE(16), `${name} tile width`).toBe(256);
+      expect(dev.readUInt32BE(20), `${name} tile height`).toBe(128);
+      expect(dev[25], `${name} tile should be RGBA`).toBe(6);
     }
   });
 });

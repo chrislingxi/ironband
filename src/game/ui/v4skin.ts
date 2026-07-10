@@ -23,7 +23,7 @@ export function injectV4Skin(): void {
       linear-gradient(0deg, transparent 0 47px, #000 48px 49px, transparent 50px);
     mix-blend-mode:overlay;
   }
-  canvas { filter:saturate(.98) contrast(1.08) brightness(.9); }
+  canvas { filter:saturate(.98) contrast(1.06) brightness(1); }
   #title {
     background:
       linear-gradient(90deg,#020202e8 0%,#0008 22%,#0004 50%,#0008 78%,#020202e8 100%),

@@ -181,6 +181,8 @@ Boss 命名使用原创描述名，不沿用任何知名暗黑系列 Boss 名。
 
 路径：`public/assets/tile/`、`public/assets/prop/`
 
+V4 2026-07-11 已建立 `art_source/v4/tiles/<name>_source.png` 母材层，并由 `npm run assets:v4-tiles` 统一生成 256x128 RGBA 等距地砖。运行时与 GitHub Pages 两份资源必须字节一致；禁止再直接手改输出 PNG。
+
 ### 地块
 
 | 优先级 | key | 文件 | 规格 | 用途 | 验收重点 |

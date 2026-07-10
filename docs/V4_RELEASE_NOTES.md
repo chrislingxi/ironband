@@ -212,3 +212,15 @@ This pass closes the remaining current skill-icon coverage gap:
 - Routed every current class skill id in `amazon.ts`, `barbarianTree.ts`, and `sorceress.ts` through the bespoke PNG icon layer.
 - Added `npm run assets:v4-remaining-skill-icons` so the final skill icon batch can be regenerated without external copyrighted source art.
 - Expanded the V4 asset regression test so all current skill PNGs must exist in both dev and GitHub Pages asset locations.
+
+## Environment Art Pass - Painted Ground Set
+
+This pass replaces the five procedural-looking ground tiles with an authored source-art pipeline:
+
+- Added 768x768 painted source textures for wilderness, town, desert, hell, and snow under `art_source/v4/tiles/`.
+- Rebuilt `npm run assets:v4-tiles` to decode the source PNGs, project them into 2:1 isometric diamonds, feather opposite edges for repeatability, apply a shared combat-readable grade, and write identical dev/Pages copies.
+- Removed straight crossing crack lines and flat color-noise treatment that made the previous tiles read like generated placeholders.
+- Lifted runtime canvas midtones so dark-fantasy atmosphere comes from material, local light, and palette instead of a global near-black exposure penalty.
+- Added regression checks for all five source textures, all ten runtime copies, exact 256x128 RGBA output, and byte-identical dev/Pages assets.
+
+Visual QA passed at 1280x720, 390x844, and 844x390. Inventory and skill-tree panels opened and closed successfully in landscape, page overflow remained zero, and the browser console stayed clean.

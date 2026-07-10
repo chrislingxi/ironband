@@ -61,7 +61,7 @@ Known remaining art gaps:
 
 - `assets/v4-dark/` path is ready, but the first external override pack is not yet populated.
 - Title-screen Barbarian/Amazon/Sorceress class portraits now use full-body V4 dark fantasy PNGs instead of Q-style chibi art.
-- `tile/hell.png`, `tile/snow.png`, and `tile/desert.png` now resolve to generated V4 PNG tiles; they should later be replaced by final hand-painted-feeling tiles.
+- Wilderness, town, desert, hell, and snow now use painted 768x768 source textures projected into seamless 256x128 RGBA isometric tiles by `npm run assets:v4-tiles`.
 - All five act bosses now resolve to V4 transparent PNG boss art and keep distinct runtime subKinds; next upgrade is directional/attack animation.
 - Runtime player and camp NPC PNGs are larger than the old procedural markers, reducing the title-to-combat quality drop.
 - Rogue Encampment now has V4 campfire, exit gate, and blacksmith workstation props as low-risk scene anchors.
@@ -81,3 +81,13 @@ Known remaining art gaps:
 - Short landscape play now uses a compact bottom utility row and matching joystick dead zone.
 - Global `ui/panel.png` and `ui/btn_frame.png` now use darker black-iron V4 material art.
 - Character, NPC, and monster runtime art is single-frame PNG, not directional animation sheets.
+
+## 2026-07-11 Painted Environment QA Record
+
+- Full self-test: 44 files, 189 tests passed.
+- Asset gate: all five painted source textures and both runtime copies are required; output dimensions, RGBA format, and copy identity are tested.
+- Desktop 1280x720: title and game entered successfully; town ground material and character silhouettes remained readable.
+- iPhone portrait 390x844: no page overflow; HUD and objective panel remained inside the viewport.
+- iPhone landscape 844x390: inventory and skill tree filled the viewport without trapping the player; both close controls remained reachable and worked.
+- Browser warnings/errors: none.
+- Online GitHub Pages verification: pending this pass's push.

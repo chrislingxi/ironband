@@ -1,7 +1,7 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { deflateSync } from 'node:zlib';
+import { deflateSync, inflateSync } from 'node:zlib';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const W = 256;
@@ -30,7 +30,7 @@ function chunk(type, data) {
   return out;
 }
 
-function png(width, height, rgba) {
+function encodePng(width, height, rgba) {
   const raw = Buffer.alloc((width * 4 + 1) * height);
   for (let y = 0; y < height; y++) {
     const row = y * (width * 4 + 1);
@@ -50,115 +50,160 @@ function png(width, height, rgba) {
   ]);
 }
 
-function mulberry32(seed) {
-  return () => {
-    seed |= 0;
-    seed = (seed + 0x6d2b79f5) | 0;
-    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+function paeth(a, b, c) {
+  const p = a + b - c;
+  const pa = Math.abs(p - a);
+  const pb = Math.abs(p - b);
+  const pc = Math.abs(p - c);
+  return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
 }
 
-function mix(a, b, t) {
-  return Math.round(a + (b - a) * t);
-}
+function decodeRgbPng(path) {
+  const data = readFileSync(path);
+  const signature = data.subarray(0, 8);
+  if (!signature.equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))) {
+    throw new Error(`Unsupported texture source: ${path}`);
+  }
 
-function inDiamond(x, y) {
-  const dx = Math.abs(x - W / 2) / (W / 2);
-  const dy = Math.abs(y - H / 2) / (H / 2);
-  return dx + dy <= 1;
-}
+  let width = 0;
+  let height = 0;
+  let bitDepth = 0;
+  let colorType = 0;
+  const idat = [];
+  for (let offset = 8; offset < data.length;) {
+    const size = data.readUInt32BE(offset);
+    const type = data.toString('ascii', offset + 4, offset + 8);
+    const body = data.subarray(offset + 8, offset + 8 + size);
+    if (type === 'IHDR') {
+      width = body.readUInt32BE(0);
+      height = body.readUInt32BE(4);
+      bitDepth = body[8];
+      colorType = body[9];
+    } else if (type === 'IDAT') {
+      idat.push(body);
+    }
+    offset += size + 12;
+  }
+  if (bitDepth !== 8 || (colorType !== 2 && colorType !== 6)) {
+    throw new Error(`Expected 8-bit RGB/RGBA PNG source at ${path}`);
+  }
 
-function distToEdge(x, y) {
-  const dx = Math.abs(x - W / 2) / (W / 2);
-  const dy = Math.abs(y - H / 2) / (H / 2);
-  return 1 - (dx + dy);
-}
-
-function lineDistance(px, py, ax, ay, bx, by) {
-  const vx = bx - ax;
-  const vy = by - ay;
-  const wx = px - ax;
-  const wy = py - ay;
-  const c1 = vx * wx + vy * wy;
-  const c2 = vx * vx + vy * vy;
-  const t = Math.max(0, Math.min(1, c1 / c2));
-  const x = ax + t * vx;
-  const y = ay + t * vy;
-  return Math.hypot(px - x, py - y);
-}
-
-function tile(theme) {
-  const rng = mulberry32(theme.seed);
-  const pixels = Buffer.alloc(W * H * 4);
-  const cracks = theme.cracks;
-  for (let y = 0; y < H; y++) {
-    for (let x = 0; x < W; x++) {
-      const i = (y * W + x) * 4;
-      if (!inDiamond(x + 0.5, y + 0.5)) {
-        pixels[i + 3] = 0;
-        continue;
-      }
-      const edge = Math.max(0, distToEdge(x, y));
-      const shade = 0.72 + edge * 0.28 + (rng() - 0.5) * 0.1;
-      const grain = Math.sin(x * 0.19 + y * 0.37) * 0.06 + Math.sin(x * 0.07 - y * 0.23) * 0.05;
-      const base = theme.base;
-      let r = mix(base[0], theme.light[0], Math.max(0, grain + 0.12)) * shade;
-      let g = mix(base[1], theme.light[1], Math.max(0, grain + 0.12)) * shade;
-      let b = mix(base[2], theme.light[2], Math.max(0, grain + 0.12)) * shade;
-      for (const c of cracks) {
-        const d = lineDistance(x, y, c[0], c[1], c[2], c[3]);
-        if (d < c[4]) {
-          const t = 1 - d / c[4];
-          r = mix(r, c[5][0], t * c[6]);
-          g = mix(g, c[5][1], t * c[6]);
-          b = mix(b, c[5][2], t * c[6]);
-        }
-      }
-      if (edge < 0.035) {
-        r = mix(r, theme.edge[0], 0.75);
-        g = mix(g, theme.edge[1], 0.75);
-        b = mix(b, theme.edge[2], 0.75);
-      }
-      pixels[i] = Math.max(0, Math.min(255, r));
-      pixels[i + 1] = Math.max(0, Math.min(255, g));
-      pixels[i + 2] = Math.max(0, Math.min(255, b));
-      pixels[i + 3] = 255;
+  const channels = colorType === 6 ? 4 : 3;
+  const stride = width * channels;
+  const packed = inflateSync(Buffer.concat(idat));
+  const pixels = Buffer.alloc(width * height * channels);
+  let src = 0;
+  for (let y = 0; y < height; y++) {
+    const filter = packed[src++];
+    const row = y * stride;
+    for (let x = 0; x < stride; x++) {
+      const raw = packed[src++];
+      const left = x >= channels ? pixels[row + x - channels] : 0;
+      const up = y > 0 ? pixels[row + x - stride] : 0;
+      const upperLeft = y > 0 && x >= channels ? pixels[row + x - stride - channels] : 0;
+      if (filter === 0) pixels[row + x] = raw;
+      else if (filter === 1) pixels[row + x] = (raw + left) & 255;
+      else if (filter === 2) pixels[row + x] = (raw + up) & 255;
+      else if (filter === 3) pixels[row + x] = (raw + Math.floor((left + up) / 2)) & 255;
+      else if (filter === 4) pixels[row + x] = (raw + paeth(left, up, upperLeft)) & 255;
+      else throw new Error(`Unsupported PNG filter ${filter} in ${path}`);
     }
   }
-  return png(W, H, pixels);
+  return { width, height, channels, pixels };
+}
+
+function clamp(value, min = 0, max = 1) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function sample(texture, u, v) {
+  const x = clamp(u) * (texture.width - 1);
+  const y = clamp(v) * (texture.height - 1);
+  const x0 = Math.floor(x);
+  const y0 = Math.floor(y);
+  const x1 = Math.min(texture.width - 1, x0 + 1);
+  const y1 = Math.min(texture.height - 1, y0 + 1);
+  const tx = x - x0;
+  const ty = y - y0;
+  const color = [0, 0, 0];
+  for (let channel = 0; channel < 3; channel++) {
+    const a = texture.pixels[(y0 * texture.width + x0) * texture.channels + channel];
+    const b = texture.pixels[(y0 * texture.width + x1) * texture.channels + channel];
+    const c = texture.pixels[(y1 * texture.width + x0) * texture.channels + channel];
+    const d = texture.pixels[(y1 * texture.width + x1) * texture.channels + channel];
+    color[channel] = (a + (b - a) * tx) * (1 - ty) + (c + (d - c) * tx) * ty;
+  }
+  return color;
+}
+
+function seamSamples(value, feather = 0.075) {
+  if (value < feather) {
+    const blend = 0.5 * (1 - value / feather);
+    return [[value, 1 - blend], [1 - value, blend]];
+  }
+  if (value > 1 - feather) {
+    const blend = 0.5 * (1 - (1 - value) / feather);
+    return [[value, 1 - blend], [1 - value, blend]];
+  }
+  return [[value, 1]];
+}
+
+function sampleSeamless(texture, u, v) {
+  const xs = seamSamples(u);
+  const ys = seamSamples(v);
+  const color = [0, 0, 0];
+  for (const [sx, wx] of xs) {
+    for (const [sy, wy] of ys) {
+      const sampled = sample(texture, sx, sy);
+      for (let channel = 0; channel < 3; channel++) color[channel] += sampled[channel] * wx * wy;
+    }
+  }
+  return color;
+}
+
+function grade(color, settings) {
+  const luma = color[0] * 0.2126 + color[1] * 0.7152 + color[2] * 0.0722;
+  return color.map((value) => {
+    const saturated = luma + (value - luma) * settings.saturation;
+    const contrasted = 128 + (saturated - 128) * settings.contrast;
+    return Math.round(clamp(contrasted * settings.exposure, 0, 255));
+  });
+}
+
+function renderTile(sourcePath, settings) {
+  const texture = decodeRgbPng(sourcePath);
+  const pixels = Buffer.alloc(W * H * 4);
+  for (let y = 0; y < H; y++) {
+    for (let x = 0; x < W; x++) {
+      const offset = (y * W + x) * 4;
+      const nx = (x + 0.5 - W / 2) / (W / 2);
+      const ny = (y + 0.5 - H / 2) / (H / 2);
+      const edge = 1 - Math.abs(nx) - Math.abs(ny);
+      if (edge <= -0.012) continue;
+
+      const u = (nx + ny + 1) / 2;
+      const v = (ny - nx + 1) / 2;
+      const color = grade(sampleSeamless(texture, u, v), settings);
+      pixels[offset] = color[0];
+      pixels[offset + 1] = color[1];
+      pixels[offset + 2] = color[2];
+      pixels[offset + 3] = Math.round(clamp(edge * H / 2 + 0.65) * 255);
+    }
+  }
+  return encodePng(W, H, pixels);
 }
 
 const themes = {
-  hell: {
-    seed: 0x1badf00d,
-    base: [44, 17, 13],
-    light: [112, 35, 20],
-    edge: [16, 5, 4],
-    cracks: [
-      [38, 79, 212, 48, 3.8, [232, 72, 28], 0.82],
-      [72, 93, 182, 83, 2.8, [155, 26, 14], 0.78],
-      [88, 38, 162, 61, 2.2, [255, 111, 46], 0.52],
-      [128, 64, 198, 95, 2.4, [94, 15, 11], 0.7],
-    ],
-  },
-  snow: {
-    seed: 0x5a09c01d,
-    base: [79, 95, 106],
-    light: [164, 186, 198],
-    edge: [48, 58, 68],
-    cracks: [
-      [34, 82, 212, 56, 2.8, [222, 247, 255], 0.58],
-      [72, 49, 168, 42, 2.2, [38, 50, 62], 0.5],
-      [96, 92, 190, 83, 2.4, [196, 228, 240], 0.48],
-      [117, 28, 138, 100, 1.8, [41, 57, 68], 0.46],
-    ],
-  },
+  wilderness: { exposure: 1.12, contrast: 1.04, saturation: 0.9 },
+  town: { exposure: 1.08, contrast: 1.04, saturation: 0.85 },
+  desert: { exposure: 0.96, contrast: 1.02, saturation: 0.84 },
+  hell: { exposure: 1.18, contrast: 1.08, saturation: 0.9 },
+  snow: { exposure: 0.88, contrast: 1.02, saturation: 0.75 },
 };
 
-for (const [name, theme] of Object.entries(themes)) {
-  const data = tile(theme);
+for (const [name, settings] of Object.entries(themes)) {
+  const source = join(ROOT, 'art_source/v4/tiles', `${name}_source.png`);
+  const data = renderTile(source, settings);
   for (const prefix of ['public/assets/tile', 'assets/tile']) {
     const out = join(ROOT, prefix, `${name}.png`);
     mkdirSync(dirname(out), { recursive: true });
@@ -166,4 +211,4 @@ for (const [name, theme] of Object.entries(themes)) {
   }
 }
 
-console.log('Generated V4 tiles: hell.png, snow.png');
+console.log(`Generated V4 painted tiles: ${Object.keys(themes).join(', ')}`);
