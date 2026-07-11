@@ -1,5 +1,12 @@
 # V4 Release Notes
 
+## Three-Class Attack Pose Pass
+
+- Added identity-preserving attack sprites for Barbarian and Sorceress alongside the existing Amazon bow draw.
+- Barbarian now raises his two-handed axe for a readable heavy strike; Sorceress projects a compact lightning/frost sigil instead of sliding through the idle portrait.
+- The runtime now selects `char/<class>_attack` for all three player classes without changing hit timing, damage or collision.
+- Added source provenance, 512x768 RGBA validation, byte-identical Pages copies and a new static asset revision.
+
 ## UI Material Kit - Slots, Rarity And Status Language
 
 - Added a reproducible V4 UI generator for black-iron inventory slots, equipped slots, four rarity frames, a cooldown mask, and burn/freeze/poison/bleed status icons.

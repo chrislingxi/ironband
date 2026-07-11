@@ -395,7 +395,7 @@ async function main() {
     const playerClass = game.character.cls as CharClass;
     // 贴图 key: 玩家=char/<职业>, 怪物/Boss=mon/<defId>。命中 assets/<key>.png 即用真图。
     const textureKey = e.kind === 'player' ? `char/${playerClass}` : `mon/${e.defId}`;
-    const attackTextureKey = e.kind === 'player' && playerClass === 'amazon' ? 'char/amazon_attack' : undefined;
+    const attackTextureKey = e.kind === 'player' ? `char/${playerClass}_attack` : undefined;
     const actor = createActorSprite({ kind: actorKind(e), color: e.color, size: e.size, subKind: actorSubKind(e), textureKey, attackTextureKey, showFacing: e.kind === 'player' });
     actors.set(e.id, actor);
     c.addChild(actor.container);
@@ -429,7 +429,10 @@ async function main() {
     if (actor) {
       // 朝向是格子空间角; 投到屏幕空间(等距 2:1)再给精灵, 这样倾身/朝向尖角指向"看着的方向"而非格子方向
       const fd = gridToScreen({ x: Math.cos(e.facing), y: Math.sin(e.facing) });
-      const attackWindow = e.kind === 'player' && (game.character.cls as CharClass) === 'amazon' ? 0.3 : 0.18;
+      const playerClass = game.character.cls as CharClass;
+      const attackWindow = e.kind === 'player'
+        ? playerClass === 'amazon' ? 0.3 : playerClass === 'sorceress' ? 0.28 : 0.24
+        : 0.18;
       actor.update({
         facing: Math.atan2(fd.y, fd.x),
         moving: e.moving,

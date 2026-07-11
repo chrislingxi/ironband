@@ -132,3 +132,9 @@ Known remaining art gaps:
 - Cooldown mask and burn/freeze/poison/bleed status icons share the same worn-metal frame, light direction and mobile-readable contrast.
 - Landscape 844x390 inventory loaded the authored slot URLs, stayed exactly viewport-bounded and kept all equipment labels readable.
 - Static asset revision advanced to `20260711-v4-ui-kit` so iOS Safari and GitHub Pages cannot reuse the older painted-environment cache entries.
+
+## 2026-07-11 Three-Class Attack Pose QA Record
+
+- Amazon, Barbarian and Sorceress each have a dedicated 512x768 transparent attack pose with a complete weapon silhouette and bottom-center foot anchor.
+- Runtime pose swapping uses the existing attack cooldown window only; combat timing, damage and collision remain unchanged.
+- Barbarian overhead axe and Sorceress forward sigil remain readable when mirrored and reduced to mobile actor scale.

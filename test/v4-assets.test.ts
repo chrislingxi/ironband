@@ -125,13 +125,19 @@ const REQUIRED_ASSETS = [
   'public/assets/icon/skill-telekinesis.png',
   'assets/char/amazon.png',
   'assets/char/amazon_attack.png',
+  'assets/char/barbarian_attack.png',
+  'assets/char/sorceress_attack.png',
   'assets/char/barbarian.png',
   'assets/char/sorceress.png',
   'public/assets/char/amazon.png',
   'public/assets/char/amazon_attack.png',
+  'public/assets/char/barbarian_attack.png',
+  'public/assets/char/sorceress_attack.png',
   'public/assets/char/barbarian.png',
   'public/assets/char/sorceress.png',
   'art_source/v4/char/amazon_attack_source.png',
+  'art_source/v4/char/barbarian_attack_source.png',
+  'art_source/v4/char/sorceress_attack_source.png',
   'assets/prop/campfire.png',
   'assets/prop/exit_gate.png',
   'assets/prop/blacksmith_anvil.png',
@@ -310,6 +316,17 @@ describe('V4 visual asset pack', () => {
     expect(dev.readUInt32BE(16)).toBe(512);
     expect(dev.readUInt32BE(20)).toBe(768);
     expect(dev[25]).toBe(6);
+  });
+
+  it('keeps every class attack pose mirrored and alpha-enabled', () => {
+    for (const cls of ['amazon', 'barbarian', 'sorceress']) {
+      const dev = readFileSync(`assets/char/${cls}_attack.png`);
+      const pages = readFileSync(`public/assets/char/${cls}_attack.png`);
+      expect(dev.equals(pages), `${cls} attack copies should be identical`).toBe(true);
+      expect(dev.readUInt32BE(16), `${cls} attack width`).toBe(512);
+      expect(dev.readUInt32BE(20), `${cls} attack height`).toBe(768);
+      expect(dev[25], `${cls} attack should be RGBA`).toBe(6);
+    }
   });
 
   it('keeps town service icons mirrored, square and alpha-enabled', () => {
