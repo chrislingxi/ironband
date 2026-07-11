@@ -1,5 +1,10 @@
 # V4 Release Notes
 
+## Weapon And Defense Loot Expansion
+
+- Added hand-painted transparent icons for hand axe, short sword, mace, double axe, iron skull cap and small heater shield.
+- The delivered item registry now covers 12 of 18 base items, removing generic icon fallback from the complete weapon, helm and shield progression.
+
 ## First Loot Identity Pass
 
 - Added hand-painted transparent icons for short bow, leather cap, buckler, club, sash and ring, covering the most common first-five-minute loot.

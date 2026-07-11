@@ -17,8 +17,8 @@ describe('item art route', () => {
   });
 
   it('does not request unfinished item art before it is delivered', () => {
-    const html = itemArt('item/small_shield', '<span>shield</span>');
-    expect(html).not.toContain('assets/item/small_shield.png');
-    expect(html).toContain('shield');
+    const html = itemArt('item/leather', '<span>armor</span>');
+    expect(html).not.toContain('assets/item/leather.png');
+    expect(html).toContain('armor');
   });
 });

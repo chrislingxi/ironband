@@ -242,6 +242,24 @@ const REQUIRED_ASSETS = [
   'public/assets/item/club.png',
   'public/assets/item/sash.png',
   'public/assets/item/ring.png',
+  'art_source/v4/items/hand_axe_source.png',
+  'art_source/v4/items/short_sword_source.png',
+  'art_source/v4/items/mace_source.png',
+  'art_source/v4/items/double_axe_source.png',
+  'art_source/v4/items/skull_cap_source.png',
+  'art_source/v4/items/small_shield_source.png',
+  'assets/item/hand_axe.png',
+  'assets/item/short_sword.png',
+  'assets/item/mace.png',
+  'assets/item/double_axe.png',
+  'assets/item/skull_cap.png',
+  'assets/item/small_shield.png',
+  'public/assets/item/hand_axe.png',
+  'public/assets/item/short_sword.png',
+  'public/assets/item/mace.png',
+  'public/assets/item/double_axe.png',
+  'public/assets/item/skull_cap.png',
+  'public/assets/item/small_shield.png',
 ];
 
 describe('V4 visual asset pack', () => {
@@ -283,8 +301,8 @@ describe('V4 visual asset pack', () => {
     }
   });
 
-  it('keeps first-five-minute item icons mirrored, square and alpha-enabled', () => {
-    for (const name of ['short_bow', 'cap', 'buckler', 'club', 'sash', 'ring']) {
+  it('keeps delivered item icons mirrored, square and alpha-enabled', () => {
+    for (const name of ['short_bow', 'cap', 'buckler', 'club', 'sash', 'ring', 'hand_axe', 'short_sword', 'mace', 'double_axe', 'skull_cap', 'small_shield']) {
       const dev = readFileSync(`assets/item/${name}.png`);
       const pages = readFileSync(`public/assets/item/${name}.png`);
       expect(dev.equals(pages), `${name} item icon copies should be identical`).toBe(true);

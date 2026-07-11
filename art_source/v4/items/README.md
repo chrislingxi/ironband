@@ -13,6 +13,15 @@ The first batch covers the common first-five-minute loot pool:
 - `sash`
 - `ring`
 
+The second batch extends the weapon and defense progression:
+
+- `hand_axe`
+- `short_sword`
+- `mace`
+- `double_axe`
+- `skull_cap`
+- `small_shield`
+
 Art direction: isolated practical equipment, premium hand-painted dark fantasy,
 worn wood/leather/black iron, restrained warm rim light, readable at 38-44px,
 no frame, text, watermark or franchise motif. Sources were generated with the

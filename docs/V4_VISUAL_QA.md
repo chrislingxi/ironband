@@ -20,6 +20,12 @@
 - [x] Finished item art and unfinished semantic fallbacks coexist without failed requests, broken-image markers or boot errors.
 - [x] Three-column mobile inventory cells keep icon, name, power delta and wear action legible.
 
+## Weapon And Defense Loot Gate
+
+- [x] Hand axe, short sword, mace, double axe, skull cap and small shield load as 256px PNGs.
+- [x] Weapon silhouettes remain distinct at 38-44px in shop and inventory rows.
+- [x] The delivered registry covers every weapon, helm and shield base key without missing requests.
+
 ## Acceptance Bar
 
 The build is acceptable only when a player can open the live GitHub Pages version and immediately see a darker, more premium ARPG presentation without needing to know what changed.

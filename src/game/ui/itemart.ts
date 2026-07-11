@@ -7,6 +7,12 @@ export const DELIVERED_ITEM_ART = new Set([
   'item/club',
   'item/sash',
   'item/ring',
+  'item/hand_axe',
+  'item/short_sword',
+  'item/mace',
+  'item/double_axe',
+  'item/skull_cap',
+  'item/small_shield',
 ]);
 
 export function itemArt(sprite: string, fallbackHtml: string, px = 44): string {
