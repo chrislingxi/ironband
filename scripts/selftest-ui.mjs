@@ -152,6 +152,15 @@ for (const dev of DEVICES) {
       await pg.waitForTimeout(600);
       await pg.screenshot({ path: `${OUT}/${dev.name}-${p.name}.png` });
       await audit(p.name, p.sel);
+      if (p.sel === '#inv' || p.sel === '#charp') {
+        const art = await pg.evaluate((sel) => {
+          const img = document.querySelector(sel === '#inv' ? '#inv .paperdoll' : '#charp .portrait');
+          return { found: !!img, complete: !!img?.complete, width: img?.naturalWidth ?? 0, src: img?.getAttribute('src') ?? '' };
+        }, p.sel);
+        if (!art.found || !art.complete || art.width < 256 || !art.src.includes('assets/char/')) {
+          flag(dev.name, p.name, `职业立绘未加载: ${JSON.stringify(art)}`);
+        }
+      }
       // 关闭
       await pg.evaluate((sel) => { const x = document.querySelector(`${sel} .x, ${sel} .close`); if (x) x.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); }, p.sel);
       await pg.waitForTimeout(300);

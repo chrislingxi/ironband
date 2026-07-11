@@ -1,6 +1,7 @@
 import type { Game } from '@game/sim/Game.ts';
 import { iconImg } from '@game/ui/icon.ts';
 import { deriveCombat } from '@game/systems/stats/character.ts';
+import { assetUrl } from '@engine/assets/url.ts';
 
 // 逐职业加点导向 (回应"什么职业加什么属性")。
 const CLASS_GUIDE: Record<string, string> = {
@@ -31,8 +32,11 @@ function injectStyle(): void {
   #charp .x { width:38px; height:38px; border-radius:9px; border:1px solid #6a4f2a; background:#1a1208cc; text-align:center; line-height:36px; font-size:20px; }
   #charp .x:active { transform:scale(.92); }
   /* 角色名牌: 职业 + 等级大徽记 + 经验进度 */
-  #charp .hero { display:flex; align-items:center; gap:14px; margin-bottom:12px; padding:12px 14px;
+  #charp .hero { position:relative; display:grid; grid-template-columns:84px 58px minmax(0,1fr); align-items:center; gap:12px; min-height:112px; margin-bottom:12px; padding:8px 14px 8px 8px; overflow:hidden;
     background:linear-gradient(#241a0fdd,#160f08dd); border:1px solid #6a5223; border-radius:12px; box-shadow:0 2px 8px #0007, inset 0 1px 0 #ffffff12; }
+  #charp .portrait { align-self:end; width:84px; height:104px; object-fit:contain; object-position:center bottom; opacity:.9;
+    filter:saturate(.86) contrast(1.06) drop-shadow(0 7px 7px #000); pointer-events:none; user-select:none; -webkit-user-drag:none; }
+  #charp .hero::after { content:""; position:absolute; inset:auto 8px 0 8px; height:1px; background:linear-gradient(90deg,transparent,#d7a84b55,transparent); }
   #charp .lvbadge { width:58px; height:58px; flex:none; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center;
     background:radial-gradient(circle at 50% 30%,#4a3818,#1c1408); border:2px solid #c79433; box-shadow:0 2px 6px #000a, inset 0 2px 4px #ffffff18; }
   #charp .lvbadge small { font-size:9px; color:#c8a860; letter-spacing:1px; }
@@ -58,6 +62,12 @@ function injectStyle(): void {
   #charp .stat { font-size:13px; line-height:1.85; }
   #charp .stat b { color:#ffe08a; }
   #charp .respec { display:inline-block; margin-top:8px; cursor:pointer; color:#c79433; border:1px solid #6a5a3a; border-radius:7px; padding:5px 12px; font-size:12px; }
+  @media (max-width:480px) {
+    #charp .hero { grid-template-columns:68px 50px minmax(0,1fr); gap:9px; padding-left:4px; }
+    #charp .portrait { width:68px; height:96px; }
+    #charp .lvbadge { width:50px; height:50px; }
+    #charp .lvbadge b { font-size:19px; }
+  }
   `;
   const t = document.createElement('style');
   t.textContent = css;
@@ -93,6 +103,7 @@ export class CharacterPanel {
       `<div class="attr"><span class="nm">${label}</span><span class="v">${v}</span><span class="d">${ATTR_DESC[a].split(':')[1]}</span>${sp > 0 ? `<span class="plus" data-a="${a}">+</span>` : ''}</div>`;
     this.body.innerHTML = `
       <div class="hero">
+        <img class="portrait" src="${assetUrl(`assets/char/${cls}.png`)}" alt="" draggable="false">
         <div class="lvbadge"><small>LV</small><b>${g.character.level}</b></div>
         <div class="heroinfo">
           <div class="cls">${CLASS_NAME[cls] ?? cls}</div>

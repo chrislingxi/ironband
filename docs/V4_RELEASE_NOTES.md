@@ -1,5 +1,11 @@
 # V4 Release Notes
 
+## Character Identity Across Progression Pages
+
+- The inventory paper-doll now uses the active Barbarian, Amazon or Sorceress PNG instead of a CSS mannequin silhouette.
+- The character panel now opens with a compact class portrait, level medallion and experience band as a single identity header.
+- Portrait and landscape layouts keep art behind the operational controls, with automated natural-width and asset-route checks in the UI device matrix.
+
 ## Combat Readability And Town Services
 
 - Amazon arrows now render with a shaft, head, fletching, launch sparks and a fading trail instead of a generic diamond projectile.

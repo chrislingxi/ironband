@@ -56,6 +56,7 @@ Required key families:
 - Replaced all five environment tiles with painted source textures and a reproducible isometric projection pipeline.
 - Removed the global canvas brightness penalty after real-device QA showed it crushed character and NPC midtones.
 - Added a dedicated Amazon bow-draw attack pose so ranged attacks no longer reuse a generic idle/lunge silhouette.
+- Replaced the inventory CSS mannequin with the active class PNG and carried the same class art into the character identity header.
 
 ## Next Art Production Queue
 

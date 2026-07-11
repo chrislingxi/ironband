@@ -8,6 +8,12 @@
 - [x] Forge/shop/heal/identify icons load as 256px PNG assets without fallback glyphs.
 - [x] Town tabs fit at 390px CSS width without horizontal overflow.
 
+## Character Progression Art Gate
+
+- [x] Inventory paper-doll loads the active class PNG at portrait and landscape sizes.
+- [x] Character header loads the active class PNG without covering level, XP or close controls.
+- [x] Both pages remain horizontally bounded at 390x844 and 844x390.
+
 ## Acceptance Bar
 
 The build is acceptable only when a player can open the live GitHub Pages version and immediately see a darker, more premium ARPG presentation without needing to know what changed.

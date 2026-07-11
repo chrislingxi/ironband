@@ -6,6 +6,7 @@ import { deriveCombat } from '@game/systems/stats/character.ts';
 import { itemTip, RARITY_HEX, affixText } from '@game/ui/itemtip.ts';
 import { iconImg } from '@game/ui/icon.ts';
 import { itemPower } from '@game/sim/Game.ts';
+import { assetUrl } from '@engine/assets/url.ts';
 
 type ItemLoc = { kind: 'equip'; slot: EquipSlot } | { kind: 'bag'; index: number } | null;
 
@@ -49,13 +50,12 @@ function injectStyle(): void {
       radial-gradient(ellipse at 50% 48%, #21140ecc 0%, #0a0706f0 62%, #030202 100%),
       linear-gradient(135deg,#4b351855 0 1px, transparent 1px 34px);
     box-shadow:inset 0 1px 0 #ffe7a018, inset 0 0 36px #000, 0 14px 30px #0009; overflow:hidden; }
-  #inv .equip::before { content:""; position:absolute; left:50%; top:52%; width:118px; height:286px; transform:translate(-50%,-50%);
-    background:
-      radial-gradient(ellipse at 50% 9%, #8c663055 0 18px, transparent 19px),
-      linear-gradient(90deg, transparent 0 19px, #8c663025 20px 24px, transparent 25px 93px, #8c663025 94px 98px, transparent 99px),
-      radial-gradient(ellipse at 50% 37%, #8c663022 0 44px, transparent 45px),
-      linear-gradient(180deg, transparent 0 70px, #8c66301d 71px 190px, transparent 191px);
-    border:1px solid #8c663020; clip-path:polygon(42% 0,58% 0,66% 15%,82% 26%,70% 40%,67% 63%,83% 100%,57% 100%,50% 73%,43% 100%,17% 100%,33% 63%,30% 40%,18% 26%,34% 15%); opacity:.9; }
+  #inv .paperdoll { position:absolute; left:50%; top:49%; width:154px; height:344px; transform:translate(-50%,-50%);
+    object-fit:contain; object-position:center bottom; opacity:.48; filter:saturate(.72) contrast(1.08) brightness(.66) drop-shadow(0 12px 14px #000);
+    pointer-events:none; user-select:none; -webkit-user-drag:none; }
+  #inv .paperdoll-halo { position:absolute; left:50%; top:48%; width:176px; height:330px; transform:translate(-50%,-50%);
+    background:radial-gradient(ellipse at 50% 46%,#8c66302b 0 20%,#18232a18 45%,transparent 72%); border:1px solid #8c663018;
+    clip-path:polygon(35% 0,65% 0,100% 22%,82% 86%,50% 100%,18% 86%,0 22%); pointer-events:none; }
   #inv .equip::after { content:""; position:absolute; left:50%; top:49%; width:1px; height:300px; transform:translateX(-50%); background:linear-gradient(transparent,#d7a84b44,transparent); }
   #inv .slot { position:absolute; width:132px; min-height:56px; display:grid; grid-template-columns:26px 1fr auto; gap:7px; align-items:center;
     padding:7px 8px; border:1px solid #4d3920; border-radius:7px;
@@ -136,7 +136,8 @@ function injectStyle(): void {
     #inv .col-l { overflow-y:auto; overflow-x:hidden; padding-right:6px; }
     #inv .col-r { flex:1; min-width:0; overflow-y:auto; overflow-x:hidden; padding-right:4px; }
     #inv .equip { height:300px; max-width:360px; }
-    #inv .equip::before { height:220px; width:90px; }
+    #inv .paperdoll { height:246px; width:116px; }
+    #inv .paperdoll-halo { height:238px; width:138px; }
     #inv .slot { width:112px; min-height:48px; grid-template-columns:22px 1fr auto; gap:5px; padding:6px; }
     #inv .slot .nm b { font-size:11px; }
     #inv .slot[data-slot="helm"] { top:10px; }
@@ -153,6 +154,8 @@ function injectStyle(): void {
   @media (max-width:680px) and (orientation:portrait) {
     #inv .cols { grid-template-columns:1fr; }
     #inv .equip { height:386px; max-width:360px; }
+    #inv .paperdoll { height:300px; width:132px; opacity:.4; }
+    #inv .paperdoll-halo { height:292px; width:148px; }
     #inv .slot { width:112px; min-height:52px; grid-template-columns:22px 1fr auto; gap:5px; padding:6px; }
     #inv .slot .nm b { font-size:11px; }
     #inv .slot[data-slot="amulet"] { right:10px; top:62px; }
@@ -249,7 +252,7 @@ export class InventoryPanel {
   refresh(): void {
     const g = this.game;
     // ----- 已装备区 -----
-    this.equipEl.innerHTML = '';
+    this.equipEl.innerHTML = `<div class="paperdoll-halo"></div><img class="paperdoll" src="${assetUrl(`assets/char/${g.character.cls}.png`)}" alt="" draggable="false">`;
     for (const slot of SLOT_ORDER) {
       const it = g.character.equipment[slot];
       const cell = document.createElement('div');
