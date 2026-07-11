@@ -181,6 +181,7 @@ async function main() {
     const a = game.currentArea;
     if (a.id === lastAreaId) return;
     lastAreaId = a.id;
+    lootFxSeen.clear();
     // 重建地砖 (区域尺寸+主题)
     let h = 2166136261;
     for (let i = 0; i < a.id.length; i++) h = (Math.imul(h ^ a.id.charCodeAt(i), 16777619)) >>> 0;
@@ -341,6 +342,17 @@ async function main() {
       r.g.scale.set(r.from + (r.to - r.from) * t);
       r.g.alpha = (1 - t) * 0.9;
     }
+    for (let i = fadingLootLabels.length - 1; i >= 0; i--) {
+      const entry = fadingLootLabels[i];
+      entry.life -= dt;
+      if (entry.life <= 0) {
+        entry.label.destroy();
+        fadingLootLabels.splice(i, 1);
+        continue;
+      }
+      entry.label.y -= dt * 4;
+      entry.label.alpha = Math.min(1, entry.life / Math.min(0.28, entry.max));
+    }
   }
   let shakeMag = 0; // 屏震强度(衰减)
   let redHit = 0; // 受击红屏强度(衰减)
@@ -354,6 +366,8 @@ async function main() {
   let prevGold = 0; // 上帧金币(检测拾取播币音)
   let prevInv = 0; // 上帧背包数(检测拾物)
   let prevState = game.state; // 上帧状态(检测阵亡转换播死亡音)
+  const lootFxSeen = new Set<number>();
+  const fadingLootLabels: { label: Text; life: number; max: number }[] = [];
 
   function actorKind(e: Entity): ActorKind {
     if (e.kind === 'player') return 'humanoid';
@@ -568,6 +582,39 @@ async function main() {
     }
   }
 
+  function syncLootFx(): void {
+    for (const fx of game.lootFx) {
+      if (lootFxSeen.has(fx.id)) continue;
+      lootFxSeen.add(fx.id);
+      const s = gridToScreen(fx.pos);
+      const col = RARITY_COLOR[fx.rarity] ?? 0xc8c8c8;
+      const premium = fx.rarity === 'rare' || fx.rarity === 'set' || fx.rarity === 'unique';
+      const beamH = fx.rarity === 'unique' ? 96 : fx.rarity === 'set' ? 82 : fx.rarity === 'rare' ? 66 : 38;
+      const life = premium ? 1.35 : 0.72;
+      const beam = new Graphics()
+        .poly([-10, 2, -3, -beamH, 3, -beamH, 10, 2])
+        .fill({ color: col, alpha: premium ? 0.2 : 0.08 })
+        .moveTo(0, -beamH).lineTo(0, 2)
+        .stroke({ color: col, width: premium ? 2.5 : 1.2, alpha: 0.95 });
+      beam.position.set(s.x, s.y);
+      beam.zIndex = 1e8;
+      particleLayer.addChild(beam);
+      particles.push({ g: beam, vx: 0, vy: -3, life: 0, max: life, grav: 0 });
+      ring(s.x, s.y, col, premium ? 30 : 18);
+      if (premium) {
+        const label = new Text({
+          text: fx.name,
+          style: { fontFamily: 'Georgia,serif', fontSize: 13, fill: col, stroke: { color: 0x090503, width: 4 }, fontWeight: '700' },
+        });
+        label.anchor.set(0.5, 1);
+        label.position.set(s.x, s.y - 18);
+        label.zIndex = 1e9;
+        particleLayer.addChild(label);
+        fadingLootLabels.push({ label, life, max: life });
+      }
+    }
+  }
+
   function syncMerc(): void {
     mercLayer.removeChildren();
     const m = game.merc;
@@ -628,9 +675,21 @@ async function main() {
         // 霜迹拖尾
         g.circle(-nx * 8, -ny * 8, 4).fill({ color: 0x8fd6ff, alpha: 0.4 });
       } else if (m.kind === 'nova' || m.kind === 'bolt') {
-        // 闪电: 黄色小球 + 电光
-        g.circle(0, 0, 6).fill({ color: 0xffff40 }).stroke({ color: 0xffcc00, width: 1 });
-        g.circle(-nx * 7, -ny * 7, 4).fill({ color: 0xffee00, alpha: 0.5 });
+        const type = m.dmg[0]?.type ?? 'lightning';
+        g.rotation = angle;
+        if (type === 'poison') {
+          g.ellipse(0, 0, 10, 5).fill({ color: 0x9fdd55 }).stroke({ color: 0x29451c, width: 1.4 });
+          g.circle(-8, 1, 3.5).fill({ color: 0x5f8f35, alpha: 0.7 });
+          g.circle(-14, -1, 2.3).fill({ color: 0xb9ef68, alpha: 0.42 });
+        } else if (type === 'magic') {
+          g.poly([11, 0, 2, 5, -7, 0, 2, -5]).fill({ color: 0xe1c2ff }).stroke({ color: 0x6e3b9c, width: 1.4 });
+          g.moveTo(-6, 0).lineTo(-20, 0).stroke({ color: 0xb06cff, width: 3, alpha: 0.38 });
+        } else {
+          g.moveTo(-13, 4).lineTo(-5, -4).lineTo(0, 3).lineTo(7, -5).lineTo(14, 0)
+            .stroke({ color: 0xffffff, width: 2.2, alpha: 0.96 });
+          g.moveTo(-15, 5).lineTo(-7, -3).lineTo(-2, 4).lineTo(5, -4).lineTo(12, 1)
+            .stroke({ color: m.color, width: 5, alpha: 0.48 });
+        }
       } else {
         // 默认: 简单圆
         const rad = 5;
@@ -1060,6 +1119,7 @@ async function main() {
       syncCorpses();
       syncGold();
       syncGroundItems();
+      syncLootFx();
       syncSwings();
       syncMissiles();
       syncMerc();

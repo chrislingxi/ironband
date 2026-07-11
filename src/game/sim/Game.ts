@@ -103,6 +103,13 @@ export interface GroundItem {
   pos: Vec2;
   item: ItemInstance;
 }
+export interface LootFx {
+  id: number;
+  pos: Vec2;
+  name: string;
+  rarity: ItemInstance['rarity'];
+  ageMs: number;
+}
 export interface Swing {
   pos: Vec2;
   facing: number;
@@ -120,6 +127,7 @@ export class Game {
   corpses: Corpse[] = [];
   gold: GoldDrop[] = [];
   groundItems: GroundItem[] = []; // 地面掉落
+  lootFx: LootFx[] = []; // 自动拾取后仍保留的短时掉落展示
   inventory: ItemInstance[] = []; // 背包 (单格)
   invCap = 32;
   stash: ItemInstance[] = []; // 共享仓库 (营地存取, 随角色存档)
@@ -241,6 +249,7 @@ export class Game {
     this.corpses = [];
     this.gold = [];
     this.groundItems = [];
+    this.lootFx = [];
     this.swings = [];
     this.missiles = [];
     const bossDefId = BOSS_AREAS[this.currentArea.id];
@@ -887,6 +896,14 @@ export class Game {
             pos: { x: e.pos.x + off(), y: e.pos.y + off() },
             item,
           });
+          const ground = this.groundItems[this.groundItems.length - 1];
+          this.lootFx.push({
+            id: ground.id,
+            pos: { ...ground.pos },
+            name: item.identified ? item.name : `未鉴定的${item.base.name}`,
+            rarity: item.rarity,
+            ageMs: 0,
+          });
         }
       }
     }
@@ -895,6 +912,8 @@ export class Game {
     // ----- 尸体老化 (供萨满复活的窗口期后消失) -----
     for (const c of this.corpses) c.ageMs += dt * 1000;
     this.corpses = this.corpses.filter((c) => c.ageMs < 12000);
+    for (const fx of this.lootFx) fx.ageMs += dt * 1000;
+    this.lootFx = this.lootFx.filter((fx) => fx.ageMs < 1450);
 
     // ----- 挥砍弧光老化 -----
     for (const s of this.swings) s.ageMs += dt * 1000;

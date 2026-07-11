@@ -2,9 +2,9 @@
 
 ## Combat FX And Town Services Gate
 
-- [ ] Amazon projectile reads as an arrow at mobile game scale.
-- [ ] Elemental impact color and silhouette differ by damage type.
-- [ ] Identified rare/set/unique ground items show beam, halo and name.
+- [x] Amazon projectile reads as an arrow at mobile game scale.
+- [x] Elemental impact color and silhouette differ by damage type.
+- [x] Rare/set/unique drops show a persistent beam, halo and name even when auto-pickup fires in the same simulation frame.
 - [x] Forge/shop/heal/identify icons load as 256px PNG assets without fallback glyphs.
 - [x] Town tabs fit at 390px CSS width without horizontal overflow.
 
@@ -117,3 +117,11 @@ Known remaining art gaps:
 - iPhone landscape 844x390: inventory and skill tree filled the viewport without trapping the player; both close controls remained reachable and worked.
 - Browser warnings/errors: none.
 - Online GitHub Pages verification: passed at `c58ca13` after fixing stale browser asset caching and the 0.9s large-art timeout. Portrait loaded painted tiles plus full character/NPC art with zero overflow or console errors; landscape inventory stayed bounded with a reachable close control.
+
+## 2026-07-11 Combat Readability QA Record
+
+- Arrow rendering uses a 45px directional silhouette with shaft, head, fletching and elemental edge light instead of a generic projectile diamond.
+- Lightning, poison and magic bolts now use separate zig-zag, globule and rune-shard silhouettes; fire and cold retain their own ball and crystal language.
+- Loot presentation is decoupled from inventory pickup. Premium beams, ground halos and labels remain visible for 1.35 seconds after the item enters the bag.
+- Portrait 390x844 and landscape 844x390 browser checks remained horizontally bounded; the landscape inventory covered the viewport without browser overflow or navigation interception.
+- Full self-test: 46 files, 198 tests passed, including UI and mobile zoom gates.

@@ -59,6 +59,22 @@ describe('无头一局 · 核心玩法不变量', () => {
     expect(g.groundItems.find((gi) => gi.id === 9991)).toBeUndefined();
   });
 
+  it('自动拾取不会吞掉掉落演出: 战利品展示至少保留一秒', () => {
+    const g = new Game(7, 'amazon');
+    g.loadArea(FIELDS);
+    const target = g.monsters[0];
+    target.dead = true;
+    step(g, 1);
+    expect(g.groundItems).toHaveLength(0);
+    expect(g.lootFx.length).toBeGreaterThan(0);
+    const firstFxId = g.lootFx[0].id;
+    expect(g.lootFx[0].ageMs).toBeLessThan(100);
+    step(g, 60);
+    expect(g.lootFx.some((fx) => fx.id === firstFxId)).toBe(true);
+    step(g, 40);
+    expect(g.lootFx.some((fx) => fx.id === firstFxId)).toBe(false);
+  });
+
   it('一键穿戴: 背包有可穿装备时至少装上一件', () => {
     const g = new Game(7, 'barbarian');
     for (let i = 0; i < 8; i++) { const it = generateItem(8, mulberry32(100 + i)); it.identified = true; g.inventory.push(it); }
