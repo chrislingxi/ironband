@@ -1,5 +1,11 @@
 # V4 Release Notes
 
+## Runtime Art Budget And QA Capture Pass
+
+- Preserved full-resolution class, Boss and camp-prop masters under `art_source/v4/runtime` while limiting mobile runtime copies to a 768px longest edge.
+- Reduced each deployed runtime asset tree from roughly 47 MB to 34 MB without lowering any asset below its actual display requirement.
+- Added a 38 MiB regression ceiling and deterministic promotion of title, gameplay, inventory and skill-tree device screenshots into `docs/screenshots/v4`.
+
 ## Actor Motion And Boss Telegraph Pass
 
 - Added restrained stride weight, attack compression, directional torso rotation and hit jolt to authored single-frame actor art.

@@ -1,13 +1,28 @@
 import { chromium } from 'playwright-core';
-import { existsSync, cpSync, mkdirSync, rmSync } from 'node:fs';
-
-const URL = 'file://' + process.cwd() + '/dist/web/index.html';
+import { existsSync, cpSync, mkdirSync, readFileSync, rmSync } from 'node:fs';
+import { createServer } from 'node:http';
+import { extname, resolve } from 'node:path';
 
 if (existsSync(process.cwd() + '/dist/assets')) {
   mkdirSync(process.cwd() + '/dist/web', { recursive: true });
   rmSync(process.cwd() + '/dist/web/assets', { recursive: true, force: true });
   cpSync(process.cwd() + '/dist/assets', process.cwd() + '/dist/web/assets', { recursive: true });
 }
+const WEB_ROOT = resolve(process.cwd(), 'dist/web');
+const MIME = { '.html': 'text/html; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg' };
+const server = createServer((req, res) => {
+  const requested = decodeURIComponent((req.url || '/').split('?')[0]);
+  const file = resolve(WEB_ROOT, requested === '/' ? 'index.html' : requested.replace(/^\/+/, ''));
+  if (!file.startsWith(WEB_ROOT)) { res.writeHead(403); res.end(); return; }
+  try {
+    res.writeHead(200, { 'Content-Type': MIME[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
+    res.end(readFileSync(file));
+  } catch { res.writeHead(404); res.end(); }
+});
+await new Promise((resolveListen) => server.listen(0, '127.0.0.1', resolveListen));
+const address = server.address();
+if (!address || typeof address === 'string') throw new Error('Unable to start mobile selftest server');
+const URL = `http://127.0.0.1:${address.port}/`;
 
 const chromeCandidates = [
   process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
@@ -68,6 +83,7 @@ if (guardReport.scrollX !== 0 || guardReport.scrollY !== 0) findings.push(`page 
 if (guardReport.visualScale !== 1) findings.push(`visualViewport scale is ${guardReport.visualScale}`);
 
 await browser.close();
+await new Promise((resolveClose) => server.close(resolveClose));
 
 if (findings.length) {
   console.log('移动端防缩放自测失败:\n' + findings.map((f) => ' - ' + f).join('\n'));

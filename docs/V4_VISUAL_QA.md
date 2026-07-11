@@ -140,3 +140,12 @@ Known remaining art gaps:
 - Barbarian overhead axe and Sorceress forward sigil remain readable when mirrored and reduced to mobile actor scale.
 - Common monsters now carry visible stride weight, attack compression and short hit-jolt motion even when only one authored PNG frame exists.
 - All five act Bosses display a pulsing ground warning during their attack window without changing the simulation hit timing.
+
+## 2026-07-11 Release Candidate Performance And Capture Record
+
+- Full-resolution class, late-act Boss and camp-prop sources are retained under `art_source/v4/runtime`; deployed copies are capped at a 768px longest edge.
+- Each runtime asset tree decreased from roughly 47 MB to 34 MB and is guarded by a 38 MiB automated ceiling.
+- UI and mobile self-tests now serve the production build over localhost, matching GitHub Pages origin behavior and preventing false `file://` texture results.
+- Fixed the local QA texture path so Pixi and DOM assets share the same `Image -> Texture` loading route; real character, NPC, prop and tile art is now visible in deterministic captures.
+- Seven reproducible title, camp, combat, inventory and skill screenshots are committed under `docs/screenshots/v4` at portrait and landscape phone sizes.
+- Complete logic suite: 46 files, 201 tests passed. Mobile zoom, fixed-body viewport and safe-area gates passed independently.

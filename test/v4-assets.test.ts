@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const REQUIRED_ASSETS = [
@@ -138,6 +138,15 @@ const REQUIRED_ASSETS = [
   'art_source/v4/char/amazon_attack_source.png',
   'art_source/v4/char/barbarian_attack_source.png',
   'art_source/v4/char/sorceress_attack_source.png',
+  'art_source/v4/runtime/amazon_portrait_source.png',
+  'art_source/v4/runtime/barbarian_portrait_source.png',
+  'art_source/v4/runtime/sorceress_portrait_source.png',
+  'art_source/v4/runtime/mephisto_source.png',
+  'art_source/v4/runtime/diablo_source.png',
+  'art_source/v4/runtime/baal_source.png',
+  'art_source/v4/runtime/campfire_source.png',
+  'art_source/v4/runtime/exit_gate_source.png',
+  'art_source/v4/runtime/blacksmith_anvil_source.png',
   'assets/prop/campfire.png',
   'assets/prop/exit_gate.png',
   'assets/prop/blacksmith_anvil.png',
@@ -372,5 +381,26 @@ describe('V4 visual asset pack', () => {
       expect(dev.readUInt32BE(20)).toBe(128);
       expect(dev[25]).toBe(6);
     }
+  });
+
+  it('keeps large runtime art inside the mobile delivery budget', () => {
+    const groups = {
+      char: ['amazon', 'barbarian', 'sorceress'],
+      mon: ['mephisto', 'diablo', 'baal'],
+      prop: ['campfire', 'exit_gate', 'blacksmith_anvil'],
+    };
+    for (const [category, names] of Object.entries(groups)) {
+      for (const name of names) {
+        const dev = readFileSync(`assets/${category}/${name}.png`);
+        const pages = readFileSync(`public/assets/${category}/${name}.png`);
+        expect(dev.equals(pages), `${category}/${name} copies should be identical`).toBe(true);
+        expect(Math.max(dev.readUInt32BE(16), dev.readUInt32BE(20)), `${category}/${name} longest edge`).toBeLessThanOrEqual(768);
+      }
+    }
+    const bytes = (dir: string): number => readdirSync(dir, { withFileTypes: true }).reduce((sum: number, entry) => {
+      const path = `${dir}/${entry.name}`;
+      return sum + (entry.isDirectory() ? bytes(path) : statSync(path).size);
+    }, 0);
+    expect(bytes('public/assets'), 'Pages runtime asset pack should stay below 38 MiB').toBeLessThan(38 * 1024 * 1024);
   });
 });

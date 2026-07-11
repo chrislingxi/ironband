@@ -1,4 +1,4 @@
-import { Assets, Texture, type Texture as PixiTexture } from 'pixi.js';
+import { Texture, type Texture as PixiTexture } from 'pixi.js';
 import { assetUrl } from '@engine/assets/url.ts';
 
 // ── 资产覆盖式加载器 ──
@@ -31,13 +31,12 @@ const PRIMARY_ASSET_TIMEOUT_MS = 6_500;
 const OPTIONAL_OVERRIDE_TIMEOUT_MS = 1_200;
 
 async function loadTextureCandidate(url: string): Promise<PixiTexture | null> {
+  let effectiveUrl = url;
   if (typeof location !== 'undefined' && location.protocol === 'file:') {
     if (url.includes('/extracted/') || url.includes('/v4-dark/') || !url.startsWith('assets/')) return null;
-    try {
-      return (await Assets.load(url)) as PixiTexture;
-    } catch {
-      return null;
-    }
+    // Chromium file loading treats a cache query as part of the filename.
+    // HTTP needs the revision token; deterministic local QA needs the real path.
+    effectiveUrl = url.split('?')[0];
   }
   if (typeof Image === 'undefined') return Promise.resolve(null);
   const img = await new Promise<HTMLImageElement | null>((resolve) => {
@@ -53,7 +52,7 @@ async function loadTextureCandidate(url: string): Promise<PixiTexture | null> {
       globalThis.clearTimeout(timer);
       resolve(null);
     };
-    img.src = url;
+    img.src = effectiveUrl;
   });
   return img ? Texture.from(img, true) : null;
 }
