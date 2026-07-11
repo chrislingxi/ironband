@@ -247,3 +247,11 @@ UI 是厚重暗黑金属 + 羊皮纸信息层，不做赛博霓虹、不做玻�
 - 图标 atlas、粒子 atlas、UI atlas 压缩和命名整理。
 - 视觉 QA 自动化截图清单固定。
 - 验收：可用于对外展示，但所有资产仍保持原创、不碰 IP 风险。
+
+## 12. V4 Closure Record
+
+- Phase 0: completed through deterministic title, camp and combat captures plus the locked palette, icon frame and black-iron panel system.
+- Phase 1: completed through three-class authored art, 67 skill icons, common-monster PNGs, element-specific FX, painted ground, loot beams and mobile-readable HUD.
+- Phase 2: completed through six NPCs, service crests, unified operational panels, item/rarity frames and authored camp props.
+- Phase 3: completed through equal class attack-pose coverage, monster presentation motion, five original Boss identities, distinct element behavior, warning telegraphs and the Shattered Crown arena anchor.
+- Phase 4: completed through seven committed device captures, a reproducible screenshot pipeline, 34 MB runtime pack, 38 MiB budget gate and deterministic localhost QA. A monolithic atlas was intentionally not shipped because the override contract and lazy area loading require independently replaceable assets; the measured budget and cache revision gate are the release invariant.

@@ -7,7 +7,7 @@ const pd = <T,>(n: T, nm: T, h: T) => ({ normal: n, nightmare: nm, hell: h });
 
 export const BAAL: MonStat = {
   id: 'baal',
-  name: '巴尔',
+  name: '腐冠之王',
   sprite: 'baal',
   ai: 'boss',
   level: pd(45, 75, 105),

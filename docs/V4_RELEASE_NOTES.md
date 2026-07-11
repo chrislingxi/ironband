@@ -1,5 +1,17 @@
 # V4 Release Notes
 
+## Shattered Crown Boss Arena Pass
+
+- Added an original 512px Shattered Crown ritual altar with preserved source provenance and mirrored runtime/Page assets.
+- Placed the altar beneath the encounter center of all five Boss arenas, behind actors and warning effects.
+- Kept the altar neutral black-iron/basalt while each Boss retains a distinct element palette, silhouette and telegraph pattern.
+
+## Original Five-Act Boss Identity Pass
+
+- Retained internal Boss ids for save compatibility while replacing every player-facing borrowed name with an original Ironband identity.
+- Added Bloodroot Matriarch, Iron Jailer, Hollow Prophet, Cinderhorn Tyrant and Plague-Crown King with original Chinese arena and quest language.
+- Added regression coverage preventing legacy Boss and arena names from returning to player-facing data.
+
 ## Runtime Art Budget And QA Capture Pass
 
 - Preserved full-resolution class, Boss and camp-prop masters under `art_source/v4/runtime` while limiting mobile runtime copies to a 768px longest edge.

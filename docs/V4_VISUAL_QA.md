@@ -83,12 +83,12 @@ Then do a browser smoke check against the built page or local dev server:
 - Camp NPC PNG route exists online.
 - First-run coach no longer overlaps the four skill buttons in mobile portrait.
 
-Known remaining art gaps:
+Historical foundation gaps and their V4 closure:
 
-- `assets/v4-dark/` path is ready, but the first external override pack is not yet populated.
+- `assets/v4-dark/` remains an optional user override path; shipped V4 art lives in the primary `assets/` contract and does not depend on an external pack.
 - Title-screen Barbarian/Amazon/Sorceress class portraits now use full-body V4 dark fantasy PNGs instead of Q-style chibi art.
 - Wilderness, town, desert, hell, and snow now use painted 768x768 source textures projected into seamless 256x128 RGBA isometric tiles by `npm run assets:v4-tiles`.
-- All five act bosses now resolve to V4 transparent PNG boss art and keep distinct runtime subKinds; next upgrade is directional/attack animation.
+- All five act bosses resolve to distinct V4 transparent PNG art, original player-facing identities, arena altar anchors and attack telegraphs.
 - Runtime player and camp NPC PNGs are larger than the old procedural markers, reducing the title-to-combat quality drop.
 - Rogue Encampment now has V4 campfire, exit gate, and blacksmith workstation props as low-risk scene anchors.
 - Skill icon coverage is complete for the current data set: all 67 current class skill definitions now route to bespoke V4 PNG icons.
@@ -106,7 +106,7 @@ Known remaining art gaps:
 - Title screen now uses a full-screen dark gothic cathedral-gate PNG background.
 - Short landscape play now uses a compact bottom utility row and matching joystick dead zone.
 - Global `ui/panel.png` and `ui/btn_frame.png` now use darker black-iron V4 material art.
-- Character, NPC, and monster runtime art is single-frame PNG, not directional animation sheets.
+- Common single-frame monster art now has presentation stride, attack compression and hit jolt; all three player classes have dedicated attack poses. Full directional atlases remain a post-V4 expansion.
 
 ## 2026-07-11 Painted Environment QA Record
 

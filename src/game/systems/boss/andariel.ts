@@ -10,7 +10,7 @@ const pd = <T,>(n: T, nm: T, h: T) => ({ normal: n, nightmare: nm, hell: h });
 // 巢穴 Boss 主数据. 高血量、毒系为主、慢但范围大、毒抗极高.
 export const ANDARIEL: MonStat = {
   id: 'andariel',
-  name: '安达莉尔',
+  name: '血根主母',
   sprite: 'andariel',
   ai: 'boss',
   // 区域怪物等级之上, 体现 Boss 威胁.

@@ -75,7 +75,7 @@ export const ACT5_AREAS: Record<string, LevelDef> = {
   // 世界石要塞 — 终极 Boss 巴尔, 全游戏终点
   worldstone_keep: {
     id: 'worldstone_keep',
-    name: '世界石要塞',
+    name: '腐冠天阶',
     act: 5,
     monLevel: ml(55, 82, 115),
     monsters: ['brute', 'skeleton'],

@@ -153,6 +153,9 @@ const REQUIRED_ASSETS = [
   'public/assets/prop/campfire.png',
   'public/assets/prop/exit_gate.png',
   'public/assets/prop/blacksmith_anvil.png',
+  'art_source/v4/props/ritual_altar_source.png',
+  'assets/prop/ritual_altar.png',
+  'public/assets/prop/ritual_altar.png',
   'assets/mon/mephisto.png',
   'assets/mon/diablo.png',
   'assets/mon/baal.png',
@@ -402,5 +405,13 @@ describe('V4 visual asset pack', () => {
       return sum + (entry.isDirectory() ? bytes(path) : statSync(path).size);
     }, 0);
     expect(bytes('public/assets'), 'Pages runtime asset pack should stay below 38 MiB').toBeLessThan(38 * 1024 * 1024);
+  });
+
+  it('keeps the original Boss altar mirrored and alpha-enabled', () => {
+    const dev = readFileSync('assets/prop/ritual_altar.png');
+    expect(dev.equals(readFileSync('public/assets/prop/ritual_altar.png'))).toBe(true);
+    expect(dev.readUInt32BE(16)).toBe(512);
+    expect(dev.readUInt32BE(20)).toBe(512);
+    expect(dev[25]).toBe(6);
   });
 });

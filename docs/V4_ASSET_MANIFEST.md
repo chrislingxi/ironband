@@ -205,6 +205,8 @@ V4 2026-07-11 已建立 `art_source/v4/tiles/<name>_source.png` 母材层，并�
 
 ## 10. 生产批次
 
+V4 closure status: Batch A-D are release-complete for the current vertical slice. Where the manifest used a future-facing filename (`*_portrait`, individual FX sprites, or `panel_9slice`), the shipped runtime uses the same authored class PNG at both scales, Pixi staged effects following the specified color/shape timing, and the authored stretch-safe `ui/panel.png`. These are deliberate runtime implementations, not missing placeholders.
+
 ### Batch A：V4 首五分钟换脸
 
 - `char/amazon_portrait.png`

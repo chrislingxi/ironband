@@ -153,6 +153,7 @@ async function main() {
   const tileTextures = new Map<string, Texture | null>();
   const propTextures = new Map<string, Texture | null>();
   const npcTextures = new Map<string, Texture | null>();
+  const BOSS_AREA_IDS = new Set(['andariel_lair', 'tal_rasha_tomb', 'durance_of_hate', 'chaos_sanctuary', 'worldstone_keep']);
   let npcMarkers: { name: string; greeting: string; role: NpcRole; x: number; y: number }[] = [];
 
   function addCampProp(key: string, x: number, y: number, targetH: number): void {
@@ -166,6 +167,8 @@ async function main() {
       holder.addChild(new Graphics().ellipse(0, -targetH * 0.25, targetH * 0.42, targetH * 0.2).fill({ color: 0x4cc8ff, alpha: 0.16 }));
     } else if (key === 'blacksmith_anvil') {
       holder.addChild(new Graphics().ellipse(targetH * 0.2, -targetH * 0.18, targetH * 0.28, targetH * 0.16).fill({ color: 0xff6a22, alpha: 0.14 }));
+    } else if (key === 'ritual_altar') {
+      holder.addChild(new Graphics().ellipse(0, -targetH * 0.18, targetH * 0.46, targetH * 0.2).fill({ color: 0xb92318, alpha: 0.2 }));
     }
     const sp = new Sprite(tex);
     sp.anchor.set(0.5, 0.86);
@@ -225,13 +228,16 @@ async function main() {
         npcLayer.addChild(g, t);
       });
     }
+    if (BOSS_AREA_IDS.has(a.id)) {
+      addCampProp('ritual_altar', a.size[0] / 2, a.size[1] / 2 + 1.5, 210);
+    }
   }
   // 静态美术后台加载: 首屏不能因为某张图慢/缺失而黑屏。纹理到达后强制下帧重建当前区域。
   void Promise.all(
     ['wilderness', 'town', 'desert', 'hell', 'snow'].map(async (t) => tileTextures.set(t, await tryLoadTexture(`tile/${t}`))),
   ).then(() => { lastAreaId = ''; });
   void Promise.all(
-    ['campfire', 'exit_gate', 'blacksmith_anvil'].map(async (p) => propTextures.set(p, await tryLoadTexture(`prop/${p}`))),
+    ['campfire', 'exit_gate', 'blacksmith_anvil', 'ritual_altar'].map(async (p) => propTextures.set(p, await tryLoadTexture(`prop/${p}`))),
   ).then(() => { lastAreaId = ''; });
   void Promise.all(NPCS.map(async (npc) => npcTextures.set(npc.id, await tryLoadTexture(`npc/${npc.id}`))))
     .then(() => { lastAreaId = ''; });
@@ -963,7 +969,6 @@ async function main() {
     'width:118px;height:84px;border:1.5px solid #6a5a3a;background:#0009;border-radius:8px;pointer-events:auto;z-index:35;box-shadow:0 3px 8px #000a;';
   document.body.appendChild(mm);
   // 点击小地图 → 展开世界地图 (关卡链路 + 航点传送)
-  const BOSS_AREA_IDS = new Set(['andariel_lair', 'tal_rasha_tomb', 'durance_of_hate', 'chaos_sanctuary', 'worldstone_keep']);
   const worldMap = new WorldMapPanel((id) => { game.loadArea(id); worldMap.hide(); paused = false; }, () => { paused = false; });
   function worldAreas(): WorldArea[] {
     return Object.keys(AREAS).map((id) => {
