@@ -138,3 +138,5 @@ Known remaining art gaps:
 - Amazon, Barbarian and Sorceress each have a dedicated 512x768 transparent attack pose with a complete weapon silhouette and bottom-center foot anchor.
 - Runtime pose swapping uses the existing attack cooldown window only; combat timing, damage and collision remain unchanged.
 - Barbarian overhead axe and Sorceress forward sigil remain readable when mirrored and reduced to mobile actor scale.
+- Common monsters now carry visible stride weight, attack compression and short hit-jolt motion even when only one authored PNG frame exists.
+- All five act Bosses display a pulsing ground warning during their attack window without changing the simulation hit timing.

@@ -1,5 +1,11 @@
 # V4 Release Notes
 
+## Actor Motion And Boss Telegraph Pass
+
+- Added restrained stride weight, attack compression, directional torso rotation and hit jolt to authored single-frame actor art.
+- Added a pulsing red-orange ground telegraph during every act Boss attack window.
+- Kept all transforms presentation-only; entity positions, hitboxes, cooldowns and damage remain controlled by the simulation.
+
 ## Three-Class Attack Pose Pass
 
 - Added identity-preserving attack sprites for Barbarian and Sorceress alongside the existing Amazon bow draw.

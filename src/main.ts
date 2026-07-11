@@ -408,6 +408,15 @@ async function main() {
       nm.anchor.set(0.5, 1); nm.position.set(0, -e.size * 2.1 - 12);
       c.addChild(nm);
     }
+    if (e.defId === 'andariel' || e.defId === 'duriel' || e.defId === 'mephisto' || e.defId === 'diablo' || e.defId === 'baal') {
+      const warning = new Graphics()
+        .ellipse(0, e.size * 0.55, e.size * 2.35, e.size * 1.18)
+        .fill({ color: 0x8f1512, alpha: 0.14 })
+        .stroke({ color: 0xff7b48, width: 3, alpha: 0.9 });
+      warning.label = 'bossWarning';
+      warning.visible = false;
+      c.addChildAt(warning, 0);
+    }
     // 血条 (受伤才显). 顶部偏移随体型放大 (真图身高≈size×2.6·脚锚0.82 → 顶约 -size×2.13), 放大后血条/名牌仍在头顶上方。
     const topY = -e.size * 2.1 - 8;
     const hpbg = new Graphics().rect(-14, topY, 28, 4).fill({ color: 0x000000, alpha: 0.6 });
@@ -426,17 +435,18 @@ async function main() {
     c.position.set(s.x, s.y);
     c.zIndex = depthKey(e.pos);
     const actor = actors.get(e.id);
+    const playerClass = game.character.cls as CharClass;
+    const attackWindow = e.kind === 'player'
+      ? playerClass === 'amazon' ? 0.3 : playerClass === 'sorceress' ? 0.28 : 0.24
+      : e.defId === 'andariel' || e.defId === 'duriel' || e.defId === 'mephisto' || e.defId === 'diablo' || e.defId === 'baal' ? 0.36 : 0.18;
+    const attacking = e.attackInterval > 0 && e.attackCd > e.attackInterval - attackWindow;
     if (actor) {
       // 朝向是格子空间角; 投到屏幕空间(等距 2:1)再给精灵, 这样倾身/朝向尖角指向"看着的方向"而非格子方向
       const fd = gridToScreen({ x: Math.cos(e.facing), y: Math.sin(e.facing) });
-      const playerClass = game.character.cls as CharClass;
-      const attackWindow = e.kind === 'player'
-        ? playerClass === 'amazon' ? 0.3 : playerClass === 'sorceress' ? 0.28 : 0.24
-        : 0.18;
       actor.update({
         facing: Math.atan2(fd.y, fd.x),
         moving: e.moving,
-        attacking: e.attackInterval > 0 && e.attackCd > e.attackInterval - attackWindow,
+        attacking,
         flash: e.hitFlash > 0 ? Math.min(1, e.hitFlash) : 0,
         timeMs: performance.now(),
       });
@@ -451,6 +461,13 @@ async function main() {
     // Elite 光环脉冲
     const ring = c.getChildByLabel('eliteRing') as Graphics | null;
     if (ring) ring.alpha = 0.55 + 0.45 * Math.abs(Math.sin(performance.now() / 400));
+    const bossWarning = c.getChildByLabel('bossWarning') as Graphics | null;
+    if (bossWarning) {
+      bossWarning.visible = attacking;
+      const pulse = 0.88 + Math.sin(performance.now() / 70) * 0.12;
+      bossWarning.scale.set(pulse);
+      bossWarning.alpha = attacking ? 0.72 + Math.sin(performance.now() / 55) * 0.2 : 0;
+    }
   }
 
     // 元素飘字配色 (与投射物 missileColor 同系)
