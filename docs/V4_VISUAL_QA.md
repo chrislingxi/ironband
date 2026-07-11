@@ -125,3 +125,10 @@ Known remaining art gaps:
 - Loot presentation is decoupled from inventory pickup. Premium beams, ground halos and labels remain visible for 1.35 seconds after the item enters the bag.
 - Portrait 390x844 and landscape 844x390 browser checks remained horizontally bounded; the landscape inventory covered the viewport without browser overflow or navigation interception.
 - Full self-test: 46 files, 198 tests passed, including UI and mobile zoom gates.
+
+## 2026-07-11 UI Material Kit QA Record
+
+- Black-iron empty/equipped slots and common/magic/rare/unique frames are authored RGBA PNGs, mirrored byte-for-byte between dev and Pages paths.
+- Cooldown mask and burn/freeze/poison/bleed status icons share the same worn-metal frame, light direction and mobile-readable contrast.
+- Landscape 844x390 inventory loaded the authored slot URLs, stayed exactly viewport-bounded and kept all equipment labels readable.
+- Static asset revision advanced to `20260711-v4-ui-kit` so iOS Safari and GitHub Pages cannot reuse the older painted-environment cache entries.

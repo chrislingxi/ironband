@@ -12,6 +12,7 @@
     "assets:v4-tiles": "node scripts/gen-v4-tiles.mjs",
     "assets:v4-barbarian-icons": "node scripts/gen-v4-barbarian-icons.mjs",
     "assets:v4-remaining-skill-icons": "node scripts/gen-v4-remaining-skill-icons.mjs",
+    "assets:v4-ui-kit": "node scripts/gen-v4-ui-kit.mjs",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

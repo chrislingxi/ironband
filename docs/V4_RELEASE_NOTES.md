@@ -1,5 +1,11 @@
 # V4 Release Notes
 
+## UI Material Kit - Slots, Rarity And Status Language
+
+- Added a reproducible V4 UI generator for black-iron inventory slots, equipped slots, four rarity frames, a cooldown mask, and burn/freeze/poison/bleed status icons.
+- Connected inventory and HUD cooldown surfaces to the authored PNG kit while preserving existing interaction and cooldown timing.
+- Mirrored every asset into development and GitHub Pages paths and added byte-identity, dimension and alpha-channel regression coverage.
+
 ## Weapon And Defense Loot Expansion
 
 - Added hand-painted transparent icons for hand axe, short sword, mace, double axe, iron skull cap and small heater shield.

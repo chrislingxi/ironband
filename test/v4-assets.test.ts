@@ -224,6 +224,28 @@ const REQUIRED_ASSETS = [
   'public/assets/icon/service_shop.png',
   'public/assets/icon/service_heal.png',
   'public/assets/icon/service_identify.png',
+  'assets/ui/item_slot.png',
+  'assets/ui/item_slot_equipped.png',
+  'assets/ui/rarity_common.png',
+  'assets/ui/rarity_magic.png',
+  'assets/ui/rarity_rare.png',
+  'assets/ui/rarity_unique.png',
+  'assets/ui/cooldown_mask.png',
+  'public/assets/ui/item_slot.png',
+  'public/assets/ui/item_slot_equipped.png',
+  'public/assets/ui/rarity_common.png',
+  'public/assets/ui/rarity_magic.png',
+  'public/assets/ui/rarity_rare.png',
+  'public/assets/ui/rarity_unique.png',
+  'public/assets/ui/cooldown_mask.png',
+  'assets/icon/status_burn.png',
+  'assets/icon/status_freeze.png',
+  'assets/icon/status_poison.png',
+  'assets/icon/status_bleed.png',
+  'public/assets/icon/status_burn.png',
+  'public/assets/icon/status_freeze.png',
+  'public/assets/icon/status_poison.png',
+  'public/assets/icon/status_bleed.png',
   'art_source/v4/items/short_bow_source.png',
   'art_source/v4/items/cap_source.png',
   'art_source/v4/items/buckler_source.png',
@@ -309,6 +331,29 @@ describe('V4 visual asset pack', () => {
       expect(dev.readUInt32BE(16), `${name} item icon width`).toBe(256);
       expect(dev.readUInt32BE(20), `${name} item icon height`).toBe(256);
       expect(dev[25], `${name} item icon should be RGBA`).toBe(6);
+    }
+  });
+
+  it('keeps the V4 UI kit mirrored, correctly sized and alpha-enabled', () => {
+    const ui128 = ['item_slot', 'item_slot_equipped', 'rarity_common', 'rarity_magic', 'rarity_rare', 'rarity_unique'];
+    for (const name of ui128) {
+      const dev = readFileSync(`assets/ui/${name}.png`);
+      const pages = readFileSync(`public/assets/ui/${name}.png`);
+      expect(dev.equals(pages), `${name} UI copies should be identical`).toBe(true);
+      expect(dev.readUInt32BE(16)).toBe(128);
+      expect(dev.readUInt32BE(20)).toBe(128);
+      expect(dev[25]).toBe(6);
+    }
+    const cooldown = readFileSync('assets/ui/cooldown_mask.png');
+    expect(cooldown.equals(readFileSync('public/assets/ui/cooldown_mask.png'))).toBe(true);
+    expect(cooldown.readUInt32BE(16)).toBe(256);
+    expect(cooldown.readUInt32BE(20)).toBe(256);
+    for (const name of ['burn', 'freeze', 'poison', 'bleed']) {
+      const dev = readFileSync(`assets/icon/status_${name}.png`);
+      expect(dev.equals(readFileSync(`public/assets/icon/status_${name}.png`))).toBe(true);
+      expect(dev.readUInt32BE(16)).toBe(128);
+      expect(dev.readUInt32BE(20)).toBe(128);
+      expect(dev[25]).toBe(6);
     }
   });
 });
