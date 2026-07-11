@@ -14,6 +14,12 @@
 - [x] Character header loads the active class PNG without covering level, XP or close controls.
 - [x] Both pages remain horizontally bounded at 390x844 and 844x390.
 
+## First Loot Art Gate
+
+- [x] Short bow, cap, buckler, club, sash and ring load as 256px PNGs in inventory and town commerce.
+- [x] Finished item art and unfinished semantic fallbacks coexist without failed requests, broken-image markers or boot errors.
+- [x] Three-column mobile inventory cells keep icon, name, power delta and wear action legible.
+
 ## Acceptance Bar
 
 The build is acceptable only when a player can open the live GitHub Pages version and immediately see a darker, more premium ARPG presentation without needing to know what changed.

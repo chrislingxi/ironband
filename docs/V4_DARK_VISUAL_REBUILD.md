@@ -57,6 +57,7 @@ Required key families:
 - Removed the global canvas brightness penalty after real-device QA showed it crushed character and NPC midtones.
 - Added a dedicated Amazon bow-draw attack pose so ranged attacks no longer reuse a generic idle/lunge silhouette.
 - Replaced the inventory CSS mannequin with the active class PNG and carried the same class art into the character identity header.
+- Established the base-item icon route and delivered the first six common loot icons across inventory, equipment and town commerce.
 
 ## Next Art Production Queue
 

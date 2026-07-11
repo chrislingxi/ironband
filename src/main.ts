@@ -749,16 +749,16 @@ async function main() {
   function buildTownData(): TownData {
     return {
       gold: game.goldTotal,
-      shop: game.shopStock.map((i) => ({ uid: i.uid, name: i.name, rarity: i.rarity, price: buyPrice(i) })),
+      shop: game.shopStock.map((i) => ({ uid: i.uid, name: i.name, rarity: i.rarity, price: buyPrice(i), sprite: i.base.sprite })),
       inventory: game.inventory.map((i) => ({
         uid: i.uid, name: i.identified ? i.name : i.base.name,
-        rarity: i.identified ? i.rarity : 'normal', sellPrice: sellPrice(i), identified: i.identified,
+        rarity: i.identified ? i.rarity : 'normal', sellPrice: sellPrice(i), identified: i.identified, sprite: i.base.sprite,
       })),
       gambleCost: gambleCost(game.character.level),
       merc: { hired: !!game.merc, dead: !!game.merc?.dead, hireCost: hireCost(), reviveCost: reviveCost(game.merc?.level ?? game.character.level) },
       stash: game.stash.map((i) => ({
         uid: i.uid, name: i.identified ? i.name : i.base.name,
-        rarity: i.identified ? i.rarity : 'normal',
+        rarity: i.identified ? i.rarity : 'normal', sprite: i.base.sprite,
       })),
     };
   }

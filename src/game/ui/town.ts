@@ -1,6 +1,7 @@
 // 营地服务 UI 面板: 商店 / 赌博 / 雇佣兵 / 鉴定 (纯 DOM, 触屏友好, 适配安全区).
 // 哥特风格, 参考 hud.ts / inventory.ts 的 injectStyle 与稀有度配色约定.
 import { iconImg } from './icon.ts';
+import { itemArt } from './itemart.ts';
 
 // 稀有度 -> 颜色 (与 inventory.ts 一致). rarity 以 string 传入, 未知键回退灰色.
 const RARITY_HEX: Record<string, string> = {
@@ -19,11 +20,11 @@ function esc(s: string): string {
 // 营地服务面板的数据快照. 由 main 在打开/刷新时从 game 状态构造并传入.
 export interface TownData {
   gold: number;
-  shop: { uid: number; name: string; rarity: string; price: number }[];
-  inventory: { uid: number; name: string; rarity: string; sellPrice: number; identified: boolean }[];
+  shop: { uid: number; name: string; rarity: string; price: number; sprite: string }[];
+  inventory: { uid: number; name: string; rarity: string; sellPrice: number; identified: boolean; sprite: string }[];
   gambleCost: number;
   merc: { hired: boolean; dead: boolean; hireCost: number; reviveCost: number };
-  stash: { uid: number; name: string; rarity: string }[]; // 仓库内物品
+  stash: { uid: number; name: string; rarity: string; sprite: string }[]; // 仓库内物品
 }
 
 // 回调集合: 各操作连到 game 对应方法.
@@ -79,6 +80,10 @@ function injectStyle(): void {
   #town .list { display:flex; flex-direction:column; gap:7px; }
   #town .row { display:flex; align-items:center; justify-content:space-between; gap:10px;
     padding:9px 12px; border:1px solid #3a3a48; border-radius:7px; background:#16161e; font-size:13px; }
+  #town .row .item-main { min-width:0; display:flex; align-items:center; gap:10px; }
+  #town .row .item-art { flex:none; display:inline-flex; align-items:center; justify-content:center; }
+  #town .row .item-art > img { width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 3px 4px #000c); }
+  #town .row .item-art-fallback { width:100%; height:100%; align-items:center; justify-content:center; }
   #town .row.act:active { transform:scale(.98); background:#1e1e28; }
   #town .row .price { color:#ffd24a; font-weight:700; white-space:nowrap; }
   #town .empty { font-size:12px; opacity:.35; padding:8px 2px; }
@@ -206,7 +211,7 @@ export class TownPanel {
       depo.innerHTML = '<div class="empty">背包空空。</div>';
     } else {
       for (const it of d.inventory) {
-        depo.appendChild(this.makeRow(it.name, it.rarity, '存入 ⇩', () => this.cb.onDeposit(it.uid)));
+        depo.appendChild(this.makeRow(it.name, it.rarity, '存入 ⇩', () => this.cb.onDeposit(it.uid), it.sprite));
       }
     }
     this.bodyEl.appendChild(depo);
@@ -220,18 +225,19 @@ export class TownPanel {
       list.innerHTML = '<div class="empty">仓库是空的。</div>';
     } else {
       for (const it of d.stash) {
-        list.appendChild(this.makeRow(it.name, it.rarity, '取出 ⇧', () => this.cb.onWithdraw(it.uid)));
+        list.appendChild(this.makeRow(it.name, it.rarity, '取出 ⇧', () => this.cb.onWithdraw(it.uid), it.sprite));
       }
     }
     this.bodyEl.appendChild(list);
   }
 
   // 一行: 物品名(稀有度配色) + 右侧价格. act=true 时可点击.
-  private makeRow(name: string, rarity: string, priceLabel: string, onTap?: () => void): HTMLElement {
+  private makeRow(name: string, rarity: string, priceLabel: string, onTap?: () => void, sprite?: string): HTMLElement {
     const row = document.createElement('div');
     row.className = onTap ? 'row act' : 'row';
+    const art = sprite ? itemArt(sprite, iconImg('bag', '▣', 24), 38) : '';
     row.innerHTML =
-      `<span style="color:${rarityHex(rarity)}">${esc(name)}</span>` +
+      `<span class="item-main">${art}<span style="color:${rarityHex(rarity)}">${esc(name)}</span></span>` +
       `<span class="price">${esc(priceLabel)}</span>`;
     if (onTap) {
       row.addEventListener('pointerdown', (e) => {
@@ -252,7 +258,7 @@ export class TownPanel {
       buyList.innerHTML = '<div class="empty">货架空空如也。</div>';
     } else {
       for (const it of d.shop) {
-        buyList.appendChild(this.makeRow(it.name, it.rarity, `⦿ ${it.price}`, () => this.cb.onBuy(it.uid)));
+        buyList.appendChild(this.makeRow(it.name, it.rarity, `⦿ ${it.price}`, () => this.cb.onBuy(it.uid), it.sprite));
       }
     }
     this.bodyEl.appendChild(buyList);
@@ -270,7 +276,7 @@ export class TownPanel {
       sellList.innerHTML = '<div class="empty">背包空空。</div>';
     } else {
       for (const it of d.inventory) {
-        sellList.appendChild(this.makeRow(it.name, it.rarity, `售 ⦿ ${it.sellPrice}`, () => this.cb.onSell(it.uid)));
+        sellList.appendChild(this.makeRow(it.name, it.rarity, `售 ⦿ ${it.sellPrice}`, () => this.cb.onSell(it.uid), it.sprite));
       }
     }
     this.bodyEl.appendChild(sellList);
@@ -346,7 +352,7 @@ export class TownPanel {
     } else {
       for (const it of unidentified) {
         // 未鉴定物品统一以未知色显示, 不泄露真实稀有度.
-        list.appendChild(this.makeRow(it.name, 'normal', '鉴定 ⦿ ' + it.sellPrice, () => this.cb.onIdentify(it.uid)));
+        list.appendChild(this.makeRow(it.name, 'normal', '鉴定 ⦿ ' + it.sellPrice, () => this.cb.onIdentify(it.uid), it.sprite));
       }
     }
     this.bodyEl.appendChild(list);

@@ -7,6 +7,7 @@ import { itemTip, RARITY_HEX, affixText } from '@game/ui/itemtip.ts';
 import { iconImg } from '@game/ui/icon.ts';
 import { itemPower } from '@game/sim/Game.ts';
 import { assetUrl } from '@engine/assets/url.ts';
+import { itemArt } from '@game/ui/itemart.ts';
 
 type ItemLoc = { kind: 'equip'; slot: EquipSlot } | { kind: 'bag'; index: number } | null;
 
@@ -62,6 +63,9 @@ function injectStyle(): void {
     background:linear-gradient(180deg,#1d130eed,#090605f6); box-shadow:inset 0 1px 0 #ffe7a016, 0 8px 18px #0008; }
   #inv .slot.empty { opacity:.58; border-style:dashed; background:linear-gradient(180deg,#120d0aed,#080504f6); }
   #inv .slot .ic { width:24px; height:24px; display:flex; align-items:center; justify-content:center; opacity:.9; }
+  #inv .item-art { flex:none; display:inline-flex; align-items:center; justify-content:center; position:relative; }
+  #inv .item-art > img { width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 3px 4px #000c); }
+  #inv .item-art-fallback { width:100%; height:100%; align-items:center; justify-content:center; }
   #inv .slot .nm { min-width:0; font-size:11px; line-height:1.2; overflow:hidden; }
   #inv .slot .nm b { display:block; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   #inv .slot .nm small { opacity:.55; }
@@ -84,14 +88,17 @@ function injectStyle(): void {
   #inv .cap { font-size:12px; opacity:.65; }
   #inv .runes { font-size:12px; color:#caa24a; }
   #inv .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(104px,1fr)); gap:8px; }
-  #inv .cell { position:relative; min-height:84px; border:1px solid #3a3024; border-radius:7px;
+  #inv .cell { position:relative; min-height:94px; border:1px solid #3a3024; border-radius:7px;
     background:radial-gradient(circle at 50% 20%,#292018,#090706 78%);
-    padding:9px 9px 24px; font-size:12px; box-shadow:inset 0 1px 0 #ffe7a012, 0 8px 18px #0008; overflow:hidden; }
+    display:grid; grid-template-columns:46px minmax(0,1fr); grid-template-rows:auto 1fr; column-gap:7px;
+    padding:8px 8px 24px; font-size:12px; box-shadow:inset 0 1px 0 #ffe7a012, 0 8px 18px #0008; overflow:hidden; }
   #inv .cell::before { content:""; position:absolute; inset:5px; border-radius:5px; border:1px solid #ffffff0a; pointer-events:none; }
   #inv .cell.rarity-magic { border-color:#446aa0; box-shadow:0 0 14px #2f78ff22, inset 0 1px 0 #ffe7a012; }
   #inv .cell.rarity-rare { border-color:#b18a32; box-shadow:0 0 14px #d7a84b24, inset 0 1px 0 #ffe7a012; }
   #inv .cell.rarity-unique { border-color:#b56d35; box-shadow:0 0 16px #d66b2a34, inset 0 1px 0 #ffe7a012; }
-  #inv .cell .nm { display:block; line-height:1.25; max-height:3.75em; overflow:hidden; font-weight:700; text-shadow:0 1px 2px #000; }
+  #inv .cell .item-art { grid-row:1 / span 2; align-self:center; }
+  #inv .cell .nm { display:block; min-width:0; line-height:1.25; max-height:3.75em; overflow:hidden; font-weight:700; text-shadow:0 1px 2px #000; }
+  #inv .cell .meta { min-width:0; align-self:start; }
   #inv .cell .sock { font-size:10px; opacity:.55; }
   #inv .cell .wear { position:absolute; right:6px; bottom:6px; font-size:11px; color:#14200c; border:1px solid #d7c07a; border-radius:4px; padding:0 7px; background:linear-gradient(#d7c07a,#8c6630); font-weight:800; }
   #inv .cell .pw { display:block; font-size:10px; color:#caa24a; margin-top:3px; }
@@ -260,7 +267,7 @@ export class InventoryPanel {
       cell.dataset.slot = slot;
       if (it) {
         const nm = it.identified ? it.name : `${it.base.name}(未鉴)`;
-        cell.innerHTML = `<span class="ic">${slotIcon(slot)}</span><span class="nm" style="color:${RARITY_HEX[it.rarity]}"><b>${nm}</b><small>${SLOT_LABEL[slot]} · 战力 ${itemPower(it)}</small></span><span class="off">卸</span>`;
+        cell.innerHTML = `<span class="ic">${itemArt(it.base.sprite, slotIcon(slot), 34)}</span><span class="nm" style="color:${RARITY_HEX[it.rarity]}"><b>${nm}</b><small>${SLOT_LABEL[slot]} · 战力 ${itemPower(it)}</small></span><span class="off">卸</span>`;
         (cell.querySelector('.nm') as HTMLElement).addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.showTip(it, { kind: 'equip', slot }); });
         (cell.querySelector('.off') as HTMLElement).addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); g.unequip(slot); this.refresh(); });
       } else {
@@ -289,7 +296,7 @@ export class InventoryPanel {
         const dh = !eq ? '' : d > 0 ? `<b style="color:#5ed85e"> ▲${d}</b>` : d < 0 ? `<b style="color:#ff7b6b"> ▼${-d}</b>` : ' =';
         pw = `<span class="pw">战力 ${p}${dh}</span>`;
       }
-      cell.innerHTML = `<span class="nm" style="color:${col}">${nm}</span>${sock}${pw}<span class="wear">穿</span>`;
+      cell.innerHTML = `${itemArt(it.base.sprite, slotIcon(it.base.slot), 44)}<span class="nm" style="color:${col}">${nm}</span><span class="meta">${sock}${pw}</span><span class="wear">穿</span>`;
       cell.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.showTip(it, { kind: 'bag', index: i }); });
       (cell.querySelector('.wear') as HTMLElement).addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); g.equip(i); this.refresh(); });
       this.gridEl.appendChild(cell);

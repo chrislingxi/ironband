@@ -224,6 +224,24 @@ const REQUIRED_ASSETS = [
   'public/assets/icon/service_shop.png',
   'public/assets/icon/service_heal.png',
   'public/assets/icon/service_identify.png',
+  'art_source/v4/items/short_bow_source.png',
+  'art_source/v4/items/cap_source.png',
+  'art_source/v4/items/buckler_source.png',
+  'art_source/v4/items/club_source.png',
+  'art_source/v4/items/sash_source.png',
+  'art_source/v4/items/ring_source.png',
+  'assets/item/short_bow.png',
+  'assets/item/cap.png',
+  'assets/item/buckler.png',
+  'assets/item/club.png',
+  'assets/item/sash.png',
+  'assets/item/ring.png',
+  'public/assets/item/short_bow.png',
+  'public/assets/item/cap.png',
+  'public/assets/item/buckler.png',
+  'public/assets/item/club.png',
+  'public/assets/item/sash.png',
+  'public/assets/item/ring.png',
 ];
 
 describe('V4 visual asset pack', () => {
@@ -262,6 +280,17 @@ describe('V4 visual asset pack', () => {
       expect(dev.readUInt32BE(16), `${name} service icon width`).toBe(256);
       expect(dev.readUInt32BE(20), `${name} service icon height`).toBe(256);
       expect(dev[25], `${name} service icon should be RGBA`).toBe(6);
+    }
+  });
+
+  it('keeps first-five-minute item icons mirrored, square and alpha-enabled', () => {
+    for (const name of ['short_bow', 'cap', 'buckler', 'club', 'sash', 'ring']) {
+      const dev = readFileSync(`assets/item/${name}.png`);
+      const pages = readFileSync(`public/assets/item/${name}.png`);
+      expect(dev.equals(pages), `${name} item icon copies should be identical`).toBe(true);
+      expect(dev.readUInt32BE(16), `${name} item icon width`).toBe(256);
+      expect(dev.readUInt32BE(20), `${name} item icon height`).toBe(256);
+      expect(dev[25], `${name} item icon should be RGBA`).toBe(6);
     }
   });
 });

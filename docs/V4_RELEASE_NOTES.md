@@ -1,5 +1,12 @@
 # V4 Release Notes
 
+## First Loot Identity Pass
+
+- Added hand-painted transparent icons for short bow, leather cap, buckler, club, sash and ring, covering the most common first-five-minute loot.
+- Inventory cells, equipped slots, vendor stock, selling, identification and stash rows now share the base item's sprite key.
+- Unfinished base items keep their semantic slot fallback, allowing the remaining item library to ship in batches without broken images.
+- The item-art delivery registry prevents unfinished PNG keys from issuing failed network requests or tripping the global startup error surface.
+
 ## Character Identity Across Progression Pages
 
 - The inventory paper-doll now uses the active Barbarian, Amazon or Sorceress PNG instead of a CSS mannequin silhouette.
