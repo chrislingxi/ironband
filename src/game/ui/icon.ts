@@ -3,6 +3,10 @@
 import { assetUrl } from '@engine/assets/url.ts';
 
 const PNG_ICON_KEYS = new Set([
+  'service_forge',
+  'service_shop',
+  'service_heal',
+  'service_identify',
   'skill-magic-arrow',
   'skill-multiple-arrow',
   'skill-frost-arrow',

@@ -1,5 +1,6 @@
 // 营地服务 UI 面板: 商店 / 赌博 / 雇佣兵 / 鉴定 (纯 DOM, 触屏友好, 适配安全区).
 // 哥特风格, 参考 hud.ts / inventory.ts 的 injectStyle 与稀有度配色约定.
+import { iconImg } from './icon.ts';
 
 // 稀有度 -> 颜色 (与 inventory.ts 一致). rarity 以 string 传入, 未知键回退灰色.
 const RARITY_HEX: Record<string, string> = {
@@ -52,16 +53,28 @@ function injectStyle(): void {
     padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));
     overflow:auto; pointer-events:auto; }
   #town h3 { font-family:Georgia,serif; color:#ffd76b; font-size:17px; margin:4px 0 2px; letter-spacing:.5px; }
+  #town .service-heading { display:flex; align-items:center; gap:12px; min-height:54px; padding-right:52px; }
+  #town .service-heading h3 { margin:0; }
+  #town .service-crests { display:flex; align-items:center; gap:4px; margin-left:auto; }
+  #town .service-crests .v4-icon { opacity:.72; filter:drop-shadow(0 2px 4px #000) saturate(.9); }
   #town .sub { font-size:12px; opacity:.6; margin-bottom:10px; }
   #town .gold { font-size:14px; color:#ffd24a; font-weight:700; text-shadow:0 1px 2px #000; margin:2px 0 12px; }
   #town .close { position:absolute; top:calc(12px + env(safe-area-inset-top)); right:calc(16px + env(safe-area-inset-right)); width:40px; height:40px; border-radius:8px;
     background:#2a2a36; border:1px solid #54442a; display:flex; align-items:center; justify-content:center; font-size:22px; }
   #town .close:active { transform:scale(.92); }
   #town .tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
-  #town .tab { padding:9px 16px; border:1px solid #4a3c24; border-radius:8px; background:#16161e;
-    font-family:Georgia,serif; font-size:13px; color:#b8a878; user-select:none; -webkit-user-select:none; }
+  #town .tab { min-width:88px; min-height:44px; padding:7px 12px; border:1px solid #4a3c24; border-radius:8px; background:#16161e;
+    display:flex; align-items:center; justify-content:center; gap:7px; font-family:Georgia,serif; font-size:13px; color:#b8a878;
+    user-select:none; -webkit-user-select:none; }
+  #town .tab .v4-icon { flex:0 0 auto; opacity:.78; filter:grayscale(.18) drop-shadow(0 2px 3px #000); }
   #town .tab:active { transform:scale(.95); }
   #town .tab.on { background:linear-gradient(#3a2f18,#241c0e); color:#ffd76b; border-color:#8a6a3a; box-shadow:0 0 0 1px #00000080 inset; }
+  #town .tab.on .v4-icon { opacity:1; filter:drop-shadow(0 2px 4px #000) saturate(1.18); }
+  @media (max-width:560px) {
+    #town .tabs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+    #town .tab { min-width:0; padding:6px 5px; font-size:12px; }
+    #town .service-crests .v4-icon { width:27px !important; height:27px !important; }
+  }
   #town h4 { font-family:Georgia,serif; color:#c8b890; font-size:13px; margin:14px 0 6px; opacity:.9; }
   #town .list { display:flex; flex-direction:column; gap:7px; }
   #town .row { display:flex; align-items:center; justify-content:space-between; gap:10px;
@@ -98,7 +111,15 @@ export class TownPanel {
     this.root.id = 'town';
     this.root.innerHTML = `
       <div class="close">✕</div>
-      <h3>查西的营地</h3>
+      <div class="service-heading">
+        <h3>查西的营地</h3>
+        <div class="service-crests" aria-hidden="true">
+          ${iconImg('service_forge', '🔨', 34)}
+          ${iconImg('service_shop', '◉', 34)}
+          ${iconImg('service_heal', '✚', 34)}
+          ${iconImg('service_identify', '⌕', 34)}
+        </div>
+      </div>
       <div class="sub">铁链之外, 此处暂得喘息. 商人吉德、流浪术士卡夏与老兵凯恩在此候命.</div>
       <div class="gold">⦿ 0</div>
       <div class="tabs"></div>
@@ -113,19 +134,19 @@ export class TownPanel {
       e.preventDefault(); e.stopPropagation(); this.cb.onClose();
     });
 
-    // 构建四个分页签.
-    const tabDefs: { key: TownTab; label: string }[] = [
-      { key: 'shop', label: '商店' },
-      { key: 'gamble', label: '赌博' },
-      { key: 'merc', label: '雇佣兵' },
-      { key: 'identify', label: '鉴定' },
-      { key: 'stash', label: '仓库' },
+    // 构建五个分页签.
+    const tabDefs: { key: TownTab; label: string; icon: string; fallback: string }[] = [
+      { key: 'shop', label: '铁匠', icon: 'service_forge', fallback: '🔨' },
+      { key: 'gamble', label: '商队', icon: 'service_shop', fallback: '◉' },
+      { key: 'merc', label: '复生', icon: 'service_heal', fallback: '✚' },
+      { key: 'identify', label: '鉴定', icon: 'service_identify', fallback: '⌕' },
+      { key: 'stash', label: '仓库', icon: 'bag', fallback: '▣' },
     ];
     const btns = {} as Record<TownTab, HTMLElement>;
     for (const def of tabDefs) {
       const b = document.createElement('div');
       b.className = 'tab';
-      b.textContent = def.label;
+      b.innerHTML = `${iconImg(def.icon, def.fallback, 28)}<span>${def.label}</span>`;
       b.addEventListener('pointerdown', (e) => {
         e.preventDefault(); e.stopPropagation();
         this.tab = def.key;

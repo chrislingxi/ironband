@@ -1,5 +1,13 @@
 # V4 Visual QA
 
+## Combat FX And Town Services Gate
+
+- [ ] Amazon projectile reads as an arrow at mobile game scale.
+- [ ] Elemental impact color and silhouette differ by damage type.
+- [ ] Identified rare/set/unique ground items show beam, halo and name.
+- [x] Forge/shop/heal/identify icons load as 256px PNG assets without fallback glyphs.
+- [x] Town tabs fit at 390px CSS width without horizontal overflow.
+
 ## Acceptance Bar
 
 The build is acceptable only when a player can open the live GitHub Pages version and immediately see a darker, more premium ARPG presentation without needing to know what changed.

@@ -237,6 +237,7 @@ async function main() {
 
   const damageTexts: { t: Text; life: number; vy: number; pop: number }[] = [];
   const flashedSwings = new WeakSet<object>(); // 已放过施法迸发的挥砍 (防重复)
+  const launchedMissiles = new WeakSet<object>(); // 投射物起手闪光只播放一次
   // 打击粒子: 受击迸溅 / 击杀爆裂. 屏幕空间, 整体随相机平移。
   const particles: { g: Graphics; vx: number; vy: number; life: number; max: number; grav: number }[] = [];
   function burst(sx: number, sy: number, color: number, count: number, power: number, grav: number): void {
@@ -249,6 +250,19 @@ async function main() {
       g.zIndex = 1e9;
       particleLayer.addChild(g);
       particles.push({ g, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - power * 0.3, life: 0, max: 0.34 + Math.random() * 0.3, grav });
+    }
+  }
+  function shardBurst(sx: number, sy: number, color: number, count: number, power: number, length = 10): void {
+    for (let i = 0; i < count; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const sp = power * (0.45 + Math.random() * 0.55);
+      const len = length * (0.55 + Math.random() * 0.7);
+      const g = new Graphics().poly([-2, 0, 0, -1.4, len, 0, 0, 1.4]).fill({ color, alpha: 0.95 });
+      g.rotation = a;
+      g.position.set(sx, sy);
+      g.zIndex = 1e9;
+      particleLayer.addChild(g);
+      particles.push({ g, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - power * 0.18, life: 0, max: 0.28 + Math.random() * 0.24, grav: power * 1.7 });
     }
   }
   // 投射物拖尾: 在弹道当前位置留一团柔光, 原地淡出 → 形成发光残影。
@@ -264,6 +278,50 @@ async function main() {
     const g = new Graphics().circle(0, 0, 1).stroke({ color, width: 3, alpha: 1 });
     g.position.set(sx, sy); g.zIndex = 1e9; particleLayer.addChild(g);
     rings.push({ g, life: 0, max: 0.34, from: 4, to });
+  }
+  function impactFx(sx: number, sy: number, type: string | undefined): void {
+    if (type === 'cold') {
+      shardBurst(sx, sy, 0xd9f5ff, 9, 105, 12);
+      shardBurst(sx, sy, 0x65bde8, 6, 72, 8);
+      ring(sx, sy, 0x9fe7ff, 24);
+      return;
+    }
+    if (type === 'fire') {
+      burst(sx, sy, 0xffd27a, 8, 118, 210);
+      burst(sx, sy, 0xf05a24, 10, 92, 330);
+      burst(sx, sy, 0x3a2925, 5, 48, -35);
+      ring(sx, sy, 0xff7a2a, 25);
+      return;
+    }
+    if (type === 'lightning') {
+      for (let i = 0; i < 4; i++) {
+        const a = (Math.PI * 2 * i) / 4 + Math.random() * 0.4;
+        const g = new Graphics()
+          .moveTo(0, 0)
+          .lineTo(Math.cos(a) * 8, Math.sin(a) * 5)
+          .lineTo(Math.cos(a) * 15 + Math.sin(a) * 4, Math.sin(a) * 9 - Math.cos(a) * 3)
+          .lineTo(Math.cos(a) * 25, Math.sin(a) * 14)
+          .stroke({ color: i % 2 ? 0xffffff : 0xffe76c, width: i % 2 ? 1.4 : 2.4, alpha: 0.95 });
+        g.position.set(sx, sy);
+        g.zIndex = 1e9;
+        particleLayer.addChild(g);
+        particles.push({ g, vx: 0, vy: 0, life: 0, max: 0.18 + Math.random() * 0.08, grav: 0 });
+      }
+      ring(sx, sy, 0xffef82, 22);
+      return;
+    }
+    if (type === 'poison') {
+      burst(sx, sy, 0xb3e85a, 7, 75, 140);
+      burst(sx, sy, 0x416b2d, 5, 42, -20);
+      ring(sx, sy, 0x79b84a, 21);
+      return;
+    }
+    if (type === 'magic') {
+      shardBurst(sx, sy, 0xd5b6ff, 8, 88, 9);
+      ring(sx, sy, 0xb17af4, 22);
+      return;
+    }
+    shardBurst(sx, sy, 0xfff2d2, 5, 82, 7);
   }
   function updateParticles(dt: number): void {
     for (let i = particles.length - 1; i >= 0; i--) {
@@ -409,11 +467,12 @@ async function main() {
       // 粒子: miss/回血/经验 不迸溅; 击杀=金红大爆裂; 玩家受击=红; 元素命中=元素色; 物理=白
       if (ev.miss || ev.heal || ev.xp || ev.immune) { /* 无迸溅 */ }
       else if (ev.killed) {
+        impactFx(s.x, s.y - 8, ev.dmgType);
         burst(s.x, s.y - 8, 0xffe9a0, 16, 175, 380);
         burst(s.x, s.y - 8, 0xd8442e, 10, 130, 380);
         ring(s.x, s.y - 8, 0xffe08a, 30); // 金色冲击环 (扩张到 30px)
       } else if (ev.toPlayer) { burst(s.x, s.y - 8, 0xff5e4a, 8, 100, 300); ring(s.x, s.y - 8, 0xff5e4a, 20); }
-      else burst(s.x, s.y - 8, ev.dmgType && ev.dmgType !== 'physical' ? ELEM_COLOR[ev.dmgType] : 0xffffff, 7, 110, 320);
+      else impactFx(s.x, s.y - 8, ev.dmgType);
     }
     game.events.length = 0;
   }
@@ -479,11 +538,33 @@ async function main() {
       const s = gridToScreen(gi.pos);
       // 未鉴定掉落统一显示基础色 (不剧透稀有度; 鉴定后才显金/绿)
       const col = RARITY_COLOR[gi.item.identified ? gi.item.rarity : 'normal'] ?? 0xc8c8c8;
+      const premium = gi.item.identified && (gi.item.rarity === 'unique' || gi.item.rarity === 'set' || gi.item.rarity === 'rare');
+      const pulse = 0.72 + Math.sin(performance.now() / 210 + gi.id) * 0.18;
+      const holder = new Container();
+      if (premium) {
+        const beamH = gi.item.rarity === 'unique' ? 78 : gi.item.rarity === 'set' ? 66 : 52;
+        const beam = new Graphics()
+          .poly([-7, 0, -2, -beamH, 2, -beamH, 7, 0])
+          .fill({ color: col, alpha: 0.08 + pulse * 0.1 })
+          .moveTo(0, -beamH)
+          .lineTo(0, 0)
+          .stroke({ color: col, width: gi.item.rarity === 'unique' ? 2.2 : 1.5, alpha: pulse });
+        const halo = new Graphics().ellipse(0, 1, 15 + pulse * 3, 7 + pulse).stroke({ color: col, width: 1.6, alpha: pulse });
+        holder.addChild(beam, halo);
+      }
       const g = new Graphics()
-        .poly([0, -7, 5, 0, 0, 7, -5, 0]).fill({ color: col }).stroke({ color: 0x000000, width: 1 });
-      g.position.set(s.x, s.y);
-      g.zIndex = depthKey(gi.pos);
-      itemLayer.addChild(g);
+        .poly([0, -8, 6, 0, 0, 8, -6, 0]).fill({ color: col }).stroke({ color: 0x120b06, width: 1.5 })
+        .poly([0, -5, 3, 0, 0, 3, -3, 0]).fill({ color: 0xffffff, alpha: 0.45 });
+      holder.addChild(g);
+      if (premium) {
+        const label = new Text({ text: gi.item.name, style: { fontFamily: 'Georgia,serif', fontSize: 11, fill: col, stroke: { color: 0x000000, width: 3 }, fontWeight: '700' } });
+        label.anchor.set(0.5, 1);
+        label.position.set(0, -14);
+        holder.addChild(label);
+      }
+      holder.position.set(s.x, s.y);
+      holder.zIndex = depthKey(gi.pos);
+      itemLayer.addChild(holder);
     }
   }
 
@@ -515,12 +596,23 @@ async function main() {
       const nx = vx / vlen, ny = vy / vlen; // 归一化朝向
       const angle = Math.atan2(ny, nx);
 
+      if (!launchedMissiles.has(m)) {
+        launchedMissiles.add(m);
+        const launchColor = m.kind === 'iceball' ? 0xbdeeff : m.kind === 'fireball' ? 0xff9a4a : m.kind === 'bolt' ? m.color : 0xffdf9a;
+        shardBurst(s.x - nx * 6, s.y - ny * 3 - 8, launchColor, m.kind === 'arrow' ? 4 : 7, m.kind === 'arrow' ? 55 : 80, m.kind === 'arrow' ? 6 : 9);
+        ring(s.x - nx * 6, s.y - ny * 3 - 8, launchColor, m.kind === 'arrow' ? 13 : 18);
+      }
+
       if (m.kind === 'arrow') {
-        // 箭: 细长菱形 (4:1 纵横比)
+        // 箭: 独立箭杆、箭头、箭羽与元素高光，避免读成发光菱形块。
         g.rotation = angle;
-        g.poly([16, 0, 2, 3, -6, 0, 2, -3]).fill({ color: m.color }).stroke({ color: 0x3a2800, width: 1 });
-        // 拖尾 (半透明)
-        g.poly([-6, 0, -18, 2, -18, -2]).fill({ color: m.color, alpha: 0.35 });
+        g.moveTo(-11, 0).lineTo(13, 0).stroke({ color: 0x3a260f, width: 3.6, alpha: 0.95 });
+        g.moveTo(-10, -0.5).lineTo(14, -0.5).stroke({ color: 0xffe8b0, width: 1.25, alpha: 0.95 });
+        g.poly([19, 0, 11, -4.2, 13, 0, 11, 4.2]).fill({ color: m.color }).stroke({ color: 0x2c1b0b, width: 0.9 });
+        g.poly([-8, 0, -15, -4.2, -12, 0]).fill({ color: 0x7c2630, alpha: 0.95 });
+        g.poly([-8, 0, -15, 4.2, -12, 0]).fill({ color: 0xc8a75e, alpha: 0.9 });
+        g.moveTo(-13, 0).lineTo(-26, 0).stroke({ color: m.color, width: 2.4, alpha: 0.28 });
+        trailPuff(s.x - nx * 9, s.y - ny * 5 - 6, m.color, 2.8);
       } else if (m.kind === 'fireball') {
         // 火球: 橙色圆 + 光晕 + 拖尾
         g.circle(0, 0, 9).fill({ color: 0xff8800 }).stroke({ color: 0xff3300, width: 2 });

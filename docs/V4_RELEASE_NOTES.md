@@ -1,5 +1,11 @@
 # V4 Release Notes
 
+## Combat Readability And Town Services
+
+- Amazon arrows now render with a shaft, head, fletching, launch sparks and a fading trail instead of a generic diamond projectile.
+- Physical, cold, fire, lightning, poison and magic hits now have distinct impact silhouettes, while rare/set/unique drops gain a persistent beam, halo and grounded item label.
+- The town panel now uses a matched hand-painted icon family for forge, shop, healing and identification services across its heading and navigation.
+
 ## a219c59 - Dark Visual Rebuild Foundation
 
 This release is the first production pass of the V4 visual rebuild.

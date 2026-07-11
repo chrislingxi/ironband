@@ -212,6 +212,18 @@ const REQUIRED_ASSETS = [
   'public/assets/icon/skill-teleport.png',
   'assets/icon/skill-thunder-storm.png',
   'public/assets/icon/skill-thunder-storm.png',
+  'art_source/v4/icons/service/service_forge_source.png',
+  'art_source/v4/icons/service/service_shop_source.png',
+  'art_source/v4/icons/service/service_heal_source.png',
+  'art_source/v4/icons/service/service_identify_source.png',
+  'assets/icon/service_forge.png',
+  'assets/icon/service_shop.png',
+  'assets/icon/service_heal.png',
+  'assets/icon/service_identify.png',
+  'public/assets/icon/service_forge.png',
+  'public/assets/icon/service_shop.png',
+  'public/assets/icon/service_heal.png',
+  'public/assets/icon/service_identify.png',
 ];
 
 describe('V4 visual asset pack', () => {
@@ -240,5 +252,16 @@ describe('V4 visual asset pack', () => {
     expect(dev.readUInt32BE(16)).toBe(512);
     expect(dev.readUInt32BE(20)).toBe(768);
     expect(dev[25]).toBe(6);
+  });
+
+  it('keeps town service icons mirrored, square and alpha-enabled', () => {
+    for (const name of ['forge', 'shop', 'heal', 'identify']) {
+      const dev = readFileSync(`assets/icon/service_${name}.png`);
+      const pages = readFileSync(`public/assets/icon/service_${name}.png`);
+      expect(dev.equals(pages), `${name} service icon copies should be identical`).toBe(true);
+      expect(dev.readUInt32BE(16), `${name} service icon width`).toBe(256);
+      expect(dev.readUInt32BE(20), `${name} service icon height`).toBe(256);
+      expect(dev[25], `${name} service icon should be RGBA`).toBe(6);
+    }
   });
 });
