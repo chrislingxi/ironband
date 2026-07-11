@@ -78,7 +78,7 @@ export const ACT3_AREAS: Record<string, LevelDef> = {
   // 仇恨监狱 — 梅菲斯特 Boss 区, 第三幕终点
   durance_of_hate: {
     id: 'durance_of_hate',
-    name: '仇恨监狱',
+    name: '空骸禁宫',
     act: 3,
     monLevel: ml(36, 68, 100),
     monsters: ['skeleton', 'shaman'],

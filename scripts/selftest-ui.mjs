@@ -1,9 +1,10 @@
 // 设备矩阵 UI 自测: 在多分辨率下逐面板截图 + 断言 (越界/遮挡/安全区/运行时错误)。
 // 替代人工逐 bug 复测的「画面层」关。运行: node scripts/selftest-ui.mjs
 import { chromium } from 'playwright-core';
-import { mkdirSync, existsSync, cpSync, readdirSync, rmSync } from 'node:fs';
+import { mkdirSync, existsSync, cpSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { createServer } from 'node:http';
+import { extname, resolve } from 'node:path';
 
-const URL = 'file://' + process.cwd() + '/dist/web/index.html';
 const OUT = process.cwd() + '/.selftest';
 mkdirSync(OUT, { recursive: true });
 
@@ -14,6 +15,21 @@ if (existsSync(process.cwd() + '/dist/assets')) {
   mkdirSync(process.cwd() + '/dist/web', { recursive: true });
   cpSync(process.cwd() + '/dist/assets', process.cwd() + '/dist/web/assets', { recursive: true });
 }
+const WEB_ROOT = resolve(process.cwd(), 'dist/web');
+const MIME = { '.html': 'text/html; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml', '.mp3': 'audio/mpeg' };
+const server = createServer((req, res) => {
+  const requested = decodeURIComponent((req.url || '/').split('?')[0]);
+  const file = resolve(WEB_ROOT, requested === '/' ? 'index.html' : requested.replace(/^\/+/, ''));
+  if (!file.startsWith(WEB_ROOT)) { res.writeHead(403); res.end(); return; }
+  try {
+    res.writeHead(200, { 'Content-Type': MIME[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store' });
+    res.end(readFileSync(file));
+  } catch { res.writeHead(404); res.end(); }
+});
+await new Promise((resolveListen) => server.listen(0, '127.0.0.1', resolveListen));
+const address = server.address();
+if (!address || typeof address === 'string') throw new Error('Unable to start UI selftest server');
+const URL = `http://127.0.0.1:${address.port}/`;
 // 已交付的美术 key (按 public/assets 实际存在者校验加载, 不臆测)。
 function deliveredKeys() {
   const root = process.cwd() + '/public/assets';
@@ -60,6 +76,7 @@ for (const dev of DEVICES) {
 
   await pg.goto(URL);
   await pg.waitForTimeout(2200);
+  await pg.screenshot({ path: `${OUT}/${dev.name}-title.png` });
   // 游戏内按钮监听 pointerdown, 故用派发 pointerdown 模拟真实点击 (Playwright .click 对 emoji div 不可靠)。
   const click = async (t) => {
     const ok = await pg.evaluate((txt) => {
@@ -100,7 +117,7 @@ for (const dev of DEVICES) {
     await pg.waitForTimeout(400);
     return ok;
   };
-  await click('法师'); await click('踏入暗黑之地'); await pg.waitForTimeout(1500);
+  await click('法师'); await click('踏入暗黑之地'); await pg.waitForTimeout(4500);
   for (const t of ['跳过引导', '跳过', '知道了', '开始游戏', '开始']) await click(t);
   await pg.waitForTimeout(300);
   const booted = await pg.evaluate(() => ({
@@ -166,6 +183,19 @@ for (const dev of DEVICES) {
       await pg.waitForTimeout(300);
     } else flag(dev.name, p.name, `按钮 ${p.key} 打不开`);
   }
+  const combatLoaded = await pg.evaluate(() => {
+    const runtime = window.__iron;
+    if (!runtime?.game?.loadArea) return false;
+    runtime.game.loadArea('blood_moor');
+    const target = runtime.game.monsters?.[0];
+    if (target) runtime.game.player.pos = { x: target.pos.x - 3.2, y: target.pos.y };
+    document.querySelector('#coach')?.classList.add('hide');
+    return true;
+  });
+  if (combatLoaded) {
+    await pg.waitForTimeout(1800);
+    await pg.screenshot({ path: `${OUT}/${dev.name}-combat.png` });
+  } else flag(dev.name, 'combat-capture', '无法切换到血色荒野生成战斗截图');
   // 视口/缩放策略校验 (仅一次)
   if (dev.name === 'iphone-portrait') {
     const meta = await pg.evaluate(() => document.querySelector('meta[name=viewport]')?.getAttribute('content') || '');
@@ -196,6 +226,7 @@ for (const dev of DEVICES) {
 }
 
 await b.close();
+await new Promise((resolveClose) => server.close(resolveClose));
 if (findings.length) {
   console.log('UI 自测发现问题:\n' + findings.map((f) => ' - ' + f).join('\n'));
   process.exit(1);

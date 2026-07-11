@@ -85,7 +85,7 @@ export const ACT2_AREAS: Record<string, LevelDef> = {
   // 塔拉夏古墓 — 督瑞尔 Boss 区, 第二幕终点
   tal_rasha_tomb: {
     id: 'tal_rasha_tomb',
-    name: '塔拉夏古墓',
+    name: '沉沙刑墓',
     act: 2,
     monLevel: ml(24, 58, 89),
     monsters: ['skeleton', 'brute'],

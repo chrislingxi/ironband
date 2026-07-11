@@ -81,6 +81,11 @@ export function injectV4Skin(): void {
   #hud .skill .nm {
     background:#050403d9 !important; color:#f5d982 !important; border:1px solid #6b4b22;
   }
+  #hud .skill .cd {
+    background-image:url("${assetUrl('assets/ui/cooldown_mask.png')}") !important;
+    background-size:cover !important;
+    background-position:center !important;
+  }
   #hud .skill-glyph img, .skill-glyph img {
     filter:brightness(1.16) contrast(1.22) saturate(1.25) drop-shadow(0 2px 2px #000) drop-shadow(0 0 9px #d7a84b70) !important;
   }
@@ -110,6 +115,19 @@ export function injectV4Skin(): void {
     box-shadow:0 10px 24px #0009, inset 0 1px 0 #ffe7a018 !important;
   }
   #inv .cell, #inv .slot, #town .row, #skt .sk { transition:filter .12s ease, transform .07s ease; }
+  #inv .slot {
+    background-image:linear-gradient(180deg,#1d130eaa,#090605c8),url("${assetUrl('assets/ui/item_slot_equipped.png')}") !important;
+    background-size:cover !important;
+  }
+  #inv .slot.empty {
+    background-image:linear-gradient(180deg,#120d0aaa,#080504d0),url("${assetUrl('assets/ui/item_slot.png')}") !important;
+    background-size:cover !important;
+  }
+  #inv .cell.rarity-normal { background-image:linear-gradient(180deg,#181410aa,#080605d8),url("${assetUrl('assets/ui/rarity_common.png')}") !important; background-size:cover !important; }
+  #inv .cell.rarity-magic { background-image:linear-gradient(180deg,#111b2aaa,#06070bd8),url("${assetUrl('assets/ui/rarity_magic.png')}") !important; background-size:cover !important; }
+  #inv .cell.rarity-rare { background-image:linear-gradient(180deg,#2a210faa,#080605d8),url("${assetUrl('assets/ui/rarity_rare.png')}") !important; background-size:cover !important; }
+  #inv .cell.rarity-set { background-image:linear-gradient(180deg,#14240faa,#060806d8),url("${assetUrl('assets/ui/rarity_rare.png')}") !important; background-size:cover !important; filter:hue-rotate(58deg); }
+  #inv .cell.rarity-unique { background-image:linear-gradient(180deg,#2a140caa,#080504d8),url("${assetUrl('assets/ui/rarity_unique.png')}") !important; background-size:cover !important; }
   #inv .cell:hover, #inv .slot:hover, #town .row.act:hover, #skt .sk:hover { filter:brightness(1.12); }
   #inv .wear, #inv .off, #charp .plus, #skt .detail .inv, #skt .systab.on, #town .tab.on, #town .btn,
   #runecodex .rstep.has {

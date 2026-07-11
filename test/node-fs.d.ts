@@ -5,4 +5,9 @@ declare module 'node:fs' {
     readUInt32BE(offset: number): number;
   };
   export function statSync(path: string): { size: number };
+  export interface Dirent {
+    name: string;
+    isDirectory(): boolean;
+  }
+  export function readdirSync(path: string, options: { withFileTypes: true }): Dirent[];
 }

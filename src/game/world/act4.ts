@@ -64,7 +64,7 @@ export const ACT4_AREAS: Record<string, LevelDef> = {
   // 混沌避难所 — 暗黑破坏神 Boss 区, 第四幕终点
   chaos_sanctuary: {
     id: 'chaos_sanctuary',
-    name: '混沌避难所',
+    name: '烬火圣所',
     act: 4,
     monLevel: ml(46, 74, 106),
     monsters: ['brute', 'shaman'],

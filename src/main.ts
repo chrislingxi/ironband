@@ -153,6 +153,7 @@ async function main() {
   const tileTextures = new Map<string, Texture | null>();
   const propTextures = new Map<string, Texture | null>();
   const npcTextures = new Map<string, Texture | null>();
+  const BOSS_AREA_IDS = new Set(['andariel_lair', 'tal_rasha_tomb', 'durance_of_hate', 'chaos_sanctuary', 'worldstone_keep']);
   let npcMarkers: { name: string; greeting: string; role: NpcRole; x: number; y: number }[] = [];
 
   function addCampProp(key: string, x: number, y: number, targetH: number): void {
@@ -166,6 +167,8 @@ async function main() {
       holder.addChild(new Graphics().ellipse(0, -targetH * 0.25, targetH * 0.42, targetH * 0.2).fill({ color: 0x4cc8ff, alpha: 0.16 }));
     } else if (key === 'blacksmith_anvil') {
       holder.addChild(new Graphics().ellipse(targetH * 0.2, -targetH * 0.18, targetH * 0.28, targetH * 0.16).fill({ color: 0xff6a22, alpha: 0.14 }));
+    } else if (key === 'ritual_altar') {
+      holder.addChild(new Graphics().ellipse(0, -targetH * 0.18, targetH * 0.46, targetH * 0.2).fill({ color: 0xb92318, alpha: 0.2 }));
     }
     const sp = new Sprite(tex);
     sp.anchor.set(0.5, 0.86);
@@ -181,6 +184,7 @@ async function main() {
     const a = game.currentArea;
     if (a.id === lastAreaId) return;
     lastAreaId = a.id;
+    lootFxSeen.clear();
     // 重建地砖 (区域尺寸+主题)
     let h = 2166136261;
     for (let i = 0; i < a.id.length; i++) h = (Math.imul(h ^ a.id.charCodeAt(i), 16777619)) >>> 0;
@@ -224,13 +228,16 @@ async function main() {
         npcLayer.addChild(g, t);
       });
     }
+    if (BOSS_AREA_IDS.has(a.id)) {
+      addCampProp('ritual_altar', a.size[0] / 2, a.size[1] / 2 + 1.5, 210);
+    }
   }
   // 静态美术后台加载: 首屏不能因为某张图慢/缺失而黑屏。纹理到达后强制下帧重建当前区域。
   void Promise.all(
     ['wilderness', 'town', 'desert', 'hell', 'snow'].map(async (t) => tileTextures.set(t, await tryLoadTexture(`tile/${t}`))),
   ).then(() => { lastAreaId = ''; });
   void Promise.all(
-    ['campfire', 'exit_gate', 'blacksmith_anvil'].map(async (p) => propTextures.set(p, await tryLoadTexture(`prop/${p}`))),
+    ['campfire', 'exit_gate', 'blacksmith_anvil', 'ritual_altar'].map(async (p) => propTextures.set(p, await tryLoadTexture(`prop/${p}`))),
   ).then(() => { lastAreaId = ''; });
   void Promise.all(NPCS.map(async (npc) => npcTextures.set(npc.id, await tryLoadTexture(`npc/${npc.id}`))))
     .then(() => { lastAreaId = ''; });
@@ -341,6 +348,17 @@ async function main() {
       r.g.scale.set(r.from + (r.to - r.from) * t);
       r.g.alpha = (1 - t) * 0.9;
     }
+    for (let i = fadingLootLabels.length - 1; i >= 0; i--) {
+      const entry = fadingLootLabels[i];
+      entry.life -= dt;
+      if (entry.life <= 0) {
+        entry.label.destroy();
+        fadingLootLabels.splice(i, 1);
+        continue;
+      }
+      entry.label.y -= dt * 4;
+      entry.label.alpha = Math.min(1, entry.life / Math.min(0.28, entry.max));
+    }
   }
   let shakeMag = 0; // 屏震强度(衰减)
   let redHit = 0; // 受击红屏强度(衰减)
@@ -354,6 +372,8 @@ async function main() {
   let prevGold = 0; // 上帧金币(检测拾取播币音)
   let prevInv = 0; // 上帧背包数(检测拾物)
   let prevState = game.state; // 上帧状态(检测阵亡转换播死亡音)
+  const lootFxSeen = new Set<number>();
+  const fadingLootLabels: { label: Text; life: number; max: number }[] = [];
 
   function actorKind(e: Entity): ActorKind {
     if (e.kind === 'player') return 'humanoid';
@@ -381,7 +401,7 @@ async function main() {
     const playerClass = game.character.cls as CharClass;
     // 贴图 key: 玩家=char/<职业>, 怪物/Boss=mon/<defId>。命中 assets/<key>.png 即用真图。
     const textureKey = e.kind === 'player' ? `char/${playerClass}` : `mon/${e.defId}`;
-    const attackTextureKey = e.kind === 'player' && playerClass === 'amazon' ? 'char/amazon_attack' : undefined;
+    const attackTextureKey = e.kind === 'player' ? `char/${playerClass}_attack` : undefined;
     const actor = createActorSprite({ kind: actorKind(e), color: e.color, size: e.size, subKind: actorSubKind(e), textureKey, attackTextureKey, showFacing: e.kind === 'player' });
     actors.set(e.id, actor);
     c.addChild(actor.container);
@@ -393,6 +413,15 @@ async function main() {
       const nm = new Text({ text: e.elite.name, style: { fontFamily: 'Georgia,serif', fontSize: 11, fill: e.elite.color, stroke: { color: 0x000000, width: 3 } } });
       nm.anchor.set(0.5, 1); nm.position.set(0, -e.size * 2.1 - 12);
       c.addChild(nm);
+    }
+    if (e.defId === 'andariel' || e.defId === 'duriel' || e.defId === 'mephisto' || e.defId === 'diablo' || e.defId === 'baal') {
+      const warning = new Graphics()
+        .ellipse(0, e.size * 0.55, e.size * 2.35, e.size * 1.18)
+        .fill({ color: 0x8f1512, alpha: 0.14 })
+        .stroke({ color: 0xff7b48, width: 3, alpha: 0.9 });
+      warning.label = 'bossWarning';
+      warning.visible = false;
+      c.addChildAt(warning, 0);
     }
     // 血条 (受伤才显). 顶部偏移随体型放大 (真图身高≈size×2.6·脚锚0.82 → 顶约 -size×2.13), 放大后血条/名牌仍在头顶上方。
     const topY = -e.size * 2.1 - 8;
@@ -412,14 +441,18 @@ async function main() {
     c.position.set(s.x, s.y);
     c.zIndex = depthKey(e.pos);
     const actor = actors.get(e.id);
+    const playerClass = game.character.cls as CharClass;
+    const attackWindow = e.kind === 'player'
+      ? playerClass === 'amazon' ? 0.3 : playerClass === 'sorceress' ? 0.28 : 0.24
+      : e.defId === 'andariel' || e.defId === 'duriel' || e.defId === 'mephisto' || e.defId === 'diablo' || e.defId === 'baal' ? 0.36 : 0.18;
+    const attacking = e.attackInterval > 0 && e.attackCd > e.attackInterval - attackWindow;
     if (actor) {
       // 朝向是格子空间角; 投到屏幕空间(等距 2:1)再给精灵, 这样倾身/朝向尖角指向"看着的方向"而非格子方向
       const fd = gridToScreen({ x: Math.cos(e.facing), y: Math.sin(e.facing) });
-      const attackWindow = e.kind === 'player' && (game.character.cls as CharClass) === 'amazon' ? 0.3 : 0.18;
       actor.update({
         facing: Math.atan2(fd.y, fd.x),
         moving: e.moving,
-        attacking: e.attackInterval > 0 && e.attackCd > e.attackInterval - attackWindow,
+        attacking,
         flash: e.hitFlash > 0 ? Math.min(1, e.hitFlash) : 0,
         timeMs: performance.now(),
       });
@@ -434,6 +467,13 @@ async function main() {
     // Elite 光环脉冲
     const ring = c.getChildByLabel('eliteRing') as Graphics | null;
     if (ring) ring.alpha = 0.55 + 0.45 * Math.abs(Math.sin(performance.now() / 400));
+    const bossWarning = c.getChildByLabel('bossWarning') as Graphics | null;
+    if (bossWarning) {
+      bossWarning.visible = attacking;
+      const pulse = 0.88 + Math.sin(performance.now() / 70) * 0.12;
+      bossWarning.scale.set(pulse);
+      bossWarning.alpha = attacking ? 0.72 + Math.sin(performance.now() / 55) * 0.2 : 0;
+    }
   }
 
     // 元素飘字配色 (与投射物 missileColor 同系)
@@ -568,6 +608,39 @@ async function main() {
     }
   }
 
+  function syncLootFx(): void {
+    for (const fx of game.lootFx) {
+      if (lootFxSeen.has(fx.id)) continue;
+      lootFxSeen.add(fx.id);
+      const s = gridToScreen(fx.pos);
+      const col = RARITY_COLOR[fx.rarity] ?? 0xc8c8c8;
+      const premium = fx.rarity === 'rare' || fx.rarity === 'set' || fx.rarity === 'unique';
+      const beamH = fx.rarity === 'unique' ? 96 : fx.rarity === 'set' ? 82 : fx.rarity === 'rare' ? 66 : 38;
+      const life = premium ? 1.35 : 0.72;
+      const beam = new Graphics()
+        .poly([-10, 2, -3, -beamH, 3, -beamH, 10, 2])
+        .fill({ color: col, alpha: premium ? 0.2 : 0.08 })
+        .moveTo(0, -beamH).lineTo(0, 2)
+        .stroke({ color: col, width: premium ? 2.5 : 1.2, alpha: 0.95 });
+      beam.position.set(s.x, s.y);
+      beam.zIndex = 1e8;
+      particleLayer.addChild(beam);
+      particles.push({ g: beam, vx: 0, vy: -3, life: 0, max: life, grav: 0 });
+      ring(s.x, s.y, col, premium ? 30 : 18);
+      if (premium) {
+        const label = new Text({
+          text: fx.name,
+          style: { fontFamily: 'Georgia,serif', fontSize: 13, fill: col, stroke: { color: 0x090503, width: 4 }, fontWeight: '700' },
+        });
+        label.anchor.set(0.5, 1);
+        label.position.set(s.x, s.y - 18);
+        label.zIndex = 1e9;
+        particleLayer.addChild(label);
+        fadingLootLabels.push({ label, life, max: life });
+      }
+    }
+  }
+
   function syncMerc(): void {
     mercLayer.removeChildren();
     const m = game.merc;
@@ -628,9 +701,21 @@ async function main() {
         // 霜迹拖尾
         g.circle(-nx * 8, -ny * 8, 4).fill({ color: 0x8fd6ff, alpha: 0.4 });
       } else if (m.kind === 'nova' || m.kind === 'bolt') {
-        // 闪电: 黄色小球 + 电光
-        g.circle(0, 0, 6).fill({ color: 0xffff40 }).stroke({ color: 0xffcc00, width: 1 });
-        g.circle(-nx * 7, -ny * 7, 4).fill({ color: 0xffee00, alpha: 0.5 });
+        const type = m.dmg[0]?.type ?? 'lightning';
+        g.rotation = angle;
+        if (type === 'poison') {
+          g.ellipse(0, 0, 10, 5).fill({ color: 0x9fdd55 }).stroke({ color: 0x29451c, width: 1.4 });
+          g.circle(-8, 1, 3.5).fill({ color: 0x5f8f35, alpha: 0.7 });
+          g.circle(-14, -1, 2.3).fill({ color: 0xb9ef68, alpha: 0.42 });
+        } else if (type === 'magic') {
+          g.poly([11, 0, 2, 5, -7, 0, 2, -5]).fill({ color: 0xe1c2ff }).stroke({ color: 0x6e3b9c, width: 1.4 });
+          g.moveTo(-6, 0).lineTo(-20, 0).stroke({ color: 0xb06cff, width: 3, alpha: 0.38 });
+        } else {
+          g.moveTo(-13, 4).lineTo(-5, -4).lineTo(0, 3).lineTo(7, -5).lineTo(14, 0)
+            .stroke({ color: 0xffffff, width: 2.2, alpha: 0.96 });
+          g.moveTo(-15, 5).lineTo(-7, -3).lineTo(-2, 4).lineTo(5, -4).lineTo(12, 1)
+            .stroke({ color: m.color, width: 5, alpha: 0.48 });
+        }
       } else {
         // 默认: 简单圆
         const rad = 5;
@@ -884,7 +969,6 @@ async function main() {
     'width:118px;height:84px;border:1.5px solid #6a5a3a;background:#0009;border-radius:8px;pointer-events:auto;z-index:35;box-shadow:0 3px 8px #000a;';
   document.body.appendChild(mm);
   // 点击小地图 → 展开世界地图 (关卡链路 + 航点传送)
-  const BOSS_AREA_IDS = new Set(['andariel_lair', 'tal_rasha_tomb', 'durance_of_hate', 'chaos_sanctuary', 'worldstone_keep']);
   const worldMap = new WorldMapPanel((id) => { game.loadArea(id); worldMap.hide(); paused = false; }, () => { paused = false; });
   function worldAreas(): WorldArea[] {
     return Object.keys(AREAS).map((id) => {
@@ -1060,6 +1144,7 @@ async function main() {
       syncCorpses();
       syncGold();
       syncGroundItems();
+      syncLootFx();
       syncSwings();
       syncMissiles();
       syncMerc();

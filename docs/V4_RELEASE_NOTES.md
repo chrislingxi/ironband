@@ -1,5 +1,42 @@
 # V4 Release Notes
 
+## Shattered Crown Boss Arena Pass
+
+- Added an original 512px Shattered Crown ritual altar with preserved source provenance and mirrored runtime/Page assets.
+- Placed the altar beneath the encounter center of all five Boss arenas, behind actors and warning effects.
+- Kept the altar neutral black-iron/basalt while each Boss retains a distinct element palette, silhouette and telegraph pattern.
+
+## Original Five-Act Boss Identity Pass
+
+- Retained internal Boss ids for save compatibility while replacing every player-facing borrowed name with an original Ironband identity.
+- Added Bloodroot Matriarch, Iron Jailer, Hollow Prophet, Cinderhorn Tyrant and Plague-Crown King with original Chinese arena and quest language.
+- Added regression coverage preventing legacy Boss and arena names from returning to player-facing data.
+
+## Runtime Art Budget And QA Capture Pass
+
+- Preserved full-resolution class, Boss and camp-prop masters under `art_source/v4/runtime` while limiting mobile runtime copies to a 768px longest edge.
+- Reduced each deployed runtime asset tree from roughly 47 MB to 34 MB without lowering any asset below its actual display requirement.
+- Added a 38 MiB regression ceiling and deterministic promotion of title, gameplay, inventory and skill-tree device screenshots into `docs/screenshots/v4`.
+
+## Actor Motion And Boss Telegraph Pass
+
+- Added restrained stride weight, attack compression, directional torso rotation and hit jolt to authored single-frame actor art.
+- Added a pulsing red-orange ground telegraph during every act Boss attack window.
+- Kept all transforms presentation-only; entity positions, hitboxes, cooldowns and damage remain controlled by the simulation.
+
+## Three-Class Attack Pose Pass
+
+- Added identity-preserving attack sprites for Barbarian and Sorceress alongside the existing Amazon bow draw.
+- Barbarian now raises his two-handed axe for a readable heavy strike; Sorceress projects a compact lightning/frost sigil instead of sliding through the idle portrait.
+- The runtime now selects `char/<class>_attack` for all three player classes without changing hit timing, damage or collision.
+- Added source provenance, 512x768 RGBA validation, byte-identical Pages copies and a new static asset revision.
+
+## UI Material Kit - Slots, Rarity And Status Language
+
+- Added a reproducible V4 UI generator for black-iron inventory slots, equipped slots, four rarity frames, a cooldown mask, and burn/freeze/poison/bleed status icons.
+- Connected inventory and HUD cooldown surfaces to the authored PNG kit while preserving existing interaction and cooldown timing.
+- Mirrored every asset into development and GitHub Pages paths and added byte-identity, dimension and alpha-channel regression coverage.
+
 ## Weapon And Defense Loot Expansion
 
 - Added hand-painted transparent icons for hand axe, short sword, mace, double axe, iron skull cap and small heater shield.

@@ -59,11 +59,15 @@ Required key families:
 - Replaced the inventory CSS mannequin with the active class PNG and carried the same class art into the character identity header.
 - Established the base-item icon route and delivered the first six common loot icons across inventory, equipment and town commerce.
 - Expanded item art to all six weapons plus both helms and shields; 12 of 18 base-item identities now have authored PNGs.
+- Added dedicated attack poses for all three classes and presentation motion for single-frame monsters.
+- Added original player-facing identities for all five act Bosses plus a shared Shattered Crown arena altar and readable attack telegraphs.
+- Added black-iron slots, rarity frames, cooldown mask, four status icons, persistent premium loot beams and element-specific impact silhouettes.
+- Reduced each deployed runtime asset tree from roughly 47 MB to 34 MB and fixed deterministic localhost visual QA captures.
 
-## Next Art Production Queue
+## Post-V4 Expansion Queue
 
-1. Expand the Amazon two-pose state into directional/run frames, then add attack animation sheets for the other players, common monsters, and act bosses.
-2. Create separate class portrait variants for title/class select and in-game actor scale.
-3. Complete authored combat FX, item/service icons, status icons, and rarity frames from the asset manifest.
-4. Replace remaining legacy instructional copy and emoji fallback marks inside operational panels.
-5. Skill icon replacement is complete for the current data set: all 67 current class skill definitions have bespoke PNG coverage. New future skills should ship with PNG icons and asset-regression coverage in the same pass.
+These are post-release expansion opportunities, not blockers for the V4 vertical slice:
+
+1. Expand two-pose player presentation into full directional run/attack atlases when additional combat animation budget is available.
+2. Add campaign-specific arena variants around the shared altar as new acts receive bespoke geometry.
+3. Continue replacing semantic fallback icons only when new systems or skills are introduced; all 67 current skills and all current service/status keys have authored PNG coverage.

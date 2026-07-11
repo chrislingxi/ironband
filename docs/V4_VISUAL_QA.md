@@ -2,9 +2,9 @@
 
 ## Combat FX And Town Services Gate
 
-- [ ] Amazon projectile reads as an arrow at mobile game scale.
-- [ ] Elemental impact color and silhouette differ by damage type.
-- [ ] Identified rare/set/unique ground items show beam, halo and name.
+- [x] Amazon projectile reads as an arrow at mobile game scale.
+- [x] Elemental impact color and silhouette differ by damage type.
+- [x] Rare/set/unique drops show a persistent beam, halo and name even when auto-pickup fires in the same simulation frame.
 - [x] Forge/shop/heal/identify icons load as 256px PNG assets without fallback glyphs.
 - [x] Town tabs fit at 390px CSS width without horizontal overflow.
 
@@ -83,12 +83,12 @@ Then do a browser smoke check against the built page or local dev server:
 - Camp NPC PNG route exists online.
 - First-run coach no longer overlaps the four skill buttons in mobile portrait.
 
-Known remaining art gaps:
+Historical foundation gaps and their V4 closure:
 
-- `assets/v4-dark/` path is ready, but the first external override pack is not yet populated.
+- `assets/v4-dark/` remains an optional user override path; shipped V4 art lives in the primary `assets/` contract and does not depend on an external pack.
 - Title-screen Barbarian/Amazon/Sorceress class portraits now use full-body V4 dark fantasy PNGs instead of Q-style chibi art.
 - Wilderness, town, desert, hell, and snow now use painted 768x768 source textures projected into seamless 256x128 RGBA isometric tiles by `npm run assets:v4-tiles`.
-- All five act bosses now resolve to V4 transparent PNG boss art and keep distinct runtime subKinds; next upgrade is directional/attack animation.
+- All five act bosses resolve to distinct V4 transparent PNG art, original player-facing identities, arena altar anchors and attack telegraphs.
 - Runtime player and camp NPC PNGs are larger than the old procedural markers, reducing the title-to-combat quality drop.
 - Rogue Encampment now has V4 campfire, exit gate, and blacksmith workstation props as low-risk scene anchors.
 - Skill icon coverage is complete for the current data set: all 67 current class skill definitions now route to bespoke V4 PNG icons.
@@ -106,7 +106,7 @@ Known remaining art gaps:
 - Title screen now uses a full-screen dark gothic cathedral-gate PNG background.
 - Short landscape play now uses a compact bottom utility row and matching joystick dead zone.
 - Global `ui/panel.png` and `ui/btn_frame.png` now use darker black-iron V4 material art.
-- Character, NPC, and monster runtime art is single-frame PNG, not directional animation sheets.
+- Common single-frame monster art now has presentation stride, attack compression and hit jolt; all three player classes have dedicated attack poses. Full directional atlases remain a post-V4 expansion.
 
 ## 2026-07-11 Painted Environment QA Record
 
@@ -117,3 +117,35 @@ Known remaining art gaps:
 - iPhone landscape 844x390: inventory and skill tree filled the viewport without trapping the player; both close controls remained reachable and worked.
 - Browser warnings/errors: none.
 - Online GitHub Pages verification: passed at `c58ca13` after fixing stale browser asset caching and the 0.9s large-art timeout. Portrait loaded painted tiles plus full character/NPC art with zero overflow or console errors; landscape inventory stayed bounded with a reachable close control.
+
+## 2026-07-11 Combat Readability QA Record
+
+- Arrow rendering uses a 45px directional silhouette with shaft, head, fletching and elemental edge light instead of a generic projectile diamond.
+- Lightning, poison and magic bolts now use separate zig-zag, globule and rune-shard silhouettes; fire and cold retain their own ball and crystal language.
+- Loot presentation is decoupled from inventory pickup. Premium beams, ground halos and labels remain visible for 1.35 seconds after the item enters the bag.
+- Portrait 390x844 and landscape 844x390 browser checks remained horizontally bounded; the landscape inventory covered the viewport without browser overflow or navigation interception.
+- Full self-test: 46 files, 198 tests passed, including UI and mobile zoom gates.
+
+## 2026-07-11 UI Material Kit QA Record
+
+- Black-iron empty/equipped slots and common/magic/rare/unique frames are authored RGBA PNGs, mirrored byte-for-byte between dev and Pages paths.
+- Cooldown mask and burn/freeze/poison/bleed status icons share the same worn-metal frame, light direction and mobile-readable contrast.
+- Landscape 844x390 inventory loaded the authored slot URLs, stayed exactly viewport-bounded and kept all equipment labels readable.
+- Static asset revision advanced to `20260711-v4-ui-kit` so iOS Safari and GitHub Pages cannot reuse the older painted-environment cache entries.
+
+## 2026-07-11 Three-Class Attack Pose QA Record
+
+- Amazon, Barbarian and Sorceress each have a dedicated 512x768 transparent attack pose with a complete weapon silhouette and bottom-center foot anchor.
+- Runtime pose swapping uses the existing attack cooldown window only; combat timing, damage and collision remain unchanged.
+- Barbarian overhead axe and Sorceress forward sigil remain readable when mirrored and reduced to mobile actor scale.
+- Common monsters now carry visible stride weight, attack compression and short hit-jolt motion even when only one authored PNG frame exists.
+- All five act Bosses display a pulsing ground warning during their attack window without changing the simulation hit timing.
+
+## 2026-07-11 Release Candidate Performance And Capture Record
+
+- Full-resolution class, late-act Boss and camp-prop sources are retained under `art_source/v4/runtime`; deployed copies are capped at a 768px longest edge.
+- Each runtime asset tree decreased from roughly 47 MB to 34 MB and is guarded by a 38 MiB automated ceiling.
+- UI and mobile self-tests now serve the production build over localhost, matching GitHub Pages origin behavior and preventing false `file://` texture results.
+- Fixed the local QA texture path so Pixi and DOM assets share the same `Image -> Texture` loading route; real character, NPC, prop and tile art is now visible in deterministic captures.
+- Seven reproducible title, camp, combat, inventory and skill screenshots are committed under `docs/screenshots/v4` at portrait and landscape phone sizes.
+- Complete logic suite: 46 files, 201 tests passed. Mobile zoom, fixed-body viewport and safe-area gates passed independently.

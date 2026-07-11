@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
 const REQUIRED_ASSETS = [
@@ -125,19 +125,37 @@ const REQUIRED_ASSETS = [
   'public/assets/icon/skill-telekinesis.png',
   'assets/char/amazon.png',
   'assets/char/amazon_attack.png',
+  'assets/char/barbarian_attack.png',
+  'assets/char/sorceress_attack.png',
   'assets/char/barbarian.png',
   'assets/char/sorceress.png',
   'public/assets/char/amazon.png',
   'public/assets/char/amazon_attack.png',
+  'public/assets/char/barbarian_attack.png',
+  'public/assets/char/sorceress_attack.png',
   'public/assets/char/barbarian.png',
   'public/assets/char/sorceress.png',
   'art_source/v4/char/amazon_attack_source.png',
+  'art_source/v4/char/barbarian_attack_source.png',
+  'art_source/v4/char/sorceress_attack_source.png',
+  'art_source/v4/runtime/amazon_portrait_source.png',
+  'art_source/v4/runtime/barbarian_portrait_source.png',
+  'art_source/v4/runtime/sorceress_portrait_source.png',
+  'art_source/v4/runtime/mephisto_source.png',
+  'art_source/v4/runtime/diablo_source.png',
+  'art_source/v4/runtime/baal_source.png',
+  'art_source/v4/runtime/campfire_source.png',
+  'art_source/v4/runtime/exit_gate_source.png',
+  'art_source/v4/runtime/blacksmith_anvil_source.png',
   'assets/prop/campfire.png',
   'assets/prop/exit_gate.png',
   'assets/prop/blacksmith_anvil.png',
   'public/assets/prop/campfire.png',
   'public/assets/prop/exit_gate.png',
   'public/assets/prop/blacksmith_anvil.png',
+  'art_source/v4/props/ritual_altar_source.png',
+  'assets/prop/ritual_altar.png',
+  'public/assets/prop/ritual_altar.png',
   'assets/mon/mephisto.png',
   'assets/mon/diablo.png',
   'assets/mon/baal.png',
@@ -224,6 +242,28 @@ const REQUIRED_ASSETS = [
   'public/assets/icon/service_shop.png',
   'public/assets/icon/service_heal.png',
   'public/assets/icon/service_identify.png',
+  'assets/ui/item_slot.png',
+  'assets/ui/item_slot_equipped.png',
+  'assets/ui/rarity_common.png',
+  'assets/ui/rarity_magic.png',
+  'assets/ui/rarity_rare.png',
+  'assets/ui/rarity_unique.png',
+  'assets/ui/cooldown_mask.png',
+  'public/assets/ui/item_slot.png',
+  'public/assets/ui/item_slot_equipped.png',
+  'public/assets/ui/rarity_common.png',
+  'public/assets/ui/rarity_magic.png',
+  'public/assets/ui/rarity_rare.png',
+  'public/assets/ui/rarity_unique.png',
+  'public/assets/ui/cooldown_mask.png',
+  'assets/icon/status_burn.png',
+  'assets/icon/status_freeze.png',
+  'assets/icon/status_poison.png',
+  'assets/icon/status_bleed.png',
+  'public/assets/icon/status_burn.png',
+  'public/assets/icon/status_freeze.png',
+  'public/assets/icon/status_poison.png',
+  'public/assets/icon/status_bleed.png',
   'art_source/v4/items/short_bow_source.png',
   'art_source/v4/items/cap_source.png',
   'art_source/v4/items/buckler_source.png',
@@ -290,6 +330,17 @@ describe('V4 visual asset pack', () => {
     expect(dev[25]).toBe(6);
   });
 
+  it('keeps every class attack pose mirrored and alpha-enabled', () => {
+    for (const cls of ['amazon', 'barbarian', 'sorceress']) {
+      const dev = readFileSync(`assets/char/${cls}_attack.png`);
+      const pages = readFileSync(`public/assets/char/${cls}_attack.png`);
+      expect(dev.equals(pages), `${cls} attack copies should be identical`).toBe(true);
+      expect(dev.readUInt32BE(16), `${cls} attack width`).toBe(512);
+      expect(dev.readUInt32BE(20), `${cls} attack height`).toBe(768);
+      expect(dev[25], `${cls} attack should be RGBA`).toBe(6);
+    }
+  });
+
   it('keeps town service icons mirrored, square and alpha-enabled', () => {
     for (const name of ['forge', 'shop', 'heal', 'identify']) {
       const dev = readFileSync(`assets/icon/service_${name}.png`);
@@ -310,5 +361,57 @@ describe('V4 visual asset pack', () => {
       expect(dev.readUInt32BE(20), `${name} item icon height`).toBe(256);
       expect(dev[25], `${name} item icon should be RGBA`).toBe(6);
     }
+  });
+
+  it('keeps the V4 UI kit mirrored, correctly sized and alpha-enabled', () => {
+    const ui128 = ['item_slot', 'item_slot_equipped', 'rarity_common', 'rarity_magic', 'rarity_rare', 'rarity_unique'];
+    for (const name of ui128) {
+      const dev = readFileSync(`assets/ui/${name}.png`);
+      const pages = readFileSync(`public/assets/ui/${name}.png`);
+      expect(dev.equals(pages), `${name} UI copies should be identical`).toBe(true);
+      expect(dev.readUInt32BE(16)).toBe(128);
+      expect(dev.readUInt32BE(20)).toBe(128);
+      expect(dev[25]).toBe(6);
+    }
+    const cooldown = readFileSync('assets/ui/cooldown_mask.png');
+    expect(cooldown.equals(readFileSync('public/assets/ui/cooldown_mask.png'))).toBe(true);
+    expect(cooldown.readUInt32BE(16)).toBe(256);
+    expect(cooldown.readUInt32BE(20)).toBe(256);
+    for (const name of ['burn', 'freeze', 'poison', 'bleed']) {
+      const dev = readFileSync(`assets/icon/status_${name}.png`);
+      expect(dev.equals(readFileSync(`public/assets/icon/status_${name}.png`))).toBe(true);
+      expect(dev.readUInt32BE(16)).toBe(128);
+      expect(dev.readUInt32BE(20)).toBe(128);
+      expect(dev[25]).toBe(6);
+    }
+  });
+
+  it('keeps large runtime art inside the mobile delivery budget', () => {
+    const groups = {
+      char: ['amazon', 'barbarian', 'sorceress'],
+      mon: ['mephisto', 'diablo', 'baal'],
+      prop: ['campfire', 'exit_gate', 'blacksmith_anvil'],
+    };
+    for (const [category, names] of Object.entries(groups)) {
+      for (const name of names) {
+        const dev = readFileSync(`assets/${category}/${name}.png`);
+        const pages = readFileSync(`public/assets/${category}/${name}.png`);
+        expect(dev.equals(pages), `${category}/${name} copies should be identical`).toBe(true);
+        expect(Math.max(dev.readUInt32BE(16), dev.readUInt32BE(20)), `${category}/${name} longest edge`).toBeLessThanOrEqual(768);
+      }
+    }
+    const bytes = (dir: string): number => readdirSync(dir, { withFileTypes: true }).reduce((sum: number, entry) => {
+      const path = `${dir}/${entry.name}`;
+      return sum + (entry.isDirectory() ? bytes(path) : statSync(path).size);
+    }, 0);
+    expect(bytes('public/assets'), 'Pages runtime asset pack should stay below 38 MiB').toBeLessThan(38 * 1024 * 1024);
+  });
+
+  it('keeps the original Boss altar mirrored and alpha-enabled', () => {
+    const dev = readFileSync('assets/prop/ritual_altar.png');
+    expect(dev.equals(readFileSync('public/assets/prop/ritual_altar.png'))).toBe(true);
+    expect(dev.readUInt32BE(16)).toBe(512);
+    expect(dev.readUInt32BE(20)).toBe(512);
+    expect(dev[25]).toBe(6);
   });
 });

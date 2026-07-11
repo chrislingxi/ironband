@@ -647,6 +647,14 @@ export class ActorSprite {
     const lunge = attacking ? this.opts.size * 0.35 : 0;
     this.bodyHolder.position.x = (faceLeft ? -lunge : lunge) + vx * lean;
     this.bodyHolder.position.y = bob + vy * lean;
+    const stride = moving ? Math.sin(timeMs / 90) : 0;
+    const hitJolt = flash > 0 ? Math.sin(timeMs / 18) * Math.min(1, flash) : 0;
+    this.bodyHolder.rotation = attacking
+      ? (faceLeft ? -0.075 : 0.075)
+      : moving ? stride * 0.018 : hitJolt * 0.035;
+    this.bodyHolder.scale.y = attacking ? 0.965 : moving ? 1 + Math.abs(stride) * 0.012 : 1;
+    this.shadow.scale.set(moving ? 1 + Math.abs(stride) * 0.08 : attacking ? 1.12 : 1, attacking ? 0.86 : 1);
+    this.shadow.alpha = attacking ? 0.42 : moving ? 0.34 : 0.3;
 
     // 朝向尖角: 仅玩家且移动时显示, 指向真实行进方向 (修"地图方向与走路方向看着不一致")
     this.pointer.visible = !!this.opts.showFacing && moving;

@@ -19,7 +19,7 @@ import { MONSTERS_EXT } from '@game/data/monsters2.ts';
 // 怪物 defId → 中文名 (死因显示用); Boss 名单独补。
 const MON_NAME: Record<string, string> = {};
 for (const m of [...Object.values(MONSTERS), ...Object.values(MONSTERS_EXT)]) MON_NAME[m.id] = m.name;
-const BOSS_NAME: Record<string, string> = { andariel: '安达莉尔', duriel: '督瑞尔', mephisto: '墨菲斯托', diablo: '迪亚波罗', baal: '巴尔' };
+const BOSS_NAME: Record<string, string> = { andariel: '血根主母', duriel: '铁狱刑王', mephisto: '空骸先知', diablo: '烬角暴君', baal: '腐冠之王' };
 // 装备战力评分(背包显示+一键穿戴共用): 伤害×3 + 防御 + 词缀值合计 + 稀有度权重。
 export function itemPower(it: ItemInstance): number {
   let s = 0;
@@ -103,6 +103,13 @@ export interface GroundItem {
   pos: Vec2;
   item: ItemInstance;
 }
+export interface LootFx {
+  id: number;
+  pos: Vec2;
+  name: string;
+  rarity: ItemInstance['rarity'];
+  ageMs: number;
+}
 export interface Swing {
   pos: Vec2;
   facing: number;
@@ -120,6 +127,7 @@ export class Game {
   corpses: Corpse[] = [];
   gold: GoldDrop[] = [];
   groundItems: GroundItem[] = []; // 地面掉落
+  lootFx: LootFx[] = []; // 自动拾取后仍保留的短时掉落展示
   inventory: ItemInstance[] = []; // 背包 (单格)
   invCap = 32;
   stash: ItemInstance[] = []; // 共享仓库 (营地存取, 随角色存档)
@@ -241,6 +249,7 @@ export class Game {
     this.corpses = [];
     this.gold = [];
     this.groundItems = [];
+    this.lootFx = [];
     this.swings = [];
     this.missiles = [];
     const bossDefId = BOSS_AREAS[this.currentArea.id];
@@ -475,27 +484,27 @@ export class Game {
     else if (questId === 'sisters_burial') { this.mercUnlocked = true; this.notices.push('任务完成: 姐妹的安息之地 (雇佣兵已解锁)'); }
     else if (questId === 'andariel') {
       this.act1Complete = true;
-      this.notices.push('★ 第一幕通关! 安达莉尔已伏诛 ★');
+      this.notices.push('★ 第一幕通关! 血根主母已伏诛 ★');
       this.notices.push('沃里夫的车队已开往第二幕 · 鲁高因');
     }
     else if (questId === 'duriel') {
       this.act2Complete = true;
-      this.notices.push('★ 第二幕通关! 痛苦之王督瑞尔已伏诛 ★');
+      this.notices.push('★ 第二幕通关! 铁狱刑王已伏诛 ★');
       this.notices.push('循古墓传送门前往第三幕 · 卡纳镇');
     }
     else if (questId === 'mephisto') {
       this.act3Complete = true;
-      this.notices.push('★ 第三幕通关! 憎恨之王梅菲斯特已伏诛 ★');
+      this.notices.push('★ 第三幕通关! 空骸先知已伏诛 ★');
       this.notices.push('泰瑞尔的红门已通往第四幕 · 万神殿要塞');
     }
     else if (questId === 'diablo') {
       this.act4Complete = true;
-      this.notices.push('★ 第四幕通关! 暗黑破坏神已伏诛 ★');
+      this.notices.push('★ 第四幕通关! 烬角暴君已伏诛 ★');
       this.notices.push('红门已通往第五幕 · 哈洛加斯');
     }
     else if (questId === 'baal') {
       this.act5Complete = true;
-      this.notices.push('★★ 全剧终! 毁灭之王巴尔已伏诛 ★★');
+      this.notices.push('★★ 全剧终! 腐冠之王已伏诛 ★★');
     }
     else this.notices.push('任务完成');
 
@@ -887,6 +896,14 @@ export class Game {
             pos: { x: e.pos.x + off(), y: e.pos.y + off() },
             item,
           });
+          const ground = this.groundItems[this.groundItems.length - 1];
+          this.lootFx.push({
+            id: ground.id,
+            pos: { ...ground.pos },
+            name: item.identified ? item.name : `未鉴定的${item.base.name}`,
+            rarity: item.rarity,
+            ageMs: 0,
+          });
         }
       }
     }
@@ -895,6 +912,8 @@ export class Game {
     // ----- 尸体老化 (供萨满复活的窗口期后消失) -----
     for (const c of this.corpses) c.ageMs += dt * 1000;
     this.corpses = this.corpses.filter((c) => c.ageMs < 12000);
+    for (const fx of this.lootFx) fx.ageMs += dt * 1000;
+    this.lootFx = this.lootFx.filter((fx) => fx.ageMs < 1450);
 
     // ----- 挥砍弧光老化 -----
     for (const s of this.swings) s.ageMs += dt * 1000;

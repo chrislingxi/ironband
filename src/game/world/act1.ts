@@ -113,7 +113,7 @@ export const AREAS: Record<string, LevelDef> = {
   // 安达莉尔巢穴 — Boss 区域, 等级最高
   andariel_lair: {
     id: 'andariel_lair',
-    name: '安达莉尔巢穴',
+    name: '血根祭窟',
     act: 1,
     monLevel: ml(12, 46, 77),
     monsters: ['skeleton', 'shaman'],

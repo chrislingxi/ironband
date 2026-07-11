@@ -9,7 +9,7 @@ const pd = <T,>(n: T, nm: T, h: T) => ({ normal: n, nightmare: nm, hell: h });
 
 export const DURIEL: MonStat = {
   id: 'duriel',
-  name: '督瑞尔',
+  name: '铁狱刑王',
   sprite: 'duriel',
   ai: 'boss',
   // 二幕 Boss, 等级高于一幕安达莉尔.
