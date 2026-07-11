@@ -56,6 +56,10 @@ function flag(dev, panel, msg) { findings.push(`[${dev}] ${panel}: ${msg}`); }
 const chromeCandidates = [
   process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE,
   '/opt/pw-browsers/chromium',
+  '/usr/bin/google-chrome',
+  '/usr/bin/google-chrome-stable',
+  '/usr/bin/chromium',
+  '/usr/bin/chromium-browser',
   '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
   '/Applications/Chromium.app/Contents/MacOS/Chromium',
 ].filter(Boolean);
