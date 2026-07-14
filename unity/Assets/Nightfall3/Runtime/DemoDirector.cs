@@ -55,7 +55,11 @@ namespace Nightfall3
             ground.name = "Corrupted Flagstone";
             ground.transform.position = new Vector3(0f, -0.28f, 5f);
             ground.transform.localScale = new Vector3(25f, 0.5f, 34f);
-            ground.GetComponent<Renderer>().material = Material(Ash, 0.18f, 0.72f);
+            var floorTexture = Resources.Load<Texture2D>("Art/Environment/ashen-courtyard-albedo-v1");
+            if (floorTexture != null) floorTexture.wrapMode = TextureWrapMode.Repeat;
+            var floorMaterial = Material(Color.white, 0.08f, 0.48f, texture: floorTexture);
+            floorMaterial.mainTextureScale = new Vector2(2.4f, 3.2f);
+            ground.GetComponent<Renderer>().material = floorMaterial;
 
             BuildProcessionalPath();
             BuildCourtyardWalls();
@@ -90,15 +94,14 @@ namespace Nightfall3
         {
             for (var row = -4; row <= 13; row++)
             {
-                for (var column = -2; column <= 2; column++)
+                for (var side = -1; side <= 1; side += 2)
                 {
-                    var slab = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    slab.name = "Worn Causeway";
-                    slab.transform.position = new Vector3(column * 1.65f + (row % 2 == 0 ? 0.2f : -0.2f), 0.015f, row * 1.55f);
-                    slab.transform.localScale = new Vector3(1.53f, 0.08f, 1.42f);
-                    slab.transform.rotation = Quaternion.Euler(0f, Random.Range(-2.5f, 2.5f), 0f);
-                    var tone = Random.Range(0.82f, 1.12f);
-                    slab.GetComponent<Renderer>().material = Material(new Color(0.15f, 0.135f, 0.115f) * tone, 0.08f, 0.58f);
+                    var curb = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    curb.name = "Bronze Causeway Inlay";
+                    curb.transform.position = new Vector3(side * 4.45f, 0.015f, row * 1.55f);
+                    curb.transform.localScale = new Vector3(0.13f, 0.05f, 1.46f);
+                    curb.transform.rotation = Quaternion.Euler(0f, Random.Range(-1f, 1f), 0f);
+                    curb.GetComponent<Renderer>().material = Material(new Color(0.26f, 0.16f, 0.075f) * Random.Range(0.75f, 1.12f), 0.72f, 0.42f);
                 }
             }
 
@@ -281,13 +284,14 @@ namespace Nightfall3
             Destroy(beam, 5f);
         }
 
-        private static Material Material(Color color, float metallic, float smoothness, Color emission = default)
+        private static Material Material(Color color, float metallic, float smoothness, Color emission = default, Texture texture = null)
         {
             var template = Resources.Load<Material>("Materials/RuntimeBase");
             var material = template != null ? new Material(template) : new Material(Shader.Find("Standard"));
             material.color = color;
             material.SetFloat("_Metallic", metallic);
             material.SetFloat("_Glossiness", smoothness);
+            if (texture != null) material.mainTexture = texture;
             if (emission.maxColorComponent > 0f)
             {
                 material.EnableKeyword("_EMISSION");
