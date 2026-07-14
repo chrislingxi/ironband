@@ -71,6 +71,18 @@ namespace Nightfall3.Actors
             var rig = Camera.main != null ? Camera.main.GetComponent<CameraRig>() : null;
             rig?.AddTrauma(critical ? 0.48f : 0.24f);
             DemoDirector.SpawnImpact(transform.position + Vector3.up * 0.65f, critical);
+            DemoDirector.SpawnDamageNumber(transform.position, damage, critical);
+            StartCoroutine(HitFlashRoutine(critical));
+        }
+
+        private IEnumerator HitFlashRoutine(bool critical)
+        {
+            var visual = GetComponentInChildren<SpriteRenderer>();
+            if (visual == null) yield break;
+            var original = visual.color;
+            visual.color = critical ? new Color(1f, 0.74f, 0.28f) : new Color(0.62f, 0.9f, 1f);
+            yield return new WaitForSecondsRealtime(critical ? 0.11f : 0.075f);
+            if (visual != null) visual.color = original;
         }
 
         private void Die()

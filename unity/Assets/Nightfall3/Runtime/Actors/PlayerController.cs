@@ -14,6 +14,8 @@ namespace Nightfall3.Actors
         private Vector2 touchOrigin;
         private int movementFinger = -1;
         private Vector2 touchMove;
+        private Vector3 facing = Vector3.forward;
+        private readonly float[] cooldownEnds = new float[4];
 
         public Health Health { get; private set; }
 
@@ -30,9 +32,13 @@ namespace Nightfall3.Actors
             var input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
             if (touchMove.sqrMagnitude > input.sqrMagnitude) input = touchMove;
             var move = new Vector3(input.x, 0f, input.y).normalized;
+            if (move.sqrMagnitude > 0.01f) facing = move;
             if (!attacking) character.Move(move * (CombatTuning.PlayerMoveSpeed * Time.deltaTime));
 
-            if (Input.GetKeyDown(KeyCode.Space)) CastArcBurst();
+            if (Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Space)) CastArcBurst();
+            if (Input.GetKeyDown(KeyCode.Alpha2)) CastStaticField();
+            if (Input.GetKeyDown(KeyCode.Alpha3)) CastTeleport();
+            if (Input.GetKeyDown(KeyCode.Alpha4)) CastFrozenOrb();
             if (Time.time >= nextAttack) TryBasicAttack();
         }
 
@@ -75,12 +81,12 @@ namespace Nightfall3.Actors
             attacking = true;
             nextAttack = Time.time + CombatTuning.BasicAttackInterval;
             var start = transform.localScale;
-            transform.localScale = new Vector3(start.x * 0.88f, start.y * 1.08f, start.z);
-            yield return new WaitForSeconds(0.1f);
+            transform.localScale = new Vector3(start.x * 0.9f, start.y * 1.06f, start.z);
+            yield return new WaitForSeconds(0.085f);
             if (target != null)
             {
                 var critical = Random.value < 0.16f;
-                target.ReceiveHit(CombatTuning.BasicAttackDamage * (critical ? 1.65f : 1f), transform.position, critical);
+                DemoDirector.SpawnArcProjectile(transform.position + Vector3.up * 0.9f, target, CombatTuning.BasicAttackDamage * (critical ? 1.65f : 1f), critical);
             }
             transform.localScale = start;
             yield return new WaitForSeconds(0.14f);
@@ -89,7 +95,7 @@ namespace Nightfall3.Actors
 
         public void CastArcBurst()
         {
-            if (attacking) return;
+            if (!BeginSkill(0, CombatTuning.ChainLightningCooldown)) return;
             StartCoroutine(ArcBurstRoutine());
         }
 
@@ -106,6 +112,92 @@ namespace Nightfall3.Actors
             Destroy(ring, 0.16f);
             yield return new WaitForSeconds(0.28f);
             attacking = false;
+        }
+
+        public void CastStaticField()
+        {
+            if (!BeginSkill(1, CombatTuning.StaticFieldCooldown)) return;
+            StartCoroutine(StaticFieldRoutine());
+        }
+
+        private IEnumerator StaticFieldRoutine()
+        {
+            attacking = true;
+            var field = DemoDirector.CreateGroundRing(transform.position, 4.8f, new Color(0.52f, 0.22f, 0.95f, 0.5f));
+            yield return new WaitForSeconds(0.26f);
+            foreach (var enemy in FindObjectsByType<EnemyController>(FindObjectsSortMode.None))
+            {
+                if (Vector3.Distance(transform.position, enemy.transform.position) <= 4.8f)
+                    enemy.ReceiveHit(32f, transform.position, false);
+            }
+            DemoDirector.SpawnShockwave(transform.position, new Color(0.58f, 0.26f, 1f));
+            Destroy(field, 0.28f);
+            yield return new WaitForSeconds(0.22f);
+            attacking = false;
+        }
+
+        public void CastTeleport()
+        {
+            if (!BeginSkill(2, CombatTuning.TeleportCooldown)) return;
+            StartCoroutine(TeleportRoutine());
+        }
+
+        private IEnumerator TeleportRoutine()
+        {
+            attacking = true;
+            DemoDirector.SpawnAfterimage(transform.position, new Color(0.46f, 0.25f, 1f));
+            yield return new WaitForSecondsRealtime(0.05f);
+            character.enabled = false;
+            transform.position += facing.normalized * 4.6f;
+            character.enabled = true;
+            DemoDirector.SpawnShockwave(transform.position, new Color(0.36f, 0.65f, 1f));
+            yield return new WaitForSeconds(0.12f);
+            attacking = false;
+        }
+
+        public void CastFrozenOrb()
+        {
+            if (!BeginSkill(3, CombatTuning.FrozenOrbCooldown)) return;
+            StartCoroutine(FrozenOrbRoutine());
+        }
+
+        private IEnumerator FrozenOrbRoutine()
+        {
+            attacking = true;
+            yield return new WaitForSeconds(0.16f);
+            for (var step = 1; step <= 4; step++)
+            {
+                var center = transform.position + facing.normalized * (step * 1.65f);
+                DemoDirector.SpawnShockwave(center, new Color(0.28f, 0.82f, 1f));
+                foreach (var enemy in FindObjectsByType<EnemyController>(FindObjectsSortMode.None))
+                {
+                    if (Vector3.Distance(center, enemy.transform.position) <= 1.25f)
+                        enemy.ReceiveHit(18f, transform.position, step == 4);
+                }
+                yield return new WaitForSeconds(0.075f);
+            }
+            yield return new WaitForSeconds(0.18f);
+            attacking = false;
+        }
+
+        public float GetCooldownNormalized(int skill)
+        {
+            var duration = skill switch
+            {
+                0 => CombatTuning.ChainLightningCooldown,
+                1 => CombatTuning.StaticFieldCooldown,
+                2 => CombatTuning.TeleportCooldown,
+                3 => CombatTuning.FrozenOrbCooldown,
+                _ => 1f
+            };
+            return Mathf.Clamp01((cooldownEnds[skill] - Time.time) / duration);
+        }
+
+        private bool BeginSkill(int skill, float cooldown)
+        {
+            if (attacking || Time.time < cooldownEnds[skill]) return false;
+            cooldownEnds[skill] = Time.time + cooldown;
+            return true;
         }
     }
 }

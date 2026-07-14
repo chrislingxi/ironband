@@ -272,6 +272,47 @@ namespace Nightfall3
             Destroy(impact, 0.12f);
         }
 
+        public static void SpawnArcProjectile(Vector3 position, EnemyController target, float damage, bool critical)
+        {
+            var projectile = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            projectile.name = critical ? "Critical Arc Bolt" : "Arc Bolt";
+            projectile.transform.position = position;
+            projectile.transform.localScale = Vector3.one * (critical ? 0.22f : 0.16f);
+            var color = critical ? new Color(1f, 0.64f, 0.16f) : new Color(0.24f, 0.78f, 1f);
+            projectile.GetComponent<Renderer>().material = Material(color, 0.12f, 0.08f, color * 6f);
+            Destroy(projectile.GetComponent<Collider>());
+            projectile.AddComponent<ArcProjectile>().Configure(target, position, damage, critical);
+        }
+
+        public static void SpawnShockwave(Vector3 position, Color color)
+        {
+            var pulse = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            pulse.name = "Elemental Shockwave";
+            pulse.transform.position = position + Vector3.up * 0.055f;
+            pulse.transform.localScale = new Vector3(0.12f, 0.014f, 0.12f);
+            pulse.GetComponent<Renderer>().material = Material(color, 0f, 0.18f, color * 4f);
+            Destroy(pulse.GetComponent<Collider>());
+            pulse.AddComponent<TransientPulse>().Configure(new Vector3(3.2f, 0.014f, 3.2f), 0.24f);
+        }
+
+        public static void SpawnAfterimage(Vector3 position, Color color)
+        {
+            var echo = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+            echo.name = "Teleport Echo";
+            echo.transform.position = position + Vector3.up * 0.9f;
+            echo.transform.localScale = new Vector3(0.42f, 0.9f, 0.42f);
+            echo.GetComponent<Renderer>().material = Material(color, 0f, 0.1f, color * 5f);
+            Destroy(echo.GetComponent<Collider>());
+            echo.AddComponent<TransientPulse>().Configure(new Vector3(0.08f, 1.7f, 0.08f), 0.22f);
+        }
+
+        public static void SpawnDamageNumber(Vector3 position, float damage, bool critical)
+        {
+            var label = new GameObject("Damage Number", typeof(FloatingCombatText));
+            label.transform.position = position + Vector3.up * 1.35f + Vector3.right * Random.Range(-0.15f, 0.15f);
+            label.GetComponent<FloatingCombatText>().Configure(damage, critical);
+        }
+
         public static void SpawnLootBeam(Vector3 position)
         {
             var beam = GameObject.CreatePrimitive(PrimitiveType.Cylinder);

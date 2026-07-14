@@ -15,6 +15,12 @@ UNITY="/Applications/Unity/Hub/Editor/6000.3.18f1/Unity.app/Contents/MacOS/Unity
 
 "$UNITY" -batchmode -nographics -quit -projectPath "$PWD/unity" \
   -executeMethod Nightfall3.Editor.DemoBuildPipeline.BuildMac -logFile unity-mac-build.log
+
+"unity/Builds/macOS/Nightfall3.app/Contents/MacOS/Nightfall 3 Demo" \
+  -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -qaCombat \
+  -qaCapture /tmp/nightfall3-combat.png -logFile /tmp/nightfall3-combat.log
 ```
+
+The runtime gate executes all four skills and fails if the authored four-enemy encounter takes no damage or the screenshot cannot be produced.
 
 The foundation is intentionally not the visual-target milestone. Bridge sprites and procedural geometry must be replaced or materially upgraded before visual acceptance.
