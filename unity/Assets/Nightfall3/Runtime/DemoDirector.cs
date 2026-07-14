@@ -1,0 +1,299 @@
+using System.Collections;
+using Nightfall3.Actors;
+using Nightfall3.Combat;
+using Nightfall3.Presentation;
+using Nightfall3.UI;
+using UnityEngine;
+
+namespace Nightfall3
+{
+    public sealed class DemoDirector : MonoBehaviour
+    {
+        private static readonly Color Iron = new(0.13f, 0.12f, 0.11f);
+        private static readonly Color Ash = new(0.095f, 0.085f, 0.07f);
+        private static readonly Color Ember = new(1f, 0.28f, 0.06f);
+
+        private Transform player;
+
+        private void Awake()
+        {
+            if (FindFirstObjectByType<HitStopController>() == null)
+                new GameObject("Hit Stop", typeof(HitStopController));
+
+            ConfigureWorld();
+            BuildEnvironment();
+            player = CreatePlayer();
+            CreateCamera(player);
+            CreateEncounter(player);
+            DemoHud.Create(player.GetComponent<PlayerController>());
+        }
+
+        private static void ConfigureWorld()
+        {
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor = new Color(0.16f, 0.18f, 0.2f);
+            RenderSettings.ambientEquatorColor = new Color(0.09f, 0.075f, 0.06f);
+            RenderSettings.ambientGroundColor = new Color(0.025f, 0.022f, 0.02f);
+            RenderSettings.fog = true;
+            RenderSettings.fogColor = new Color(0.025f, 0.028f, 0.03f);
+            RenderSettings.fogMode = FogMode.ExponentialSquared;
+            RenderSettings.fogDensity = 0.018f;
+            RuntimeQuality.Apply();
+        }
+
+        private void BuildEnvironment()
+        {
+            Random.InitState(3103);
+            var key = new GameObject("Moon Key", typeof(Light)).GetComponent<Light>();
+            key.type = LightType.Directional;
+            key.color = new Color(0.48f, 0.58f, 0.72f);
+            key.intensity = 1.25f;
+            key.shadows = LightShadows.Soft;
+            key.transform.rotation = Quaternion.Euler(48f, -36f, 0f);
+
+            var ground = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            ground.name = "Corrupted Flagstone";
+            ground.transform.position = new Vector3(0f, -0.28f, 5f);
+            ground.transform.localScale = new Vector3(25f, 0.5f, 34f);
+            ground.GetComponent<Renderer>().material = Material(Ash, 0.18f, 0.72f);
+
+            BuildProcessionalPath();
+            BuildCourtyardWalls();
+
+            for (var i = 0; i < 68; i++)
+            {
+                var x = Random.Range(-11f, 11f);
+                var z = Random.Range(-8f, 21f);
+                if (Mathf.Abs(x) < 4.8f && z < 16f) continue;
+                var stone = GameObject.CreatePrimitive(i % 4 == 0 ? PrimitiveType.Cylinder : PrimitiveType.Cube);
+                stone.name = "Ruin Debris";
+                stone.transform.position = new Vector3(x, Random.Range(-0.02f, 0.12f), z);
+                stone.transform.localScale = new Vector3(Random.Range(0.25f, 1.2f), Random.Range(0.08f, 0.35f), Random.Range(0.25f, 1.1f));
+                stone.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 180f), 0f);
+                stone.GetComponent<Renderer>().material = Material(Iron * Random.Range(0.72f, 1.15f), 0.08f, 0.9f);
+            }
+
+            CreateWorldArt("Ritual Altar", "Art/Props/ritual_altar", new Vector3(-5.7f, 0.04f, 7.5f), 3.2f, new Color(0.8f, 0.9f, 1f));
+            CreateWorldArt("Campfire", "Art/Props/campfire", new Vector3(5.9f, 0.04f, -0.2f), 2.35f, Color.white);
+
+            for (var z = -2f; z <= 18f; z += 6.5f)
+            {
+                CreateTorch(new Vector3(-7.5f, 1.15f, z));
+                CreateTorch(new Vector3(7.5f, 1.15f, z + 2.4f));
+            }
+
+            CreateGate(new Vector3(0f, 0f, 21f));
+            CreateWorldArt("Gate Facade", "Art/Props/exit_gate", new Vector3(0f, 0.05f, 20.5f), 7.4f, new Color(0.76f, 0.82f, 0.9f));
+        }
+
+        private static void BuildProcessionalPath()
+        {
+            for (var row = -4; row <= 13; row++)
+            {
+                for (var column = -2; column <= 2; column++)
+                {
+                    var slab = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    slab.name = "Worn Causeway";
+                    slab.transform.position = new Vector3(column * 1.65f + (row % 2 == 0 ? 0.2f : -0.2f), 0.015f, row * 1.55f);
+                    slab.transform.localScale = new Vector3(1.53f, 0.08f, 1.42f);
+                    slab.transform.rotation = Quaternion.Euler(0f, Random.Range(-2.5f, 2.5f), 0f);
+                    var tone = Random.Range(0.82f, 1.12f);
+                    slab.GetComponent<Renderer>().material = Material(new Color(0.15f, 0.135f, 0.115f) * tone, 0.08f, 0.58f);
+                }
+            }
+
+            for (var row = -2; row <= 18; row += 4)
+            {
+                var sigil = CreateGroundRing(new Vector3(0f, 0.06f, row), 1.05f, new Color(0.16f, 0.37f, 0.5f));
+                sigil.name = "Cold Ward Sigil";
+                sigil.transform.localScale = new Vector3(1.7f, 0.012f, 1.7f);
+            }
+        }
+
+        private static void BuildCourtyardWalls()
+        {
+            for (var z = -6f; z <= 19f; z += 3.2f)
+            {
+                for (var side = -1; side <= 1; side += 2)
+                {
+                    var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    wall.name = "Ashen Rampart";
+                    wall.transform.position = new Vector3(side * 9.6f, Random.Range(0.75f, 1.25f), z);
+                    wall.transform.localScale = new Vector3(1.25f, Random.Range(1.7f, 2.7f), 2.9f);
+                    wall.GetComponent<Renderer>().material = Material(Iron * Random.Range(0.75f, 1f), 0.17f, 0.78f);
+                }
+            }
+        }
+
+        private static void CreateTorch(Vector3 position)
+        {
+            var post = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            post.name = "Iron Brazier";
+            post.transform.position = position;
+            post.transform.localScale = new Vector3(0.18f, 1.1f, 0.18f);
+            post.GetComponent<Renderer>().material = Material(Iron, 0.65f, 0.48f);
+
+            var light = new GameObject("Ember Light", typeof(Light)).GetComponent<Light>();
+            light.transform.position = position + Vector3.up * 1.2f;
+            light.type = LightType.Point;
+            light.range = 7.5f;
+            light.intensity = 4.2f;
+            light.color = new Color(1f, 0.28f, 0.07f);
+            light.shadows = LightShadows.Soft;
+
+            var flame = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            flame.name = "Flame Core";
+            flame.transform.position = light.transform.position;
+            flame.transform.localScale = new Vector3(0.26f, 0.42f, 0.26f);
+            flame.GetComponent<Renderer>().material = Material(Ember, 0.1f, 0.15f, Ember * 3f);
+            Destroy(flame.GetComponent<Collider>());
+        }
+
+        private static void CreateGate(Vector3 position)
+        {
+            for (var side = -1; side <= 1; side += 2)
+            {
+                var tower = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                tower.name = "Gate Tower";
+                tower.transform.position = position + new Vector3(side * 3.8f, 2.6f, 0f);
+                tower.transform.localScale = new Vector3(2.2f, 5.2f, 2.1f);
+                tower.GetComponent<Renderer>().material = Material(Iron, 0.24f, 0.86f);
+            }
+            var beam = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            beam.name = "Gate Crown";
+            beam.transform.position = position + new Vector3(0f, 5.4f, 0f);
+            beam.transform.localScale = new Vector3(9.8f, 1.25f, 2.2f);
+            beam.GetComponent<Renderer>().material = Material(Iron, 0.24f, 0.86f);
+        }
+
+        private static void CreateWorldArt(string name, string resource, Vector3 position, float height, Color tint)
+        {
+            var texture = Resources.Load<Texture2D>(resource);
+            if (texture == null) return;
+            var sprite = Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.08f), texture.height / height);
+            var visual = new GameObject(name, typeof(SpriteRenderer), typeof(BillboardActor));
+            visual.transform.position = position;
+            var renderer = visual.GetComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
+            renderer.color = tint;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+        }
+
+        private static Transform CreatePlayer()
+        {
+            var root = new GameObject("Duskweaver", typeof(CharacterController), typeof(Health), typeof(PlayerController));
+            root.transform.position = new Vector3(0f, 0.05f, -5f);
+            var controller = root.GetComponent<CharacterController>();
+            controller.height = 1.7f;
+            controller.radius = 0.4f;
+            controller.center = new Vector3(0f, 0.85f, 0f);
+            CreateActorVisual(root.transform, "Art/Characters/Sorceress", 2.65f, new Color(0.76f, 0.88f, 1f));
+            return root.transform;
+        }
+
+        private static void CreateCamera(Transform target)
+        {
+            var go = new GameObject("Isometric Camera", typeof(Camera), typeof(AudioListener), typeof(CameraRig));
+            go.tag = "MainCamera";
+            var camera = go.GetComponent<Camera>();
+            camera.fieldOfView = 38f;
+            camera.nearClipPlane = 0.15f;
+            camera.farClipPlane = 120f;
+            camera.clearFlags = CameraClearFlags.SolidColor;
+            camera.backgroundColor = new Color(0.012f, 0.014f, 0.016f);
+            var rig = go.GetComponent<CameraRig>();
+            rig.Target = target;
+            go.transform.position = target.position + new Vector3(0f, 9.4f, -8.2f);
+            go.transform.rotation = Quaternion.LookRotation(target.position + new Vector3(0f, 0.8f, 3.2f) - go.transform.position, Vector3.up);
+        }
+
+        private static void CreateEncounter(Transform target)
+        {
+            CreateEnemy(target, "Art/Monsters/Fallen", new Vector3(-3.6f, 0.05f, 2.5f), 64f, 2.55f, 1.75f);
+            CreateEnemy(target, "Art/Monsters/Skeleton", new Vector3(2.8f, 0.05f, 3.8f), 82f, 1.9f, 2.05f);
+            CreateEnemy(target, "Art/Monsters/Hound", new Vector3(4.8f, 0.05f, 7.1f), 58f, 3.2f, 1.65f);
+            CreateEnemy(target, "Art/Monsters/Brute", new Vector3(-2.2f, 0.05f, 10.2f), 185f, 1.45f, 3.15f);
+        }
+
+        private static void CreateEnemy(Transform target, string resource, Vector3 position, float health, float speed, float height)
+        {
+            var root = new GameObject(resource[(resource.LastIndexOf('/') + 1)..], typeof(Health), typeof(EnemyController));
+            root.transform.position = position;
+            root.GetComponent<EnemyController>().Configure(target, health, speed);
+            CreateActorVisual(root.transform, resource, height, Color.white);
+        }
+
+        private static void CreateActorVisual(Transform root, string resource, float height, Color tint)
+        {
+            var shadow = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            shadow.name = "Contact Shadow";
+            shadow.transform.SetParent(root, false);
+            shadow.transform.localPosition = new Vector3(0f, 0.025f, 0f);
+            shadow.transform.localScale = new Vector3(height * 0.32f, 0.012f, height * 0.18f);
+            shadow.GetComponent<Renderer>().material = Material(new Color(0.005f, 0.004f, 0.004f), 0f, 1f);
+            Destroy(shadow.GetComponent<Collider>());
+
+            var texture = Resources.Load<Texture2D>(resource);
+            if (texture == null) return;
+            var sprite = Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.06f), texture.height / height);
+            var visual = new GameObject("Visual", typeof(SpriteRenderer), typeof(BillboardActor));
+            visual.transform.SetParent(root, false);
+            visual.transform.localPosition = Vector3.up * 0.02f;
+            var renderer = visual.GetComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
+            renderer.color = tint;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            renderer.receiveShadows = true;
+        }
+
+        public static GameObject CreateGroundRing(Vector3 position, float radius, Color color)
+        {
+            var ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            ring.name = "Attack Telegraph";
+            ring.transform.position = position + Vector3.up * 0.035f;
+            ring.transform.localScale = new Vector3(radius * 2f, 0.012f, radius * 2f);
+            ring.GetComponent<Renderer>().material = Material(color, 0.05f, 0.8f, color * 0.6f);
+            Destroy(ring.GetComponent<Collider>());
+            return ring;
+        }
+
+        public static void SpawnImpact(Vector3 position, bool critical)
+        {
+            var impact = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            impact.name = critical ? "Critical Impact" : "Impact";
+            impact.transform.position = position;
+            impact.transform.localScale = Vector3.one * (critical ? 0.62f : 0.34f);
+            var color = critical ? new Color(1f, 0.72f, 0.2f) : new Color(0.4f, 0.82f, 1f);
+            impact.GetComponent<Renderer>().material = Material(color, 0.08f, 0.22f, color * 3.5f);
+            Destroy(impact.GetComponent<Collider>());
+            Destroy(impact, 0.12f);
+        }
+
+        public static void SpawnLootBeam(Vector3 position)
+        {
+            var beam = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            beam.name = "Rare Loot Beam";
+            beam.transform.position = position + Vector3.up * 1.8f;
+            beam.transform.localScale = new Vector3(0.09f, 1.8f, 0.09f);
+            var color = new Color(0.18f, 0.75f, 1f);
+            beam.GetComponent<Renderer>().material = Material(color, 0f, 0.18f, color * 5f);
+            Destroy(beam.GetComponent<Collider>());
+            Destroy(beam, 5f);
+        }
+
+        private static Material Material(Color color, float metallic, float smoothness, Color emission = default)
+        {
+            var template = Resources.Load<Material>("Materials/RuntimeBase");
+            var material = template != null ? new Material(template) : new Material(Shader.Find("Standard"));
+            material.color = color;
+            material.SetFloat("_Metallic", metallic);
+            material.SetFloat("_Glossiness", smoothness);
+            if (emission.maxColorComponent > 0f)
+            {
+                material.EnableKeyword("_EMISSION");
+                material.SetColor("_EmissionColor", emission);
+            }
+            return material;
+        }
+    }
+}
