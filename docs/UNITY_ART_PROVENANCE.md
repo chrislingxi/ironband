@@ -7,6 +7,7 @@ Unity production assets are tracked separately from the legacy web asset contrac
 | `Art/Environment/ashen-courtyard-albedo-v1.png` | OpenAI built-in image generation, 2026-07-15 | Ashen Approach courtyard floor albedo | Authored v1; material maps and true seamless edge pass pending |
 | `Art/Environment/ashen-gate-facade-v1.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-15 | Ashen Approach sealed fortress entrance | Authored v1; animation and separate emissive flame pass pending |
 | `Art/Bosses/ashen-castellan-v1.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Original three-phase demo Boss | Authored v1 key sprite; animation sheet pending |
+| `Art/Characters/duskweaver-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Duskweaver player character and rune-bow combat silhouette | Authored v2 key sprite; directional animation sheet pending |
 
 ## Ashen Courtyard Prompt Contract
 
@@ -26,3 +27,9 @@ Unity production assets are tracked separately from the legacy web asset contrac
 - Original fallen fortress commander with layered black-iron and basalt armor, cold ward chains, an ember gauntlet and an asymmetrical cleaver-polearm.
 - Isolated 3/4 isometric full-body sprite; green chroma background removed locally with soft matte and despill.
 - Explicitly excludes identifiable characters, symbols, silhouettes and equipment from existing dark-fantasy franchises.
+
+## Duskweaver Prompt Contract
+
+- Original female arcane ranger-sorceress in blackened steel, oxblood leather and a storm-blue mantle, carrying a compact lightning rune bow.
+- Full-body isolated production sprite with warm rim light, cold key light, mobile-readable silhouette and locally removed green chroma background.
+- The supplied gameplay reference informed only finish, material richness, readability and lighting hierarchy; no character, costume, weapon, symbol or UI was copied.

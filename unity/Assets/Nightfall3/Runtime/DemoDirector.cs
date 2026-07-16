@@ -205,7 +205,7 @@ namespace Nightfall3
             controller.height = 1.7f;
             controller.radius = 0.4f;
             controller.center = new Vector3(0f, 0.85f, 0f);
-            CreateActorVisual(root.transform, "Art/Characters/Sorceress", 2.65f, new Color(0.76f, 0.88f, 1f));
+            CreateActorVisual(root.transform, "Art/Characters/duskweaver-v2", 2.9f, Color.white);
             return root.transform;
         }
 
