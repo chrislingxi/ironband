@@ -29,6 +29,17 @@ namespace Nightfall3.Editor
             "Assets/Resources/Art/Environment/ashen-gate-facade-v1.png"
         };
 
+        private static readonly string[] RequiredAudio =
+        {
+            "Assets/Resources/Audio/Music/emberwatch-cathedral.mp3",
+            "Assets/Resources/Audio/Music/ashen-approach-atmosphere.mp3",
+            "Assets/Resources/Audio/SFX/hit.mp3",
+            "Assets/Resources/Audio/SFX/skill.mp3",
+            "Assets/Resources/Audio/SFX/pickup.mp3",
+            "Assets/Resources/Audio/SFX/death.mp3",
+            "Assets/Resources/Audio/SFX/select.mp3"
+        };
+
         [MenuItem("Nightfall 3/Validate Foundation")]
         public static void ValidateFoundation()
         {
@@ -37,6 +48,10 @@ namespace Nightfall3.Editor
             foreach (var path in RequiredTextures)
             {
                 if (AssetDatabase.LoadAssetAtPath<Texture2D>(path) == null) failures.Add($"Missing texture: {path}");
+            }
+            foreach (var path in RequiredAudio)
+            {
+                if (AssetDatabase.LoadAssetAtPath<AudioClip>(path) == null) failures.Add($"Missing audio: {path}");
             }
             if (AssetDatabase.LoadAssetAtPath<Material>("Assets/Resources/Materials/RuntimeUnlit.mat") == null)
                 failures.Add("Missing unlit telegraph material");
@@ -53,7 +68,7 @@ namespace Nightfall3.Editor
                 failures.Add("iOS bundle identifier is not configured");
 
             if (failures.Count > 0) throw new InvalidOperationException(string.Join(Environment.NewLine, failures));
-            Debug.Log($"NIGHTFALL FOUNDATION VALID: {RequiredTextures.Length} required textures, scene enabled, macOS target available");
+            Debug.Log($"NIGHTFALL FOUNDATION VALID: {RequiredTextures.Length} textures, {RequiredAudio.Length} audio clips, scene enabled, macOS target available");
         }
     }
 }

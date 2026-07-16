@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Linq;
 using Nightfall3.Combat;
+using Nightfall3.Audio;
 using UnityEngine;
 
 namespace Nightfall3.Actors
@@ -98,6 +99,7 @@ namespace Nightfall3.Actors
         public void CastArcBurst()
         {
             if (!BeginSkill(0, CombatTuning.ChainLightningCooldown)) return;
+            AudioDirector.PlaySkill(1.08f);
             StartCoroutine(ArcBurstRoutine());
         }
 
@@ -119,6 +121,7 @@ namespace Nightfall3.Actors
         public void CastStaticField()
         {
             if (!BeginSkill(1, CombatTuning.StaticFieldCooldown)) return;
+            AudioDirector.PlaySkill(0.78f);
             StartCoroutine(StaticFieldRoutine());
         }
 
@@ -141,6 +144,7 @@ namespace Nightfall3.Actors
         public void CastTeleport()
         {
             if (!BeginSkill(2, CombatTuning.TeleportCooldown)) return;
+            AudioDirector.PlaySkill(1.28f);
             StartCoroutine(TeleportRoutine());
         }
 
@@ -160,6 +164,7 @@ namespace Nightfall3.Actors
         public void CastFrozenOrb()
         {
             if (!BeginSkill(3, CombatTuning.FrozenOrbCooldown)) return;
+            AudioDirector.PlaySkill(0.94f);
             StartCoroutine(FrozenOrbRoutine());
         }
 

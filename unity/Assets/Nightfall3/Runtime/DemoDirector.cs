@@ -1,5 +1,6 @@
 using System.Collections;
 using Nightfall3.Actors;
+using Nightfall3.Audio;
 using Nightfall3.Combat;
 using Nightfall3.Flow;
 using Nightfall3.Presentation;
@@ -28,6 +29,7 @@ namespace Nightfall3
             var warden = BuildCamp();
             var flow = new GameObject("Demo Flow", typeof(DemoFlowController)).GetComponent<DemoFlowController>();
             flow.Configure(player, warden);
+            new GameObject("Audio Director", typeof(AudioDirector)).GetComponent<AudioDirector>().Configure(flow);
             DemoHud.Create(player.GetComponent<PlayerController>(), flow);
         }
 

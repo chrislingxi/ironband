@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Nightfall3.Combat;
+using Nightfall3.Audio;
 using Nightfall3.Presentation;
 using UnityEngine;
 
@@ -122,6 +123,7 @@ namespace Nightfall3.Actors
             Camera.main?.GetComponent<CameraRig>()?.AddTrauma(critical ? 0.36f : 0.18f);
             DemoDirector.SpawnImpact(transform.position + Vector3.up * 1.25f, critical);
             DemoDirector.SpawnDamageNumber(transform.position + Vector3.up * 0.5f, damage, critical);
+            AudioDirector.PlayHit(critical);
             StartCoroutine(HitFlash(critical));
         }
 
@@ -140,6 +142,7 @@ namespace Nightfall3.Actors
             attackRoutine = null;
             ClearTelegraphs();
             Phase = phase;
+            AudioDirector.PlaySkill(phase == 2 ? 0.62f : 0.48f);
             var visual = GetComponentInChildren<SpriteRenderer>();
             var targetScale = phase == 2 ? Vector3.one * 1.1f : Vector3.one * 1.22f;
             var color = phase == 2 ? new Color(0.68f, 0.9f, 1f) : new Color(1f, 0.58f, 0.72f);
@@ -169,6 +172,7 @@ namespace Nightfall3.Actors
         {
             StopAllCoroutines();
             ClearTelegraphs();
+            AudioDirector.PlayDeath(true);
             StartCoroutine(DeathRoutine());
         }
 

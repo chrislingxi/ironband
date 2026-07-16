@@ -1,5 +1,6 @@
 using System;
 using Nightfall3.Actors;
+using Nightfall3.Audio;
 using UnityEngine;
 
 namespace Nightfall3.Flow
@@ -29,6 +30,7 @@ namespace Nightfall3.Flow
             transform.position = start + Vector3.up * (Mathf.Sin(Time.time * 3.2f + phase) * 0.12f);
             if (player == null || Vector3.Distance(transform.position, player.transform.position) > 1.35f) return;
             player.GrantRelic(power, Mathf.RoundToInt(experience));
+            AudioDirector.PlayPickup(power >= 0.2f);
             DemoDirector.SpawnShockwave(transform.position, new Color(0.26f, 0.82f, 1f));
             collected?.Invoke();
             Destroy(gameObject);

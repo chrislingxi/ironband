@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Nightfall3.Actors;
+using Nightfall3.Audio;
 using UnityEngine;
 
 namespace Nightfall3.Flow
@@ -41,6 +42,7 @@ namespace Nightfall3.Flow
         public void Interact()
         {
             if (phase != Phase.Briefing) return;
+            AudioDirector.PlaySelect();
             BeginGateFight();
         }
 

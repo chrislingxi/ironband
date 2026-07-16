@@ -1,5 +1,6 @@
 using System.Collections;
 using Nightfall3.Combat;
+using Nightfall3.Audio;
 using Nightfall3.Presentation;
 using UnityEngine;
 
@@ -75,6 +76,7 @@ namespace Nightfall3.Actors
             rig?.AddTrauma(critical ? 0.48f : 0.24f);
             DemoDirector.SpawnImpact(transform.position + Vector3.up * 0.65f, critical);
             DemoDirector.SpawnDamageNumber(transform.position, damage, critical);
+            AudioDirector.PlayHit(critical);
             StartCoroutine(HitFlashRoutine(critical));
         }
 
@@ -91,6 +93,7 @@ namespace Nightfall3.Actors
         private void Die()
         {
             StopAllCoroutines();
+            AudioDirector.PlayDeath();
             StartCoroutine(DeathRoutine());
         }
 
