@@ -37,10 +37,11 @@ namespace Nightfall3.Presentation
             var initialPower = player != null ? player.SpellPower : 0f;
             var observedBossPhase2 = false;
             var observedBossPhase3 = false;
+            var observedWardRitual = false;
             var issuedPhaseOneDamage = false;
             var issuedPhaseTwoDamage = false;
             var issuedKillingDamage = false;
-            var frameBudget = exerciseBoss ? 460 : exerciseFullFlow ? 240 : 180;
+            var frameBudget = exerciseBoss ? 620 : exerciseFullFlow ? 360 : 180;
             for (var frame = 0; frame < frameBudget; frame++)
             {
                 if (exerciseCombat && player != null)
@@ -52,11 +53,13 @@ namespace Nightfall3.Presentation
                 }
                 if ((exerciseFullFlow || exerciseBoss) && player != null && flow != null)
                 {
-                    if (frame > 16 && frame % 12 == 0 && flow.PhaseId is "GateFight" or "CausewayFight" or "EliteFight")
-                        KillAllEnemies(player.transform.position);
+                    if (flow.PhaseId == "WardRitual") observedWardRitual = true;
+                    if (frame > 16 && frame % 12 == 0 && flow.PhaseId is "GateFight" or "CausewayFight" or "WardRitual" or "EliteFight")
+                        KillAllTargets(player.transform.position);
                     if (flow.PhaseId == "AdvanceCauseway") player.transform.position = new Vector3(0f, 0.05f, 10.5f);
                     if (flow.PhaseId == "AdvanceWard") player.transform.position = new Vector3(0f, 0.05f, 20.5f);
-                    if (exerciseBoss && flow.PhaseId == "BossApproach") player.transform.position = new Vector3(0f, 0.05f, 26.5f);
+                    if (flow.PhaseId == "AdvanceElite") player.transform.position = new Vector3(0f, 0.05f, 26f);
+                    if (exerciseBoss && flow.PhaseId == "BossApproach") player.transform.position = new Vector3(0f, 0.05f, 30.5f);
 
                     var boss = FindFirstObjectByType<BossController>();
                     if (exerciseBoss && boss != null && boss.Phase == 1 && !issuedPhaseOneDamage)
@@ -102,8 +105,8 @@ namespace Nightfall3.Presentation
             if (exerciseFullFlow || exerciseBoss)
             {
                 var rewardApplied = !exerciseBoss || player != null && player.SpellPower > initialPower;
-                var flowSucceeded = flow != null && (exerciseBoss ? flow.IsComplete && observedBossPhase2 && observedBossPhase3 && rewardApplied : flow.ReachedBossApproach);
-                Debug.Log($"QA flow exercised: phase={flow?.PhaseId ?? "missing"}, bossII={observedBossPhase2}, bossIII={observedBossPhase3}, reward={rewardApplied}, success={flowSucceeded}");
+                var flowSucceeded = flow != null && observedWardRitual && (exerciseBoss ? flow.IsComplete && observedBossPhase2 && observedBossPhase3 && rewardApplied : flow.ReachedBossApproach);
+                Debug.Log($"QA flow exercised: phase={flow?.PhaseId ?? "missing"}, ward={observedWardRitual}, bossII={observedBossPhase2}, bossIII={observedBossPhase3}, reward={rewardApplied}, success={flowSucceeded}");
                 combatSucceeded &= flowSucceeded;
                 if (!flowSucceeded) Debug.LogError(exerciseBoss ? "QA Boss failed to complete all three phases" : "QA flow failed to reach the Boss approach");
             }
@@ -116,10 +119,10 @@ namespace Nightfall3.Presentation
             Application.Quit(File.Exists(path) && combatSucceeded ? 0 : 2);
         }
 
-        private static void KillAllEnemies(Vector3 origin)
+        private static void KillAllTargets(Vector3 origin)
         {
-            foreach (var enemy in FindObjectsByType<EnemyController>(FindObjectsSortMode.None))
-                enemy.ReceiveHit(99999f, origin, true);
+            foreach (var target in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None).OfType<ICombatTarget>())
+                target.ReceiveHit(99999f, origin, true);
         }
     }
 }

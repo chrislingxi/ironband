@@ -70,13 +70,16 @@ namespace Nightfall3.Presentation
                     PlayCue("THE BROKEN CAUSEWAY", "THE RAVENING LINE", new Vector3(0f, 0f, 15f), 2.1f, 33f);
                     break;
                 case "EliteFight":
-                    PlayCue("WARDEN OF BLUE ASH", "AN ELITE HUNT BEGINS", new Vector3(0f, 0f, 23.5f), 2.35f, 31f);
+                    PlayCue("WARDEN OF BLUE ASH", "AN ELITE HUNT BEGINS", new Vector3(0f, 0f, 28.5f), 2.35f, 31f);
+                    break;
+                case "WardRitual":
+                    PlayCue("THE COLD WARD", "SHATTER THE THREE SEALS", new Vector3(0f, 0f, 23f), 2.4f, 32f);
                     break;
                 case "BossFight":
-                    PlayCue("THE ASHEN CASTELLAN", "FIRST JUDGMENT: CLEAVING OATH", new Vector3(0f, 0f, 28f), 3.1f, 29f);
+                    PlayCue("THE ASHEN CASTELLAN", "FIRST JUDGMENT: CLEAVING OATH", new Vector3(0f, 0f, 33.2f), 3.1f, 29f);
                     break;
                 case "ClaimReward":
-                    PlayCue("THE CASTELLAN FALLS", "AN EMBER-BOUND RELIC REMAINS", new Vector3(0f, 0f, 28f), 2.7f, 31f);
+                    PlayCue("THE CASTELLAN FALLS", "AN EMBER-BOUND RELIC REMAINS", new Vector3(0f, 0f, 33.2f), 2.7f, 31f);
                     break;
                 case "Complete":
                     PlayCue("THE GATE REMEMBERS", "ASHEN APPROACH CLEARED", Camera.main != null ? Camera.main.transform.position + Camera.main.transform.forward * 8f : Vector3.zero, 3.5f, 34f);

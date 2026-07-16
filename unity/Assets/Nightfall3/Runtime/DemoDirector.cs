@@ -92,7 +92,7 @@ namespace Nightfall3
                 CreateTorch(new Vector3(7.5f, 1.15f, z + 2.4f));
             }
 
-            CreateWorldArt("Ashen Gate Facade", "Art/Environment/ashen-gate-facade-v1", new Vector3(0f, 0.05f, 29.5f), 8.4f, Color.white);
+            CreateWorldArt("Ashen Gate Facade", "Art/Environment/ashen-gate-facade-v1", new Vector3(0f, 0.05f, 36f), 8.4f, Color.white);
         }
 
         private static void BuildProcessionalPath()
@@ -243,6 +243,27 @@ namespace Nightfall3
             boss.Configure(target, 1800f);
             CreateActorVisual(root.transform, "Art/Bosses/ashen-castellan-v1", 5.8f, Color.white);
             return boss;
+        }
+
+        public static WardAnchor CreateWardAnchor(Vector3 position, System.Action<WardAnchor> destroyed)
+        {
+            var root = new GameObject("Blue Ash Ward Anchor", typeof(Health), typeof(WardAnchor));
+            root.transform.position = position;
+            for (var i = 0; i < 3; i++)
+            {
+                var shard = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                shard.name = "Ward Crystal";
+                shard.transform.SetParent(root.transform, false);
+                shard.transform.localPosition = new Vector3((i - 1) * 0.38f, 0.72f + i * 0.2f, 0f);
+                shard.transform.localScale = new Vector3(0.28f, 1.35f - i * 0.16f, 0.28f);
+                shard.transform.localRotation = Quaternion.Euler(12f * (i - 1), 45f + i * 24f, 8f * (1 - i));
+                var color = i == 1 ? new Color(0.18f, 0.72f, 1f) : new Color(0.5f, 0.22f, 1f);
+                shard.GetComponent<Renderer>().material = Material(color, 0.45f, 0.28f, color * 5f);
+                Destroy(shard.GetComponent<Collider>());
+            }
+            var ring = CreateGroundRing(position, 1.35f, new Color(0.2f, 0.72f, 1f, 0.84f));
+            root.GetComponent<WardAnchor>().Configure(260f, ring, destroyed);
+            return root.GetComponent<WardAnchor>();
         }
 
         private static void CreateActorVisual(Transform root, string resource, float height, Color tint)
