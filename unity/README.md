@@ -39,4 +39,12 @@ The Boss gate additionally proves both health-threshold transitions, defeat, rew
   -qaCapture /tmp/nightfall3-boss.png -logFile /tmp/nightfall3-boss.log
 ```
 
+Checkpoint recovery is a separate gate that kills the hero during the opening encounter and verifies full-health respawn plus encounter reset:
+
+```bash
+"unity/Builds/macOS/Nightfall3.app/Contents/MacOS/Nightfall 3 Demo" \
+  -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -qaRespawn \
+  -qaCapture /tmp/nightfall3-respawn.png -logFile /tmp/nightfall3-respawn.log
+```
+
 The foundation is intentionally not the visual-target milestone. Bridge sprites and procedural geometry must be replaced or materially upgraded before visual acceptance.

@@ -67,5 +67,10 @@ namespace Nightfall3.Flow
             destroyed?.Invoke(this);
             Destroy(gameObject);
         }
+
+        private void OnDestroy()
+        {
+            if (wardRing != null) Destroy(wardRing);
+        }
     }
 }

@@ -28,6 +28,7 @@ namespace Nightfall3.Flow
         private readonly List<WardAnchor> activeAnchors = new();
         private Phase phase;
         private Transform player;
+        private PlayerController playerController;
         private Transform warden;
         private BossController boss;
         private int gateWave;
@@ -41,6 +42,12 @@ namespace Nightfall3.Flow
         {
             player = playerTransform;
             warden = wardenTransform;
+            playerController = player.GetComponent<PlayerController>();
+            if (playerController != null)
+            {
+                playerController.RespawnPoint = player.position;
+                playerController.Respawned += RestartCurrentEncounter;
+            }
         }
 
         public void Interact()
@@ -70,6 +77,7 @@ namespace Nightfall3.Flow
                         ZoneName = "ASHEN APPROACH";
                         ObjectiveTitle = "BEYOND THE BLACK GATE";
                         ObjectiveDetail = "Advance to the broken causeway";
+                        SetCheckpoint(new Vector3(0f, 0.05f, 5.5f));
                     }
                     break;
                 case Phase.AdvanceCauseway when player.position.z >= 10f:
@@ -79,6 +87,7 @@ namespace Nightfall3.Flow
                     phase = Phase.AdvanceWard;
                     ObjectiveTitle = "THE COLD WARD";
                     ObjectiveDetail = "Follow the blue seals to the warden elite";
+                    SetCheckpoint(new Vector3(0f, 0.05f, 17.5f));
                     break;
                 case Phase.AdvanceWard when player.position.z >= 20f:
                     BeginWardRitual();
@@ -87,6 +96,7 @@ namespace Nightfall3.Flow
                     phase = Phase.AdvanceElite;
                     ObjectiveTitle = "THE INNER PROCESSION";
                     ObjectiveDetail = "Cross the broken seals to the blue-ash warden";
+                    SetCheckpoint(new Vector3(0f, 0.05f, 24.5f));
                     break;
                 case Phase.AdvanceElite when player.position.z >= 25.5f:
                     BeginEliteFight();
@@ -96,6 +106,7 @@ namespace Nightfall3.Flow
                     ZoneName = "THRONE ANTECHAMBER";
                     ObjectiveTitle = "HEART OF THE SIEGE";
                     ObjectiveDetail = "Enter the antechamber and confront its master";
+                    SetCheckpoint(new Vector3(0f, 0.05f, 29.2f));
                     break;
                 case Phase.BossApproach when player.position.z >= 30f:
                     BeginBossFight();
@@ -210,6 +221,55 @@ namespace Nightfall3.Flow
             phase = Phase.Complete;
             ObjectiveTitle = "THE GATE REMEMBERS";
             ObjectiveDetail = "Demo complete  •  Return to Emberwatch in Act I";
+        }
+
+        private void SetCheckpoint(Vector3 position)
+        {
+            if (playerController != null) playerController.RespawnPoint = position;
+        }
+
+        private void RestartCurrentEncounter()
+        {
+            ClearEncounterActors();
+            switch (phase)
+            {
+                case Phase.GateFight:
+                    BeginGateFight();
+                    break;
+                case Phase.CausewayFight:
+                    BeginCausewayFight();
+                    break;
+                case Phase.WardRitual:
+                    BeginWardRitual();
+                    break;
+                case Phase.EliteFight:
+                    BeginEliteFight();
+                    break;
+                case Phase.BossFight:
+                    BeginBossFight();
+                    break;
+            }
+        }
+
+        private void ClearEncounterActors()
+        {
+            foreach (var enemy in activeEnemies)
+            {
+                if (enemy != null) Destroy(enemy.gameObject);
+            }
+            activeEnemies.Clear();
+            foreach (var anchor in activeAnchors)
+            {
+                if (anchor != null) Destroy(anchor.gameObject);
+            }
+            activeAnchors.Clear();
+            if (boss != null) Destroy(boss.gameObject);
+            boss = null;
+        }
+
+        private void OnDestroy()
+        {
+            if (playerController != null) playerController.Respawned -= RestartCurrentEncounter;
         }
     }
 }

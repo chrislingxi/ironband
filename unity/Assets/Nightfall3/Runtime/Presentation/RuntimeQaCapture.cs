@@ -23,14 +23,15 @@ namespace Nightfall3.Presentation
                 args[index + 1],
                 Array.IndexOf(args, "-qaCombat") >= 0,
                 Array.IndexOf(args, "-qaFlow") >= 0,
-                Array.IndexOf(args, "-qaBoss") >= 0));
+                Array.IndexOf(args, "-qaBoss") >= 0,
+                Array.IndexOf(args, "-qaRespawn") >= 0));
         }
 
-        private IEnumerator Capture(string path, bool exerciseCombat, bool exerciseFullFlow, bool exerciseBoss)
+        private IEnumerator Capture(string path, bool exerciseCombat, bool exerciseFullFlow, bool exerciseBoss, bool exerciseRespawn)
         {
             var player = FindFirstObjectByType<PlayerController>();
             var flow = FindFirstObjectByType<DemoFlowController>();
-            if (exerciseCombat || exerciseFullFlow || exerciseBoss) flow?.Interact();
+            if (exerciseCombat || exerciseFullFlow || exerciseBoss || exerciseRespawn) flow?.Interact();
             var startingEnemies = FindObjectsByType<EnemyController>(FindObjectsSortMode.None);
             var initialEnemies = startingEnemies.Length;
             var initialHealth = startingEnemies.Sum(enemy => enemy.GetComponent<Health>().Current);
@@ -38,12 +39,15 @@ namespace Nightfall3.Presentation
             var observedBossPhase2 = false;
             var observedBossPhase3 = false;
             var observedWardRitual = false;
+            var observedRespawn = false;
+            if (player != null) player.Respawned += () => observedRespawn = true;
             var issuedPhaseOneDamage = false;
             var issuedPhaseTwoDamage = false;
             var issuedKillingDamage = false;
             var frameBudget = exerciseBoss ? 620 : exerciseFullFlow ? 360 : 180;
             for (var frame = 0; frame < frameBudget; frame++)
             {
+                if (exerciseRespawn && frame == 24 && player != null) player.Health.TakeDamage(99999f);
                 if (exerciseCombat && player != null)
                 {
                     if (frame == 25) player.CastArcBurst();
@@ -101,6 +105,14 @@ namespace Nightfall3.Presentation
                 Debug.Log($"QA combat exercised: enemies {initialEnemies}->{enemies.Length}, remaining health {totalHealth:0.0}");
                 combatSucceeded = player != null && initialEnemies == 4 && totalHealth < initialHealth;
                 if (!combatSucceeded) Debug.LogError("QA combat failed to damage the expected encounter");
+            }
+            if (exerciseRespawn)
+            {
+                var respawnSucceeded = player != null && observedRespawn && !player.Health.IsDead && Vector3.Distance(player.transform.position, player.RespawnPoint) < 0.25f && flow != null && flow.PhaseId == "GateFight";
+                var health = player != null ? player.Health.Current : 0f;
+                Debug.Log($"QA respawn exercised: observed={observedRespawn}, health={health:0.0}, phase={flow?.PhaseId ?? "missing"}, success={respawnSucceeded}");
+                combatSucceeded &= respawnSucceeded;
+                if (!respawnSucceeded) Debug.LogError("QA respawn failed to restore the checkpoint encounter");
             }
             if (exerciseFullFlow || exerciseBoss)
             {

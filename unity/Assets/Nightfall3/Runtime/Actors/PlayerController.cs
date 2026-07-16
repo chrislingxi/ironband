@@ -17,21 +17,27 @@ namespace Nightfall3.Actors
         private Vector2 touchMove;
         private Vector3 facing = Vector3.forward;
         private readonly float[] cooldownEnds = new float[4];
+        private bool defeated;
 
         public Health Health { get; private set; }
         public int Level { get; private set; } = 1;
         public int Experience { get; private set; }
         public float SpellPower { get; private set; } = 1f;
+        public Vector3 RespawnPoint { get; set; }
+        public event System.Action Respawned;
 
         private void Awake()
         {
             character = GetComponent<CharacterController>();
             Health = GetComponent<Health>();
             Health.Configure(120f);
+            Health.Died += HandleDefeat;
+            RespawnPoint = transform.position;
         }
 
         private void Update()
         {
+            if (defeated) return;
             ReadTouchInput();
             var input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
             if (touchMove.sqrMagnitude > input.sqrMagnitude) input = touchMove;
@@ -226,6 +232,33 @@ namespace Nightfall3.Actors
                 SpellPower += 0.08f;
                 Health.Configure(Health.Maximum + 18f);
             }
+        }
+
+        private void HandleDefeat()
+        {
+            if (!defeated) StartCoroutine(RespawnRoutine());
+        }
+
+        private IEnumerator RespawnRoutine()
+        {
+            defeated = true;
+            attacking = false;
+            movementFinger = -1;
+            touchMove = Vector2.zero;
+            AudioDirector.PlayDeath(true);
+            var visual = GetComponentInChildren<SpriteRenderer>();
+            var originalColor = visual != null ? visual.color : Color.white;
+            if (visual != null) visual.color = new Color(0.22f, 0.28f, 0.36f, 0.45f);
+            Camera.main?.GetComponent<Nightfall3.Presentation.CameraRig>()?.AddTrauma(0.8f);
+            yield return new WaitForSecondsRealtime(1.15f);
+            character.enabled = false;
+            transform.position = RespawnPoint;
+            character.enabled = true;
+            Health.Configure(Health.Maximum);
+            if (visual != null) visual.color = originalColor;
+            DemoDirector.SpawnShockwave(transform.position, new Color(1f, 0.46f, 0.12f));
+            defeated = false;
+            Respawned?.Invoke();
         }
     }
 }
