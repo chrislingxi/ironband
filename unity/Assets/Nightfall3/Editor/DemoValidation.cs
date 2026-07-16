@@ -20,6 +20,10 @@ namespace Nightfall3.Editor
             "Assets/Resources/Art/UI/item_slot.png",
             "Assets/Resources/Art/Icons/skill-chain-lightning.png",
             "Assets/Resources/Art/Props/ritual_altar.png",
+            "Assets/Resources/Art/Props/blacksmith_anvil.png",
+            "Assets/Resources/Art/NPCs/kashya.png",
+            "Assets/Resources/Art/NPCs/charsi.png",
+            "Assets/Resources/Art/NPCs/akara.png",
             "Assets/Resources/Art/Environment/ashen-courtyard-albedo-v1.png",
             "Assets/Resources/Art/Environment/ashen-gate-facade-v1.png"
         };

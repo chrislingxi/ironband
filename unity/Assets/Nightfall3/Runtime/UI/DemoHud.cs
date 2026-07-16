@@ -1,4 +1,5 @@
 using Nightfall3.Actors;
+using Nightfall3.Flow;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -8,14 +9,18 @@ namespace Nightfall3.UI
     {
         private Image healthFill;
         private PlayerController player;
+        private DemoFlowController flow;
         private RectTransform safeAreaRoot;
         private Rect lastSafeArea;
         private readonly Image[] cooldownMasks = new Image[4];
         private readonly Text[] cooldownLabels = new Text[4];
         private Text objectiveProgress;
+        private Text objectiveTitle;
+        private Text regionTitle;
+        private GameObject contextAction;
         private float nextObjectiveRefresh;
 
-        public static DemoHud Create(PlayerController target)
+        public static DemoHud Create(PlayerController target, DemoFlowController demoFlow)
         {
             var root = new GameObject("Demo HUD", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster), typeof(DemoHud));
             var canvas = root.GetComponent<Canvas>();
@@ -28,6 +33,7 @@ namespace Nightfall3.UI
 
             var hud = root.GetComponent<DemoHud>();
             hud.player = target;
+            hud.flow = demoFlow;
             hud.Build();
             return hud;
         }
@@ -43,6 +49,7 @@ namespace Nightfall3.UI
             BuildObjective();
             BuildActionBar();
             BuildTouchStick();
+            BuildContextAction();
         }
 
         private void BuildVitals()
@@ -61,11 +68,11 @@ namespace Nightfall3.UI
         private void BuildObjective()
         {
             var region = CreateImage("Region", safeAreaRoot, new Vector2(0f, -11f), new Vector2(250f, 40f), new Color(0.72f, 0.67f, 0.56f, 0.86f), new Vector2(0.5f, 1f), "Art/UI/panel", false);
-            CreateText("ASHEN APPROACH", region.transform, new Vector2(0f, -7f), new Vector2(226f, 22f), 16, new Color(0.98f, 0.83f, 0.48f), new Vector2(0.5f, 1f), TextAnchor.UpperCenter);
+            regionTitle = CreateText("EMBERWATCH CAMP", region.transform, new Vector2(0f, -7f), new Vector2(226f, 22f), 16, new Color(0.98f, 0.83f, 0.48f), new Vector2(0.5f, 1f), TextAnchor.UpperCenter);
 
             var quest = CreateImage("Quest", safeAreaRoot, new Vector2(-18f, -14f), new Vector2(228f, 58f), new Color(0.75f, 0.7f, 0.59f, 0.9f), new Vector2(1f, 1f), "Art/UI/panel", false);
-            CreateText("BLOODBOUND AT THE GATE", quest.transform, new Vector2(12f, -9f), new Vector2(202f, 19f), 13, new Color(0.96f, 0.79f, 0.43f), new Vector2(0f, 1f));
-            objectiveProgress = CreateText("Pack  0 / 4     Gate sealed", quest.transform, new Vector2(12f, -31f), new Vector2(202f, 18f), 11, new Color(0.78f, 0.78f, 0.74f), new Vector2(0f, 1f));
+            objectiveTitle = CreateText("THE SEALED APPROACH", quest.transform, new Vector2(12f, -9f), new Vector2(202f, 19f), 13, new Color(0.96f, 0.79f, 0.43f), new Vector2(0f, 1f));
+            objectiveProgress = CreateText("Speak with Mara, Ash Warden", quest.transform, new Vector2(12f, -31f), new Vector2(202f, 18f), 11, new Color(0.78f, 0.78f, 0.74f), new Vector2(0f, 1f));
         }
 
         private void BuildActionBar()
@@ -106,6 +113,16 @@ namespace Nightfall3.UI
             CreateImage("Movement Core", ring.transform, new Vector2(22f, -22f), new Vector2(38f, 38f), new Color(0.64f, 0.72f, 0.78f, 0.34f), new Vector2(0f, 1f), "Art/UI/btn_frame");
         }
 
+        private void BuildContextAction()
+        {
+            var action = CreateImage("Context Action", safeAreaRoot, new Vector2(-28f, 112f), new Vector2(92f, 48f), new Color(0.92f, 0.7f, 0.32f, 0.98f), new Vector2(1f, 0f), "Art/UI/panel", false);
+            CreateText("SPEAK", action.transform, Vector2.zero, new Vector2(92f, 48f), 14, new Color(1f, 0.84f, 0.46f), new Vector2(0.5f, 0.5f), TextAnchor.MiddleCenter);
+            var button = action.gameObject.AddComponent<Button>();
+            button.targetGraphic = action;
+            button.onClick.AddListener(() => flow?.Interact());
+            contextAction = action.gameObject;
+        }
+
         private void Update()
         {
             if (Screen.safeArea != lastSafeArea) ApplySafeArea();
@@ -113,8 +130,11 @@ namespace Nightfall3.UI
             healthFill.fillAmount = player.Health.Current / player.Health.Maximum;
             if (Time.unscaledTime >= nextObjectiveRefresh)
             {
-                var remainingEnemies = FindObjectsByType<EnemyController>(FindObjectsSortMode.None).Length;
-                objectiveProgress.text = remainingEnemies > 0 ? $"Pack  {4 - remainingEnemies} / 4     Gate sealed" : "Pack broken     Gate unbound";
+                regionTitle.text = flow.ZoneName;
+                objectiveTitle.text = flow.ObjectiveTitle;
+                var remaining = flow.RemainingEnemies;
+                objectiveProgress.text = remaining > 0 ? $"{flow.ObjectiveDetail}  •  {remaining} remain" : flow.ObjectiveDetail;
+                contextAction.SetActive(flow.CanInteract);
                 nextObjectiveRefresh = Time.unscaledTime + 0.2f;
             }
             for (var i = 0; i < cooldownMasks.Length; i++)

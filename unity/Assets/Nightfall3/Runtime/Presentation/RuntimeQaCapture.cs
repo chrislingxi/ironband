@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using Nightfall3.Actors;
 using Nightfall3.Combat;
+using Nightfall3.Flow;
 using UnityEngine;
 
 namespace Nightfall3.Presentation
@@ -18,16 +19,22 @@ namespace Nightfall3.Presentation
             if (index < 0 || index + 1 >= args.Length) return;
             Application.runInBackground = true;
             var runner = new GameObject("Runtime QA Capture", typeof(RuntimeQaCapture)).GetComponent<RuntimeQaCapture>();
-            runner.StartCoroutine(runner.Capture(args[index + 1], Array.IndexOf(args, "-qaCombat") >= 0));
+            runner.StartCoroutine(runner.Capture(
+                args[index + 1],
+                Array.IndexOf(args, "-qaCombat") >= 0,
+                Array.IndexOf(args, "-qaFlow") >= 0));
         }
 
-        private IEnumerator Capture(string path, bool exerciseCombat)
+        private IEnumerator Capture(string path, bool exerciseCombat, bool exerciseFullFlow)
         {
             var player = FindFirstObjectByType<PlayerController>();
+            var flow = FindFirstObjectByType<DemoFlowController>();
+            if (exerciseCombat || exerciseFullFlow) flow?.Interact();
             var startingEnemies = FindObjectsByType<EnemyController>(FindObjectsSortMode.None);
             var initialEnemies = startingEnemies.Length;
             var initialHealth = startingEnemies.Sum(enemy => enemy.GetComponent<Health>().Current);
-            for (var frame = 0; frame < 180; frame++)
+            var frameBudget = exerciseFullFlow ? 240 : 180;
+            for (var frame = 0; frame < frameBudget; frame++)
             {
                 if (exerciseCombat && player != null)
                 {
@@ -35,6 +42,12 @@ namespace Nightfall3.Presentation
                     if (frame == 70) player.CastStaticField();
                     if (frame == 112) player.CastTeleport();
                     if (frame == 148) player.CastFrozenOrb();
+                }
+                if (exerciseFullFlow && player != null)
+                {
+                    if (frame is 20 or 82 or 146) KillAllEnemies(player.transform.position);
+                    if (frame == 62) player.transform.position = new Vector3(0f, 0.05f, 10.5f);
+                    if (frame == 126) player.transform.position = new Vector3(0f, 0.05f, 20.5f);
                 }
                 yield return new WaitForEndOfFrame();
             }
@@ -47,6 +60,13 @@ namespace Nightfall3.Presentation
                 combatSucceeded = player != null && initialEnemies == 4 && totalHealth < initialHealth;
                 if (!combatSucceeded) Debug.LogError("QA combat failed to damage the expected encounter");
             }
+            if (exerciseFullFlow)
+            {
+                var flowSucceeded = flow != null && flow.ReachedBossApproach;
+                Debug.Log($"QA flow exercised: phase={flow?.PhaseId ?? "missing"}, success={flowSucceeded}");
+                combatSucceeded &= flowSucceeded;
+                if (!flowSucceeded) Debug.LogError("QA flow failed to reach the Boss approach");
+            }
             var directory = Path.GetDirectoryName(path);
             if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
             ScreenCapture.CaptureScreenshot(path);
@@ -54,6 +74,12 @@ namespace Nightfall3.Presentation
             while (!File.Exists(path) && Time.realtimeSinceStartup < deadline) yield return null;
             Debug.Log(File.Exists(path) ? $"QA screenshot saved: {path}" : $"QA screenshot timed out: {path}");
             Application.Quit(File.Exists(path) && combatSucceeded ? 0 : 2);
+        }
+
+        private static void KillAllEnemies(Vector3 origin)
+        {
+            foreach (var enemy in FindObjectsByType<EnemyController>(FindObjectsSortMode.None))
+                enemy.ReceiveHit(99999f, origin, true);
         }
     }
 }

@@ -1,6 +1,7 @@
 using System.Collections;
 using Nightfall3.Actors;
 using Nightfall3.Combat;
+using Nightfall3.Flow;
 using Nightfall3.Presentation;
 using Nightfall3.UI;
 using UnityEngine;
@@ -24,8 +25,10 @@ namespace Nightfall3
             BuildEnvironment();
             player = CreatePlayer();
             CreateCamera(player);
-            CreateEncounter(player);
-            DemoHud.Create(player.GetComponent<PlayerController>());
+            var warden = BuildCamp();
+            var flow = new GameObject("Demo Flow", typeof(DemoFlowController)).GetComponent<DemoFlowController>();
+            flow.Configure(player, warden);
+            DemoHud.Create(player.GetComponent<PlayerController>(), flow);
         }
 
         private static void ConfigureWorld()
@@ -53,8 +56,8 @@ namespace Nightfall3
 
             var ground = GameObject.CreatePrimitive(PrimitiveType.Cube);
             ground.name = "Corrupted Flagstone";
-            ground.transform.position = new Vector3(0f, -0.28f, 5f);
-            ground.transform.localScale = new Vector3(25f, 0.5f, 34f);
+            ground.transform.position = new Vector3(0f, -0.28f, 10f);
+            ground.transform.localScale = new Vector3(25f, 0.5f, 62f);
             var floorTexture = Resources.Load<Texture2D>("Art/Environment/ashen-courtyard-albedo-v1");
             if (floorTexture != null) floorTexture.wrapMode = TextureWrapMode.Repeat;
             var floorMaterial = Material(Color.white, 0.08f, 0.48f, texture: floorTexture);
@@ -64,11 +67,11 @@ namespace Nightfall3
             BuildProcessionalPath();
             BuildCourtyardWalls();
 
-            for (var i = 0; i < 68; i++)
+            for (var i = 0; i < 108; i++)
             {
                 var x = Random.Range(-11f, 11f);
-                var z = Random.Range(-8f, 21f);
-                if (Mathf.Abs(x) < 4.8f && z < 16f) continue;
+                var z = Random.Range(-19f, 39f);
+                if (Mathf.Abs(x) < 4.8f && z < 31f) continue;
                 var stone = GameObject.CreatePrimitive(i % 4 == 0 ? PrimitiveType.Cylinder : PrimitiveType.Cube);
                 stone.name = "Ruin Debris";
                 stone.transform.position = new Vector3(x, Random.Range(-0.02f, 0.12f), z);
@@ -77,21 +80,21 @@ namespace Nightfall3
                 stone.GetComponent<Renderer>().material = Material(Iron * Random.Range(0.72f, 1.15f), 0.08f, 0.9f);
             }
 
-            CreateWorldArt("Ritual Altar", "Art/Props/ritual_altar", new Vector3(-5.7f, 0.04f, 7.5f), 3.2f, new Color(0.8f, 0.9f, 1f));
-            CreateWorldArt("Campfire", "Art/Props/campfire", new Vector3(5.9f, 0.04f, -0.2f), 2.35f, Color.white);
+            CreateWorldArt("Ritual Altar", "Art/Props/ritual_altar", new Vector3(-5.7f, 0.04f, 18.5f), 3.2f, new Color(0.8f, 0.9f, 1f));
+            CreateWorldArt("Roadside Fire", "Art/Props/campfire", new Vector3(5.9f, 0.04f, 8.8f), 2.35f, Color.white);
 
-            for (var z = -2f; z <= 18f; z += 6.5f)
+            for (var z = -16f; z <= 36f; z += 6.5f)
             {
                 CreateTorch(new Vector3(-7.5f, 1.15f, z));
                 CreateTorch(new Vector3(7.5f, 1.15f, z + 2.4f));
             }
 
-            CreateWorldArt("Ashen Gate Facade", "Art/Environment/ashen-gate-facade-v1", new Vector3(0f, 0.05f, 7.2f), 7.8f, Color.white);
+            CreateWorldArt("Ashen Gate Facade", "Art/Environment/ashen-gate-facade-v1", new Vector3(0f, 0.05f, 29.5f), 8.4f, Color.white);
         }
 
         private static void BuildProcessionalPath()
         {
-            for (var row = -4; row <= 13; row++)
+            for (var row = -11; row <= 24; row++)
             {
                 for (var side = -1; side <= 1; side += 2)
                 {
@@ -104,7 +107,7 @@ namespace Nightfall3
                 }
             }
 
-            for (var row = -2; row <= 18; row += 4)
+            for (var row = -2; row <= 34; row += 4)
             {
                 var sigil = CreateGroundRing(new Vector3(0f, 0.06f, row), 1.18f, new Color(0.18f, 0.56f, 0.72f, 0.52f));
                 sigil.name = "Cold Ward Sigil";
@@ -113,7 +116,7 @@ namespace Nightfall3
 
         private static void BuildCourtyardWalls()
         {
-            for (var z = -6f; z <= 19f; z += 3.2f)
+            for (var z = -18f; z <= 39f; z += 3.2f)
             {
                 for (var side = -1; side <= 1; side += 2)
                 {
@@ -163,10 +166,38 @@ namespace Nightfall3
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
         }
 
+        private static Transform BuildCamp()
+        {
+            CreateWorldArt("Emberwatch Fire", "Art/Props/campfire", new Vector3(0f, 0.04f, -8.6f), 2.75f, Color.white);
+            CreateWorldArt("Mara, Ash Warden", "Art/NPCs/kashya", new Vector3(-3.2f, 0.04f, -9.6f), 2.85f, Color.white);
+            CreateWorldArt("Veyra, Forgekeeper", "Art/NPCs/charsi", new Vector3(3.4f, 0.04f, -9.5f), 2.9f, Color.white);
+            CreateWorldArt("Sister Elowen", "Art/NPCs/akara", new Vector3(5.5f, 0.04f, -5.6f), 2.75f, Color.white);
+            CreateWorldArt("Forge Anvil", "Art/Props/blacksmith_anvil", new Vector3(5.2f, 0.04f, -8.7f), 1.75f, Color.white);
+            CreateWorldLabel("MARA  •  ASH WARDEN", new Vector3(-3.2f, 3f, -9.6f), new Color(0.95f, 0.76f, 0.38f));
+            CreateWorldLabel("VEYRA  •  FORGEKEEPER", new Vector3(3.4f, 3.05f, -9.5f), new Color(0.72f, 0.76f, 0.8f));
+            CreateWorldLabel("SISTER ELOWEN", new Vector3(5.5f, 2.9f, -5.6f), new Color(0.72f, 0.76f, 0.8f));
+            CreateGroundRing(new Vector3(-3.2f, 0.04f, -9.6f), 1.15f, new Color(0.9f, 0.62f, 0.16f, 0.68f));
+            return GameObject.Find("Mara, Ash Warden")?.transform;
+        }
+
+        private static void CreateWorldLabel(string value, Vector3 position, Color color)
+        {
+            var label = new GameObject(value, typeof(TextMesh), typeof(BillboardActor));
+            label.transform.position = position;
+            var text = label.GetComponent<TextMesh>();
+            text.text = value;
+            text.anchor = TextAnchor.MiddleCenter;
+            text.alignment = TextAlignment.Center;
+            text.characterSize = 0.035f;
+            text.fontSize = 44;
+            text.fontStyle = FontStyle.Bold;
+            text.color = color;
+        }
+
         private static Transform CreatePlayer()
         {
             var root = new GameObject("Duskweaver", typeof(CharacterController), typeof(Health), typeof(PlayerController));
-            root.transform.position = new Vector3(0f, 0.05f, -5f);
+            root.transform.position = new Vector3(0f, 0.05f, -11f);
             var controller = root.GetComponent<CharacterController>();
             controller.height = 1.7f;
             controller.radius = 0.4f;
@@ -191,20 +222,14 @@ namespace Nightfall3
             go.transform.rotation = Quaternion.LookRotation(target.position + new Vector3(0f, 0.8f, 3.2f) - go.transform.position, Vector3.up);
         }
 
-        private static void CreateEncounter(Transform target)
-        {
-            CreateEnemy(target, "Art/Monsters/Fallen", new Vector3(-3.6f, 0.05f, 1.6f), 64f, 2.55f, 1.75f);
-            CreateEnemy(target, "Art/Monsters/Skeleton", new Vector3(2.8f, 0.05f, 2.8f), 82f, 1.9f, 2.05f);
-            CreateEnemy(target, "Art/Monsters/Hound", new Vector3(4.3f, 0.05f, 4.5f), 58f, 3.2f, 1.65f);
-            CreateEnemy(target, "Art/Monsters/Brute", new Vector3(-2.2f, 0.05f, 5.6f), 185f, 1.45f, 3.15f);
-        }
-
-        private static void CreateEnemy(Transform target, string resource, Vector3 position, float health, float speed, float height)
+        public static EnemyController CreateEnemy(Transform target, string resource, Vector3 position, float health, float speed, float height)
         {
             var root = new GameObject(resource[(resource.LastIndexOf('/') + 1)..], typeof(Health), typeof(EnemyController));
             root.transform.position = position;
-            root.GetComponent<EnemyController>().Configure(target, health, speed);
+            var enemy = root.GetComponent<EnemyController>();
+            enemy.Configure(target, health, speed);
             CreateActorVisual(root.transform, resource, height, Color.white);
+            return enemy;
         }
 
         private static void CreateActorVisual(Transform root, string resource, float height, Color tint)

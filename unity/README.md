@@ -23,4 +23,12 @@ UNITY="/Applications/Unity/Hub/Editor/6000.3.18f1/Unity.app/Contents/MacOS/Unity
 
 The runtime gate executes all four skills and fails if the authored four-enemy encounter takes no damage or the screenshot cannot be produced.
 
+The progression gate clears the gate pack, causeway ambush and elite ward, then fails unless the flow reaches the Boss approach:
+
+```bash
+"unity/Builds/macOS/Nightfall3.app/Contents/MacOS/Nightfall 3 Demo" \
+  -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -qaFlow \
+  -qaCapture /tmp/nightfall3-flow.png -logFile /tmp/nightfall3-flow.log
+```
+
 The foundation is intentionally not the visual-target milestone. Bridge sprites and procedural geometry must be replaced or materially upgraded before visual acceptance.
