@@ -8,6 +8,7 @@ Unity production assets are tracked separately from the legacy web asset contrac
 | `Art/Environment/ashen-gate-facade-v1.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-15 | Ashen Approach sealed fortress entrance | Authored v1; animation and separate emissive flame pass pending |
 | `Art/Bosses/ashen-castellan-v1.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Original three-phase demo Boss | Authored v1 key sprite; animation sheet pending |
 | `Art/Characters/duskweaver-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Duskweaver player character and rune-bow combat silhouette | Authored v2 key sprite; directional animation sheet pending |
+| `Art/Monsters/bloodbound-fallen-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Bloodbound Fallen ordinary melee enemy | Authored v2 key sprite; directional animation sheet pending |
 
 ## Ashen Courtyard Prompt Contract
 
@@ -33,3 +34,9 @@ Unity production assets are tracked separately from the legacy web asset contrac
 - Original female arcane ranger-sorceress in blackened steel, oxblood leather and a storm-blue mantle, carrying a compact lightning rune bow.
 - Full-body isolated production sprite with warm rim light, cold key light, mobile-readable silhouette and locally removed green chroma background.
 - The supplied gameplay reference informed only finish, material richness, readability and lighting hierarchy; no character, costume, weapon, symbol or UI was copied.
+
+## Bloodbound Fallen Prompt Contract
+
+- Original wiry infernal raider with scarred red skin, cracked swept horns, ash-black bone-and-iron armor and a low hooked cleaver.
+- Kept deliberately smaller and warmer than the player, elite and Boss silhouettes; no chibi proportions, toy surfaces, gore or franchise-specific motifs.
+- Uses the Duskweaver production asset only as the internal lighting, material and camera consistency reference.

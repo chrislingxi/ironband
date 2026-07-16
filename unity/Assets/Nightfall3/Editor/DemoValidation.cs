@@ -13,7 +13,7 @@ namespace Nightfall3.Editor
         private static readonly string[] RequiredTextures =
         {
             "Assets/Resources/Art/Characters/duskweaver-v2.png",
-            "Assets/Resources/Art/Monsters/Fallen.png",
+            "Assets/Resources/Art/Monsters/bloodbound-fallen-v2.png",
             "Assets/Resources/Art/Monsters/Skeleton.png",
             "Assets/Resources/Art/UI/hp_orb.png",
             "Assets/Resources/Art/UI/mana_orb.png",
