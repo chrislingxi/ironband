@@ -9,6 +9,7 @@ Unity production assets are tracked separately from the legacy web asset contrac
 | `Art/Bosses/ashen-castellan-v1.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Original three-phase demo Boss | Authored v1 key sprite; animation sheet pending |
 | `Art/Characters/duskweaver-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Duskweaver player character and rune-bow combat silhouette | Authored v2 key sprite; directional animation sheet pending |
 | `Art/Monsters/bloodbound-fallen-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Bloodbound Fallen ordinary melee enemy | Authored v2 key sprite; directional animation sheet pending |
+| `Art/Monsters/coldbone-shieldguard-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Coldbone Shieldguard defensive line enemy | Authored v2 key sprite; directional animation sheet pending |
 
 ## Ashen Courtyard Prompt Contract
 
@@ -40,3 +41,9 @@ Unity production assets are tracked separately from the legacy web asset contrac
 - Original wiry infernal raider with scarred red skin, cracked swept horns, ash-black bone-and-iron armor and a low hooked cleaver.
 - Kept deliberately smaller and warmer than the player, elite and Boss silhouettes; no chibi proportions, toy surfaces, gore or franchise-specific motifs.
 - Uses the Duskweaver production asset only as the internal lighting, material and camera consistency reference.
+
+## Coldbone Shieldguard Prompt Contract
+
+- Original skeletal line fighter in pitted black plate with a battered broad shield, restrained cyan ward marks and a rusted sword.
+- Its shield-first silhouette communicates defensive pressure at mobile scale while remaining smaller and less ornate than elites and the Boss.
+- Uses the Duskweaver production asset only as the internal lighting, material and camera consistency reference; no franchise emblems or recognizable equipment were copied.
