@@ -1,4 +1,3 @@
-using Nightfall3.Actors;
 using UnityEngine;
 
 namespace Nightfall3.Combat
@@ -8,11 +7,13 @@ namespace Nightfall3.Combat
         private float damage;
         private bool critical;
         private Vector3 origin;
-        private EnemyController target;
+        private ICombatTarget target;
+        private MonoBehaviour targetObject;
 
-        public void Configure(EnemyController victim, Vector3 source, float damageValue, bool isCritical)
+        public void Configure(ICombatTarget victim, Vector3 source, float damageValue, bool isCritical)
         {
             target = victim;
+            targetObject = victim as MonoBehaviour;
             origin = source;
             damage = damageValue;
             critical = isCritical;
@@ -20,12 +21,12 @@ namespace Nightfall3.Combat
 
         private void Update()
         {
-            if (target == null)
+            if (targetObject == null || target.IsDead)
             {
                 Destroy(gameObject);
                 return;
             }
-            var destination = target.transform.position + Vector3.up * 0.72f;
+            var destination = target.TargetTransform.position + Vector3.up * 0.72f;
             transform.position = Vector3.MoveTowards(transform.position, destination, 18f * Time.deltaTime);
             transform.localScale = Vector3.one * (0.16f + Mathf.Sin(Time.time * 42f) * 0.035f);
             if (Vector3.Distance(transform.position, destination) > 0.2f) return;

@@ -31,4 +31,12 @@ The progression gate clears the gate pack, causeway ambush and elite ward, then 
   -qaCapture /tmp/nightfall3-flow.png -logFile /tmp/nightfall3-flow.log
 ```
 
+The Boss gate additionally proves both health-threshold transitions, defeat, reward pickup and player power growth:
+
+```bash
+"unity/Builds/macOS/Nightfall3.app/Contents/MacOS/Nightfall 3 Demo" \
+  -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -qaBoss \
+  -qaCapture /tmp/nightfall3-boss.png -logFile /tmp/nightfall3-boss.log
+```
+
 The foundation is intentionally not the visual-target milestone. Bridge sprites and procedural geometry must be replaced or materially upgraded before visual acceptance.

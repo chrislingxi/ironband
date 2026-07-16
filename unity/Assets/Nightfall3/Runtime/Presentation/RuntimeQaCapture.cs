@@ -22,18 +22,25 @@ namespace Nightfall3.Presentation
             runner.StartCoroutine(runner.Capture(
                 args[index + 1],
                 Array.IndexOf(args, "-qaCombat") >= 0,
-                Array.IndexOf(args, "-qaFlow") >= 0));
+                Array.IndexOf(args, "-qaFlow") >= 0,
+                Array.IndexOf(args, "-qaBoss") >= 0));
         }
 
-        private IEnumerator Capture(string path, bool exerciseCombat, bool exerciseFullFlow)
+        private IEnumerator Capture(string path, bool exerciseCombat, bool exerciseFullFlow, bool exerciseBoss)
         {
             var player = FindFirstObjectByType<PlayerController>();
             var flow = FindFirstObjectByType<DemoFlowController>();
-            if (exerciseCombat || exerciseFullFlow) flow?.Interact();
+            if (exerciseCombat || exerciseFullFlow || exerciseBoss) flow?.Interact();
             var startingEnemies = FindObjectsByType<EnemyController>(FindObjectsSortMode.None);
             var initialEnemies = startingEnemies.Length;
             var initialHealth = startingEnemies.Sum(enemy => enemy.GetComponent<Health>().Current);
-            var frameBudget = exerciseFullFlow ? 240 : 180;
+            var initialPower = player != null ? player.SpellPower : 0f;
+            var observedBossPhase2 = false;
+            var observedBossPhase3 = false;
+            var issuedPhaseOneDamage = false;
+            var issuedPhaseTwoDamage = false;
+            var issuedKillingDamage = false;
+            var frameBudget = exerciseBoss ? 460 : exerciseFullFlow ? 240 : 180;
             for (var frame = 0; frame < frameBudget; frame++)
             {
                 if (exerciseCombat && player != null)
@@ -43,11 +50,43 @@ namespace Nightfall3.Presentation
                     if (frame == 112) player.CastTeleport();
                     if (frame == 148) player.CastFrozenOrb();
                 }
-                if (exerciseFullFlow && player != null)
+                if ((exerciseFullFlow || exerciseBoss) && player != null && flow != null)
                 {
-                    if (frame is 20 or 82 or 146) KillAllEnemies(player.transform.position);
-                    if (frame == 62) player.transform.position = new Vector3(0f, 0.05f, 10.5f);
-                    if (frame == 126) player.transform.position = new Vector3(0f, 0.05f, 20.5f);
+                    if (frame > 16 && frame % 12 == 0 && flow.PhaseId is "GateFight" or "CausewayFight" or "EliteFight")
+                        KillAllEnemies(player.transform.position);
+                    if (flow.PhaseId == "AdvanceCauseway") player.transform.position = new Vector3(0f, 0.05f, 10.5f);
+                    if (flow.PhaseId == "AdvanceWard") player.transform.position = new Vector3(0f, 0.05f, 20.5f);
+                    if (exerciseBoss && flow.PhaseId == "BossApproach") player.transform.position = new Vector3(0f, 0.05f, 26.5f);
+
+                    var boss = FindFirstObjectByType<BossController>();
+                    if (exerciseBoss && boss != null && boss.Phase == 1 && !issuedPhaseOneDamage)
+                    {
+                        boss.ReceiveHit(720f, player.transform.position, true);
+                        issuedPhaseOneDamage = true;
+                    }
+                    if (exerciseBoss && boss != null && boss.Phase == 2)
+                    {
+                        observedBossPhase2 = true;
+                        if (!issuedPhaseTwoDamage)
+                        {
+                            boss.ReceiveHit(680f, player.transform.position, true);
+                            issuedPhaseTwoDamage = true;
+                        }
+                    }
+                    if (exerciseBoss && boss != null && boss.Phase == 3)
+                    {
+                        observedBossPhase3 = true;
+                        if (!issuedKillingDamage)
+                        {
+                            boss.ReceiveHit(99999f, player.transform.position, true);
+                            issuedKillingDamage = true;
+                        }
+                    }
+                    if (exerciseBoss && flow.PhaseId == "ClaimReward")
+                    {
+                        var reward = FindFirstObjectByType<LootPickup>();
+                        if (reward != null) player.transform.position = reward.transform.position;
+                    }
                 }
                 yield return new WaitForEndOfFrame();
             }
@@ -60,12 +99,13 @@ namespace Nightfall3.Presentation
                 combatSucceeded = player != null && initialEnemies == 4 && totalHealth < initialHealth;
                 if (!combatSucceeded) Debug.LogError("QA combat failed to damage the expected encounter");
             }
-            if (exerciseFullFlow)
+            if (exerciseFullFlow || exerciseBoss)
             {
-                var flowSucceeded = flow != null && flow.ReachedBossApproach;
-                Debug.Log($"QA flow exercised: phase={flow?.PhaseId ?? "missing"}, success={flowSucceeded}");
+                var rewardApplied = !exerciseBoss || player != null && player.SpellPower > initialPower;
+                var flowSucceeded = flow != null && (exerciseBoss ? flow.IsComplete && observedBossPhase2 && observedBossPhase3 && rewardApplied : flow.ReachedBossApproach);
+                Debug.Log($"QA flow exercised: phase={flow?.PhaseId ?? "missing"}, bossII={observedBossPhase2}, bossIII={observedBossPhase3}, reward={rewardApplied}, success={flowSucceeded}");
                 combatSucceeded &= flowSucceeded;
-                if (!flowSucceeded) Debug.LogError("QA flow failed to reach the Boss approach");
+                if (!flowSucceeded) Debug.LogError(exerciseBoss ? "QA Boss failed to complete all three phases" : "QA flow failed to reach the Boss approach");
             }
             var directory = Path.GetDirectoryName(path);
             if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);

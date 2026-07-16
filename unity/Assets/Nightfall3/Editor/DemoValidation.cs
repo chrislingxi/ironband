@@ -24,6 +24,7 @@ namespace Nightfall3.Editor
             "Assets/Resources/Art/NPCs/kashya.png",
             "Assets/Resources/Art/NPCs/charsi.png",
             "Assets/Resources/Art/NPCs/akara.png",
+            "Assets/Resources/Art/Bosses/ashen-castellan-v1.png",
             "Assets/Resources/Art/Environment/ashen-courtyard-albedo-v1.png",
             "Assets/Resources/Art/Environment/ashen-gate-facade-v1.png"
         };

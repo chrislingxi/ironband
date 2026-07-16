@@ -18,6 +18,11 @@ namespace Nightfall3.UI
         private Text objectiveTitle;
         private Text regionTitle;
         private GameObject contextAction;
+        private GameObject bossPanel;
+        private Image bossHealthFill;
+        private Text bossPhase;
+        private Text heroName;
+        private Text heroPower;
         private float nextObjectiveRefresh;
 
         public static DemoHud Create(PlayerController target, DemoFlowController demoFlow)
@@ -47,6 +52,7 @@ namespace Nightfall3.UI
 
             BuildVitals();
             BuildObjective();
+            BuildBossBar();
             BuildActionBar();
             BuildTouchStick();
             BuildContextAction();
@@ -55,8 +61,8 @@ namespace Nightfall3.UI
         private void BuildVitals()
         {
             var plate = CreateImage("Hero Plate", safeAreaRoot, new Vector2(18f, -14f), new Vector2(218f, 62f), new Color(0.82f, 0.76f, 0.62f, 0.96f), new Vector2(0f, 1f), "Art/UI/panel", false);
-            CreateText("DUSKWEAVER", plate.transform, new Vector2(62f, -10f), new Vector2(142f, 20f), 15, new Color(0.96f, 0.81f, 0.47f), new Vector2(0f, 1f));
-            CreateText("ASHEN COVENANT  I", plate.transform, new Vector2(62f, -32f), new Vector2(142f, 18f), 11, new Color(0.68f, 0.72f, 0.76f), new Vector2(0f, 1f));
+            heroName = CreateText("DUSKWEAVER  LV 1", plate.transform, new Vector2(62f, -10f), new Vector2(142f, 20f), 13, new Color(0.96f, 0.81f, 0.47f), new Vector2(0f, 1f));
+            heroPower = CreateText("SPELL POWER  1.00", plate.transform, new Vector2(62f, -32f), new Vector2(142f, 18f), 11, new Color(0.68f, 0.72f, 0.76f), new Vector2(0f, 1f));
 
             CreateImage("Blood Orb", plate.transform, new Vector2(6f, -5f), new Vector2(52f, 52f), Color.white, new Vector2(0f, 1f), "Art/UI/hp_orb");
             var track = CreateImage("Health Track", plate.transform, new Vector2(62f, -51f), new Vector2(140f, 5f), new Color(0.08f, 0.008f, 0.008f, 1f), new Vector2(0f, 1f));
@@ -79,7 +85,7 @@ namespace Nightfall3.UI
         {
             var bar = CreateImage("Action Bar", safeAreaRoot, new Vector2(0f, 8f), new Vector2(320f, 75f), new Color(0.78f, 0.72f, 0.6f, 0.98f), new Vector2(0.5f, 0f), "Art/UI/panel", false);
             CreateImage("Blood Orb", safeAreaRoot, new Vector2(-214f, 5f), new Vector2(92f, 92f), Color.white, new Vector2(0.5f, 0f), "Art/UI/hp_orb");
-            CreateImage("Aether Orb", safeAreaRoot, new Vector2(122f, 5f), new Vector2(92f, 92f), Color.white, new Vector2(0.5f, 0f), "Art/UI/mana_orb");
+            CreateImage("Aether Orb", safeAreaRoot, new Vector2(214f, 5f), new Vector2(92f, 92f), Color.white, new Vector2(0.5f, 0f), "Art/UI/mana_orb");
 
             var icons = new[]
             {
@@ -107,6 +113,19 @@ namespace Nightfall3.UI
             }
         }
 
+        private void BuildBossBar()
+        {
+            var panel = CreateImage("Boss Bar", safeAreaRoot, new Vector2(0f, -58f), new Vector2(410f, 42f), new Color(0.58f, 0.5f, 0.42f, 0.96f), new Vector2(0.5f, 1f), "Art/UI/panel", false);
+            CreateText("THE ASHEN CASTELLAN", panel.transform, new Vector2(14f, -6f), new Vector2(270f, 18f), 13, new Color(1f, 0.78f, 0.42f), new Vector2(0f, 1f));
+            bossPhase = CreateText("JUDGMENT I", panel.transform, new Vector2(292f, -6f), new Vector2(102f, 18f), 11, new Color(0.62f, 0.84f, 1f), new Vector2(0f, 1f), TextAnchor.UpperRight);
+            var track = CreateImage("Boss Health Track", panel.transform, new Vector2(14f, -27f), new Vector2(380f, 6f), new Color(0.08f, 0.008f, 0.008f, 1f), new Vector2(0f, 1f));
+            bossHealthFill = CreateImage("Boss Health", track.transform, Vector2.zero, new Vector2(380f, 6f), new Color(0.7f, 0.045f, 0.025f, 1f), new Vector2(0f, 1f));
+            bossHealthFill.type = Image.Type.Filled;
+            bossHealthFill.fillMethod = Image.FillMethod.Horizontal;
+            bossPanel = panel.gameObject;
+            bossPanel.SetActive(false);
+        }
+
         private void BuildTouchStick()
         {
             var ring = CreateImage("Movement Ring", safeAreaRoot, new Vector2(28f, 22f), new Vector2(82f, 82f), new Color(0.6f, 0.62f, 0.64f, 0.22f), new Vector2(0f, 0f), "Art/UI/btn_frame");
@@ -131,10 +150,19 @@ namespace Nightfall3.UI
             if (Time.unscaledTime >= nextObjectiveRefresh)
             {
                 regionTitle.text = flow.ZoneName;
+                heroName.text = $"DUSKWEAVER  LV {player.Level}";
+                heroPower.text = $"SPELL POWER  {player.SpellPower:0.00}";
                 objectiveTitle.text = flow.ObjectiveTitle;
                 var remaining = flow.RemainingEnemies;
                 objectiveProgress.text = remaining > 0 ? $"{flow.ObjectiveDetail}  •  {remaining} remain" : flow.ObjectiveDetail;
                 contextAction.SetActive(flow.CanInteract);
+                var boss = FindFirstObjectByType<BossController>();
+                bossPanel.SetActive(boss != null);
+                if (boss != null)
+                {
+                    bossHealthFill.fillAmount = boss.HealthNormalized;
+                    bossPhase.text = $"JUDGMENT {Roman(boss.Phase)}";
+                }
                 nextObjectiveRefresh = Time.unscaledTime + 0.2f;
             }
             for (var i = 0; i < cooldownMasks.Length; i++)
@@ -163,6 +191,13 @@ namespace Nightfall3.UI
             2 => Nightfall3.Combat.CombatTuning.TeleportCooldown,
             3 => Nightfall3.Combat.CombatTuning.FrozenOrbCooldown,
             _ => 1f
+        };
+
+        private static string Roman(int value) => value switch
+        {
+            1 => "I",
+            2 => "II",
+            _ => "III"
         };
 
         private void ApplySafeArea()

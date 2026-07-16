@@ -232,6 +232,16 @@ namespace Nightfall3
             return enemy;
         }
 
+        public static BossController CreateBoss(Transform target, Vector3 position)
+        {
+            var root = new GameObject("The Ashen Castellan", typeof(Health), typeof(BossController));
+            root.transform.position = position;
+            var boss = root.GetComponent<BossController>();
+            boss.Configure(target, 1800f);
+            CreateActorVisual(root.transform, "Art/Bosses/ashen-castellan-v1", 5.8f, Color.white);
+            return boss;
+        }
+
         private static void CreateActorVisual(Transform root, string resource, float height, Color tint)
         {
             var shadow = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
@@ -289,7 +299,7 @@ namespace Nightfall3
             Destroy(impact, 0.12f);
         }
 
-        public static void SpawnArcProjectile(Vector3 position, EnemyController target, float damage, bool critical)
+        public static void SpawnArcProjectile(Vector3 position, ICombatTarget target, float damage, bool critical)
         {
             var projectile = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             projectile.name = critical ? "Critical Arc Bolt" : "Arc Bolt";
@@ -340,6 +350,21 @@ namespace Nightfall3
             beam.GetComponent<Renderer>().material = Material(color, 0f, 0.18f, color * 5f);
             Destroy(beam.GetComponent<Collider>());
             Destroy(beam, 5f);
+        }
+
+        public static LootPickup SpawnLootPickup(Vector3 position, PlayerController player, bool legendary, System.Action collected = null)
+        {
+            var relic = GameObject.CreatePrimitive(legendary ? PrimitiveType.Cube : PrimitiveType.Sphere);
+            relic.name = legendary ? "Castellan Relic" : "Ward Shard";
+            relic.transform.position = position + Vector3.up * 0.38f;
+            relic.transform.localScale = Vector3.one * (legendary ? 0.42f : 0.24f);
+            relic.transform.rotation = Quaternion.Euler(35f, 45f, 15f);
+            var color = legendary ? new Color(1f, 0.54f, 0.08f) : new Color(0.16f, 0.72f, 1f);
+            relic.GetComponent<Renderer>().material = Material(color, 0.72f, 0.18f, color * 5f);
+            Destroy(relic.GetComponent<Collider>());
+            var pickup = relic.AddComponent<LootPickup>();
+            pickup.Configure(player, legendary ? 0.22f : 0.03f, legendary ? 300f : 25f, collected);
+            return pickup;
         }
 
         private static Material Material(Color color, float metallic, float smoothness, Color emission = default, Texture texture = null)

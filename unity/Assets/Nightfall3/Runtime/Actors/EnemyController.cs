@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Nightfall3.Actors
 {
     [RequireComponent(typeof(Health))]
-    public sealed class EnemyController : MonoBehaviour
+    public sealed class EnemyController : MonoBehaviour, ICombatTarget
     {
         [SerializeField] private float moveSpeed = 2.1f;
         [SerializeField] private float attackInterval = 1.25f;
@@ -16,6 +16,9 @@ namespace Nightfall3.Actors
         private Health health;
         private float nextAttack;
         private bool telegraphing;
+
+        public Transform TargetTransform => transform;
+        public bool IsDead => health == null || health.IsDead;
 
         public void Configure(Transform target, float healthValue, float speed)
         {
@@ -100,6 +103,8 @@ namespace Nightfall3.Actors
                 yield return null;
             }
             DemoDirector.SpawnLootBeam(transform.position);
+            if (player != null && Random.value <= 0.36f)
+                DemoDirector.SpawnLootPickup(transform.position, player.GetComponent<PlayerController>(), false);
             Destroy(gameObject);
         }
     }

@@ -15,13 +15,17 @@ namespace Nightfall3.Flow
             CausewayFight,
             AdvanceWard,
             EliteFight,
-            BossApproach
+            BossApproach,
+            BossFight,
+            ClaimReward,
+            Complete
         }
 
         private readonly List<EnemyController> activeEnemies = new();
         private Phase phase;
         private Transform player;
         private Transform warden;
+        private BossController boss;
 
         public string ZoneName { get; private set; } = "EMBERWATCH CAMP";
         public string ObjectiveTitle { get; private set; } = "THE SEALED APPROACH";
@@ -75,6 +79,9 @@ namespace Nightfall3.Flow
                     ObjectiveTitle = "HEART OF THE SIEGE";
                     ObjectiveDetail = "Enter the antechamber and confront its master";
                     break;
+                case Phase.BossApproach when player.position.z >= 26f:
+                    BeginBossFight();
+                    break;
             }
         }
 
@@ -121,5 +128,32 @@ namespace Nightfall3.Flow
         public int RemainingEnemies => activeEnemies.Count(enemy => enemy != null);
         public string PhaseId => phase.ToString();
         public bool ReachedBossApproach => phase == Phase.BossApproach;
+        public bool IsComplete => phase == Phase.Complete;
+
+        private void BeginBossFight()
+        {
+            phase = Phase.BossFight;
+            ZoneName = "CASTELLAN'S COURT";
+            ObjectiveTitle = "THE ASHEN CASTELLAN";
+            ObjectiveDetail = "Survive the three judgments";
+            boss = DemoDirector.CreateBoss(player, new Vector3(0f, 0.05f, 27.8f));
+            boss.Defeated += OfferBossReward;
+        }
+
+        private void OfferBossReward()
+        {
+            phase = Phase.ClaimReward;
+            ObjectiveTitle = "THE CASTELLAN'S RELIC";
+            ObjectiveDetail = "Claim the ember-bound wardstone";
+            var position = boss != null ? boss.transform.position : player.position + Vector3.forward;
+            DemoDirector.SpawnLootPickup(position, player.GetComponent<PlayerController>(), true, CompleteDemo);
+        }
+
+        private void CompleteDemo()
+        {
+            phase = Phase.Complete;
+            ObjectiveTitle = "THE GATE REMEMBERS";
+            ObjectiveDetail = "Demo complete  •  Return to Emberwatch in Act I";
+        }
     }
 }
