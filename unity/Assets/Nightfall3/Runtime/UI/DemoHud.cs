@@ -47,7 +47,7 @@ namespace Nightfall3.UI
 
         private void BuildVitals()
         {
-            var plate = CreateImage("Hero Plate", safeAreaRoot, new Vector2(18f, -14f), new Vector2(218f, 62f), new Color(0.82f, 0.76f, 0.62f, 0.96f), new Vector2(0f, 1f), "Art/UI/panel");
+            var plate = CreateImage("Hero Plate", safeAreaRoot, new Vector2(18f, -14f), new Vector2(218f, 62f), new Color(0.82f, 0.76f, 0.62f, 0.96f), new Vector2(0f, 1f), "Art/UI/panel", false);
             CreateText("DUSKWEAVER", plate.transform, new Vector2(62f, -10f), new Vector2(142f, 20f), 15, new Color(0.96f, 0.81f, 0.47f), new Vector2(0f, 1f));
             CreateText("ASHEN COVENANT  I", plate.transform, new Vector2(62f, -32f), new Vector2(142f, 18f), 11, new Color(0.68f, 0.72f, 0.76f), new Vector2(0f, 1f));
 
@@ -60,17 +60,17 @@ namespace Nightfall3.UI
 
         private void BuildObjective()
         {
-            var region = CreateImage("Region", safeAreaRoot, new Vector2(0f, -11f), new Vector2(250f, 40f), new Color(0.72f, 0.67f, 0.56f, 0.86f), new Vector2(0.5f, 1f), "Art/UI/panel");
+            var region = CreateImage("Region", safeAreaRoot, new Vector2(0f, -11f), new Vector2(250f, 40f), new Color(0.72f, 0.67f, 0.56f, 0.86f), new Vector2(0.5f, 1f), "Art/UI/panel", false);
             CreateText("ASHEN APPROACH", region.transform, new Vector2(0f, -7f), new Vector2(226f, 22f), 16, new Color(0.98f, 0.83f, 0.48f), new Vector2(0.5f, 1f), TextAnchor.UpperCenter);
 
-            var quest = CreateImage("Quest", safeAreaRoot, new Vector2(-18f, -14f), new Vector2(228f, 58f), new Color(0.75f, 0.7f, 0.59f, 0.9f), new Vector2(1f, 1f), "Art/UI/panel");
+            var quest = CreateImage("Quest", safeAreaRoot, new Vector2(-18f, -14f), new Vector2(228f, 58f), new Color(0.75f, 0.7f, 0.59f, 0.9f), new Vector2(1f, 1f), "Art/UI/panel", false);
             CreateText("BLOODBOUND AT THE GATE", quest.transform, new Vector2(12f, -9f), new Vector2(202f, 19f), 13, new Color(0.96f, 0.79f, 0.43f), new Vector2(0f, 1f));
             objectiveProgress = CreateText("Pack  0 / 4     Gate sealed", quest.transform, new Vector2(12f, -31f), new Vector2(202f, 18f), 11, new Color(0.78f, 0.78f, 0.74f), new Vector2(0f, 1f));
         }
 
         private void BuildActionBar()
         {
-            var bar = CreateImage("Action Bar", safeAreaRoot, new Vector2(0f, 8f), new Vector2(320f, 75f), new Color(0.78f, 0.72f, 0.6f, 0.98f), new Vector2(0.5f, 0f), "Art/UI/panel");
+            var bar = CreateImage("Action Bar", safeAreaRoot, new Vector2(0f, 8f), new Vector2(320f, 75f), new Color(0.78f, 0.72f, 0.6f, 0.98f), new Vector2(0.5f, 0f), "Art/UI/panel", false);
             CreateImage("Blood Orb", safeAreaRoot, new Vector2(-214f, 5f), new Vector2(92f, 92f), Color.white, new Vector2(0.5f, 0f), "Art/UI/hp_orb");
             CreateImage("Aether Orb", safeAreaRoot, new Vector2(122f, 5f), new Vector2(92f, 92f), Color.white, new Vector2(0.5f, 0f), "Art/UI/mana_orb");
 
@@ -153,7 +153,7 @@ namespace Nightfall3.UI
             safeAreaRoot.anchorMax = new Vector2(lastSafeArea.xMax / Screen.width, lastSafeArea.yMax / Screen.height);
         }
 
-        private static Image CreateImage(string name, Transform parent, Vector2 position, Vector2 size, Color color, Vector2 anchor, string resource = null)
+        private static Image CreateImage(string name, Transform parent, Vector2 position, Vector2 size, Color color, Vector2 anchor, string resource = null, bool preserveAspect = true)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
             go.transform.SetParent(parent, false);
@@ -165,7 +165,7 @@ namespace Nightfall3.UI
             var image = go.GetComponent<Image>();
             image.color = color;
             if (!string.IsNullOrEmpty(resource)) image.sprite = LoadSprite(resource);
-            image.preserveAspect = true;
+            image.preserveAspect = preserveAspect;
             return image;
         }
 

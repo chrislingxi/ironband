@@ -26,11 +26,20 @@ namespace Nightfall3.Editor
         private static void EnsureRuntimeMaterial()
         {
             const string materialPath = "Assets/Resources/Materials/RuntimeBase.mat";
-            if (AssetDatabase.LoadAssetAtPath<Material>(materialPath) != null) return;
             Directory.CreateDirectory(Path.GetDirectoryName(materialPath)!);
-            var shader = Shader.Find("Standard");
-            if (shader == null) throw new InvalidDataException("Unity Standard shader is unavailable");
-            AssetDatabase.CreateAsset(new Material(shader), materialPath);
+            if (AssetDatabase.LoadAssetAtPath<Material>(materialPath) == null)
+            {
+                var shader = Shader.Find("Standard");
+                if (shader == null) throw new InvalidDataException("Unity Standard shader is unavailable");
+                AssetDatabase.CreateAsset(new Material(shader), materialPath);
+            }
+            const string linePath = "Assets/Resources/Materials/RuntimeUnlit.mat";
+            if (AssetDatabase.LoadAssetAtPath<Material>(linePath) == null)
+            {
+                var shader = Shader.Find("Sprites/Default");
+                if (shader == null) throw new InvalidDataException("Unity sprite shader is unavailable");
+                AssetDatabase.CreateAsset(new Material(shader), linePath);
+            }
             AssetDatabase.SaveAssets();
         }
     }

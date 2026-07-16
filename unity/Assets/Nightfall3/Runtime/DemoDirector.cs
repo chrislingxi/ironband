@@ -86,8 +86,7 @@ namespace Nightfall3
                 CreateTorch(new Vector3(7.5f, 1.15f, z + 2.4f));
             }
 
-            CreateGate(new Vector3(0f, 0f, 21f));
-            CreateWorldArt("Gate Facade", "Art/Props/exit_gate", new Vector3(0f, 0.05f, 20.5f), 7.4f, new Color(0.76f, 0.82f, 0.9f));
+            CreateWorldArt("Ashen Gate Facade", "Art/Environment/ashen-gate-facade-v1", new Vector3(0f, 0.05f, 7.2f), 7.8f, Color.white);
         }
 
         private static void BuildProcessionalPath()
@@ -107,9 +106,8 @@ namespace Nightfall3
 
             for (var row = -2; row <= 18; row += 4)
             {
-                var sigil = CreateGroundRing(new Vector3(0f, 0.06f, row), 1.05f, new Color(0.16f, 0.37f, 0.5f));
+                var sigil = CreateGroundRing(new Vector3(0f, 0.06f, row), 1.18f, new Color(0.18f, 0.56f, 0.72f, 0.52f));
                 sigil.name = "Cold Ward Sigil";
-                sigil.transform.localScale = new Vector3(1.7f, 0.012f, 1.7f);
             }
         }
 
@@ -150,23 +148,6 @@ namespace Nightfall3
             flame.transform.localScale = new Vector3(0.26f, 0.42f, 0.26f);
             flame.GetComponent<Renderer>().material = Material(Ember, 0.1f, 0.15f, Ember * 3f);
             Destroy(flame.GetComponent<Collider>());
-        }
-
-        private static void CreateGate(Vector3 position)
-        {
-            for (var side = -1; side <= 1; side += 2)
-            {
-                var tower = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                tower.name = "Gate Tower";
-                tower.transform.position = position + new Vector3(side * 3.8f, 2.6f, 0f);
-                tower.transform.localScale = new Vector3(2.2f, 5.2f, 2.1f);
-                tower.GetComponent<Renderer>().material = Material(Iron, 0.24f, 0.86f);
-            }
-            var beam = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            beam.name = "Gate Crown";
-            beam.transform.position = position + new Vector3(0f, 5.4f, 0f);
-            beam.transform.localScale = new Vector3(9.8f, 1.25f, 2.2f);
-            beam.GetComponent<Renderer>().material = Material(Iron, 0.24f, 0.86f);
         }
 
         private static void CreateWorldArt(string name, string resource, Vector3 position, float height, Color tint)
@@ -212,10 +193,10 @@ namespace Nightfall3
 
         private static void CreateEncounter(Transform target)
         {
-            CreateEnemy(target, "Art/Monsters/Fallen", new Vector3(-3.6f, 0.05f, 2.5f), 64f, 2.55f, 1.75f);
-            CreateEnemy(target, "Art/Monsters/Skeleton", new Vector3(2.8f, 0.05f, 3.8f), 82f, 1.9f, 2.05f);
-            CreateEnemy(target, "Art/Monsters/Hound", new Vector3(4.8f, 0.05f, 7.1f), 58f, 3.2f, 1.65f);
-            CreateEnemy(target, "Art/Monsters/Brute", new Vector3(-2.2f, 0.05f, 10.2f), 185f, 1.45f, 3.15f);
+            CreateEnemy(target, "Art/Monsters/Fallen", new Vector3(-3.6f, 0.05f, 1.6f), 64f, 2.55f, 1.75f);
+            CreateEnemy(target, "Art/Monsters/Skeleton", new Vector3(2.8f, 0.05f, 2.8f), 82f, 1.9f, 2.05f);
+            CreateEnemy(target, "Art/Monsters/Hound", new Vector3(4.3f, 0.05f, 4.5f), 58f, 3.2f, 1.65f);
+            CreateEnemy(target, "Art/Monsters/Brute", new Vector3(-2.2f, 0.05f, 5.6f), 185f, 1.45f, 3.15f);
         }
 
         private static void CreateEnemy(Transform target, string resource, Vector3 position, float health, float speed, float height)
@@ -251,12 +232,23 @@ namespace Nightfall3
 
         public static GameObject CreateGroundRing(Vector3 position, float radius, Color color)
         {
-            var ring = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            var ring = new GameObject("Attack Telegraph", typeof(LineRenderer));
             ring.name = "Attack Telegraph";
             ring.transform.position = position + Vector3.up * 0.035f;
-            ring.transform.localScale = new Vector3(radius * 2f, 0.012f, radius * 2f);
-            ring.GetComponent<Renderer>().material = Material(color, 0.05f, 0.8f, color * 0.6f);
-            Destroy(ring.GetComponent<Collider>());
+            var line = ring.GetComponent<LineRenderer>();
+            line.useWorldSpace = false;
+            line.loop = true;
+            line.positionCount = 64;
+            line.startWidth = line.endWidth = Mathf.Clamp(radius * 0.055f, 0.045f, 0.14f);
+            var template = Resources.Load<Material>("Materials/RuntimeUnlit");
+            line.material = template != null ? new Material(template) : Material(color, 0.05f, 0.8f, color * 1.8f);
+            line.material.color = color;
+            line.startColor = line.endColor = color;
+            for (var i = 0; i < line.positionCount; i++)
+            {
+                var angle = i * Mathf.PI * 2f / line.positionCount;
+                line.SetPosition(i, new Vector3(Mathf.Cos(angle) * radius, 0f, Mathf.Sin(angle) * radius));
+            }
             return ring;
         }
 

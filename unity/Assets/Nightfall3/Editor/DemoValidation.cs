@@ -20,7 +20,8 @@ namespace Nightfall3.Editor
             "Assets/Resources/Art/UI/item_slot.png",
             "Assets/Resources/Art/Icons/skill-chain-lightning.png",
             "Assets/Resources/Art/Props/ritual_altar.png",
-            "Assets/Resources/Art/Environment/ashen-courtyard-albedo-v1.png"
+            "Assets/Resources/Art/Environment/ashen-courtyard-albedo-v1.png",
+            "Assets/Resources/Art/Environment/ashen-gate-facade-v1.png"
         };
 
         [MenuItem("Nightfall 3/Validate Foundation")]
@@ -32,6 +33,8 @@ namespace Nightfall3.Editor
             {
                 if (AssetDatabase.LoadAssetAtPath<Texture2D>(path) == null) failures.Add($"Missing texture: {path}");
             }
+            if (AssetDatabase.LoadAssetAtPath<Material>("Assets/Resources/Materials/RuntimeUnlit.mat") == null)
+                failures.Add("Missing unlit telegraph material");
 
             var sceneEnabled = false;
             foreach (var scene in EditorBuildSettings.scenes)
