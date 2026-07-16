@@ -31,6 +31,7 @@ namespace Nightfall3
             flow.Configure(player, warden);
             new GameObject("Audio Director", typeof(AudioDirector)).GetComponent<AudioDirector>().Configure(flow);
             DemoHud.Create(player.GetComponent<PlayerController>(), flow);
+            CinematicDirector.Create(flow);
         }
 
         private static void ConfigureWorld()
