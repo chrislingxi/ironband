@@ -32,6 +32,9 @@ namespace Nightfall3.Flow
         private Transform warden;
         private BossController boss;
         private int gateWave;
+        private PlayerController.GrowthSnapshot encounterGrowth;
+        private bool hasEncounterGrowth;
+        private bool restartingEncounter;
 
         public string ZoneName { get; private set; } = "EMBERWATCH CAMP";
         public string ObjectiveTitle { get; private set; } = "THE SEALED APPROACH";
@@ -116,6 +119,7 @@ namespace Nightfall3.Flow
 
         private void BeginGateFight()
         {
+            CaptureEncounterGrowth();
             phase = Phase.GateFight;
             gateWave = 1;
             ZoneName = "ASHEN APPROACH";
@@ -141,6 +145,7 @@ namespace Nightfall3.Flow
 
         private void BeginCausewayFight()
         {
+            CaptureEncounterGrowth();
             phase = Phase.CausewayFight;
             ObjectiveTitle = "THE RAVENING LINE";
             ObjectiveDetail = "Destroy the ambush on the causeway";
@@ -154,6 +159,7 @@ namespace Nightfall3.Flow
 
         private void BeginEliteFight()
         {
+            CaptureEncounterGrowth();
             phase = Phase.EliteFight;
             ObjectiveTitle = "WARDEN OF BLUE ASH";
             ObjectiveDetail = "Break the elite and its hunting pair";
@@ -164,6 +170,7 @@ namespace Nightfall3.Flow
 
         private void BeginWardRitual()
         {
+            CaptureEncounterGrowth();
             phase = Phase.WardRitual;
             ZoneName = "THE COLD WARD";
             ObjectiveTitle = "THREE SEALS OF BLUE ASH";
@@ -199,6 +206,7 @@ namespace Nightfall3.Flow
 
         private void BeginBossFight()
         {
+            CaptureEncounterGrowth();
             phase = Phase.BossFight;
             ZoneName = "CASTELLAN'S COURT";
             ObjectiveTitle = "THE ASHEN CASTELLAN";
@@ -230,7 +238,9 @@ namespace Nightfall3.Flow
 
         private void RestartCurrentEncounter()
         {
+            if (playerController != null && hasEncounterGrowth) playerController.RestoreGrowth(encounterGrowth);
             ClearEncounterActors();
+            restartingEncounter = true;
             switch (phase)
             {
                 case Phase.GateFight:
@@ -249,6 +259,14 @@ namespace Nightfall3.Flow
                     BeginBossFight();
                     break;
             }
+            restartingEncounter = false;
+        }
+
+        private void CaptureEncounterGrowth()
+        {
+            if (restartingEncounter || playerController == null) return;
+            encounterGrowth = playerController.CaptureGrowth();
+            hasEncounterGrowth = true;
         }
 
         private void ClearEncounterActors()
@@ -263,6 +281,10 @@ namespace Nightfall3.Flow
                 if (anchor != null) Destroy(anchor.gameObject);
             }
             activeAnchors.Clear();
+            foreach (var pickup in FindObjectsByType<LootPickup>(FindObjectsSortMode.None))
+            {
+                if (pickup != null) Destroy(pickup.gameObject);
+            }
             if (boss != null) Destroy(boss.gameObject);
             boss = null;
         }

@@ -36,6 +36,7 @@ namespace Nightfall3.Presentation
             var initialEnemies = startingEnemies.Length;
             var initialHealth = startingEnemies.Sum(enemy => enemy.GetComponent<Health>().Current);
             var initialPower = player != null ? player.SpellPower : 0f;
+            var initialExperience = player != null ? player.Experience : 0;
             var observedBossPhase2 = false;
             var observedBossPhase3 = false;
             var observedWardRitual = false;
@@ -47,6 +48,11 @@ namespace Nightfall3.Presentation
             var frameBudget = exerciseBoss ? 620 : exerciseFullFlow ? 360 : 180;
             for (var frame = 0; frame < frameBudget; frame++)
             {
+                if (exerciseRespawn && frame == 12 && player != null)
+                {
+                    player.GrantRelic(0.5f, 50);
+                    DemoDirector.SpawnLootPickup(player.transform.position + Vector3.right * 8f, player, false);
+                }
                 if (exerciseRespawn && frame == 24 && player != null) player.Health.TakeDamage(99999f);
                 if (exerciseCombat && player != null)
                 {
@@ -108,9 +114,11 @@ namespace Nightfall3.Presentation
             }
             if (exerciseRespawn)
             {
-                var respawnSucceeded = player != null && observedRespawn && !player.Health.IsDead && Vector3.Distance(player.transform.position, player.RespawnPoint) < 0.25f && flow != null && flow.PhaseId == "GateFight";
+                var looseLoot = FindObjectsByType<LootPickup>(FindObjectsSortMode.None).Length;
+                var growthRolledBack = player != null && Mathf.Approximately(player.SpellPower, initialPower) && player.Experience == initialExperience;
+                var respawnSucceeded = player != null && observedRespawn && !player.Health.IsDead && Vector3.Distance(player.transform.position, player.RespawnPoint) < 0.25f && flow != null && flow.PhaseId == "GateFight" && growthRolledBack && looseLoot == 0;
                 var health = player != null ? player.Health.Current : 0f;
-                Debug.Log($"QA respawn exercised: observed={observedRespawn}, health={health:0.0}, phase={flow?.PhaseId ?? "missing"}, success={respawnSucceeded}");
+                Debug.Log($"QA respawn exercised: observed={observedRespawn}, health={health:0.0}, phase={flow?.PhaseId ?? "missing"}, growthRollback={growthRolledBack}, looseLoot={looseLoot}, success={respawnSucceeded}");
                 combatSucceeded &= respawnSucceeded;
                 if (!respawnSucceeded) Debug.LogError("QA respawn failed to restore the checkpoint encounter");
             }

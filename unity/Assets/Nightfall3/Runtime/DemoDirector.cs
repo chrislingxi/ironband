@@ -230,7 +230,11 @@ namespace Nightfall3
             var root = new GameObject(resource[(resource.LastIndexOf('/') + 1)..], typeof(Health), typeof(EnemyController));
             root.transform.position = position;
             var enemy = root.GetComponent<EnemyController>();
-            enemy.Configure(target, health, speed);
+            var archetype = resource.Contains("shieldguard") ? EnemyArchetype.Shieldguard
+                : resource.Contains("hound") ? EnemyArchetype.Hound
+                : resource.Contains("Brute") ? EnemyArchetype.Brute
+                : EnemyArchetype.Raider;
+            enemy.Configure(target, health, speed, archetype);
             CreateActorVisual(root.transform, resource, height, Color.white);
             return enemy;
         }

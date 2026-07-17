@@ -9,6 +9,22 @@ namespace Nightfall3.Actors
     [RequireComponent(typeof(CharacterController), typeof(Health))]
     public sealed class PlayerController : MonoBehaviour
     {
+        public readonly struct GrowthSnapshot
+        {
+            public GrowthSnapshot(int level, int experience, float spellPower, float maximumHealth)
+            {
+                Level = level;
+                Experience = experience;
+                SpellPower = spellPower;
+                MaximumHealth = maximumHealth;
+            }
+
+            public int Level { get; }
+            public int Experience { get; }
+            public float SpellPower { get; }
+            public float MaximumHealth { get; }
+        }
+
         private CharacterController character;
         private float nextAttack;
         private bool attacking;
@@ -232,6 +248,23 @@ namespace Nightfall3.Actors
                 SpellPower += 0.08f;
                 Health.Configure(Health.Maximum + 18f);
             }
+        }
+
+        public GrowthSnapshot CaptureGrowth() => new(Level, Experience, SpellPower, Health.Maximum);
+
+        public void RestoreGrowth(GrowthSnapshot snapshot)
+        {
+            Level = snapshot.Level;
+            Experience = snapshot.Experience;
+            SpellPower = snapshot.SpellPower;
+            Health.Configure(snapshot.MaximumHealth);
+        }
+
+        public void ApplyKnockback(Vector3 displacement)
+        {
+            if (defeated || character == null) return;
+            displacement.y = 0f;
+            character.Move(displacement);
         }
 
         private void HandleDefeat()
