@@ -10,6 +10,7 @@ Unity production assets are tracked separately from the legacy web asset contrac
 | `Art/Characters/duskweaver-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Duskweaver player character and rune-bow combat silhouette | Authored v2 key sprite; directional animation sheet pending |
 | `Art/Monsters/bloodbound-fallen-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Bloodbound Fallen ordinary melee enemy | Authored v2 key sprite; directional animation sheet pending |
 | `Art/Monsters/coldbone-shieldguard-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Coldbone Shieldguard defensive line enemy | Authored v2 key sprite; directional animation sheet pending |
+| `Art/Monsters/blood-ash-hound-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-18 | Blood-Ash Hound fast flanking enemy | Authored v2 key sprite; directional animation sheet pending |
 
 ## Ashen Courtyard Prompt Contract
 
@@ -47,3 +48,9 @@ Unity production assets are tracked separately from the legacy web asset contrac
 - Original skeletal line fighter in pitted black plate with a battered broad shield, restrained cyan ward marks and a rusted sword.
 - Its shield-first silhouette communicates defensive pressure at mobile scale while remaining smaller and less ornate than elites and the Boss.
 - Uses the Duskweaver production asset only as the internal lighting, material and camera consistency reference; no franchise emblems or recognizable equipment were copied.
+
+## Blood-Ash Hound Prompt Contract
+
+- Original lean corrupted war hound with charcoal hide, restrained ember fissures, asymmetrical basalt armor and a battered black-iron muzzle.
+- Low stalking posture and long-limbed silhouette communicate speed and flanking pressure at mobile scale without cute, toy-like or excessively gory treatment.
+- Uses the Duskweaver and Bloodbound Fallen assets only as internal camera, lighting and material references; no franchise creature design or symbols were copied.

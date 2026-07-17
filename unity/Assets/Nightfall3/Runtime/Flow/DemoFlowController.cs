@@ -123,7 +123,7 @@ namespace Nightfall3.Flow
             ObjectiveDetail = "Break the first war pack";
             Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(-3.6f, 0.05f, -1.8f), 64f, 2.55f, 1.85f);
             Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(2.8f, 0.05f, -0.4f), 82f, 1.9f, 2.15f);
-            Spawn("Art/Monsters/Hound", new Vector3(4.3f, 0.05f, 1.2f), 58f, 3.2f, 1.65f);
+            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(4.3f, 0.05f, 1.2f), 58f, 3.2f, 1.8f);
             Spawn("Art/Monsters/Brute", new Vector3(-2.2f, 0.05f, 2.8f), 185f, 1.45f, 3.15f);
         }
 
@@ -132,8 +132,8 @@ namespace Nightfall3.Flow
             gateWave = 2;
             ObjectiveTitle = "THE GATE HOWLS AGAIN";
             ObjectiveDetail = "Survive the bloodbound reinforcement";
-            Spawn("Art/Monsters/Hound", new Vector3(-5.2f, 0.05f, 3.8f), 72f, 3.35f, 1.7f);
-            Spawn("Art/Monsters/Hound", new Vector3(5.1f, 0.05f, 4.1f), 72f, 3.35f, 1.7f);
+            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(-5.2f, 0.05f, 3.8f), 72f, 3.35f, 1.85f);
+            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(5.1f, 0.05f, 4.1f), 72f, 3.35f, 1.85f);
             Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(-3.4f, 0.05f, 5.2f), 84f, 2.7f, 1.9f);
             Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(0f, 0.05f, 6.2f), 108f, 2.05f, 2.2f);
             Spawn("Art/Monsters/Brute", new Vector3(3.6f, 0.05f, 5.3f), 215f, 1.5f, 3.2f);
@@ -148,8 +148,8 @@ namespace Nightfall3.Flow
             Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(3.9f, 0.05f, 14.2f), 78f, 2.7f, 1.85f);
             Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(-1.8f, 0.05f, 15.8f), 96f, 2f, 2.15f);
             Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(2.2f, 0.05f, 16.6f), 96f, 2f, 2.15f);
-            Spawn("Art/Monsters/Hound", new Vector3(-5.2f, 0.05f, 17.5f), 68f, 3.35f, 1.65f);
-            Spawn("Art/Monsters/Hound", new Vector3(5f, 0.05f, 18.1f), 68f, 3.35f, 1.65f);
+            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(-5.2f, 0.05f, 17.5f), 68f, 3.35f, 1.8f);
+            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(5f, 0.05f, 18.1f), 68f, 3.35f, 1.8f);
         }
 
         private void BeginEliteFight()
@@ -158,8 +158,8 @@ namespace Nightfall3.Flow
             ObjectiveTitle = "WARDEN OF BLUE ASH";
             ObjectiveDetail = "Break the elite and its hunting pair";
             Spawn("Art/Monsters/Brute", new Vector3(0f, 0.05f, 28.8f), 620f, 1.6f, 3.65f);
-            Spawn("Art/Monsters/Hound", new Vector3(-4.2f, 0.05f, 27.2f), 148f, 3.4f, 1.8f);
-            Spawn("Art/Monsters/Hound", new Vector3(4.2f, 0.05f, 27.2f), 148f, 3.4f, 1.8f);
+            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(-4.2f, 0.05f, 27.2f), 148f, 3.4f, 1.95f);
+            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(4.2f, 0.05f, 27.2f), 148f, 3.4f, 1.95f);
         }
 
         private void BeginWardRitual()
@@ -174,7 +174,7 @@ namespace Nightfall3.Flow
             SpawnAnchor(new Vector3(0f, 0.05f, 24.8f));
             Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(-5.2f, 0.05f, 23f), 92f, 2.75f, 1.9f);
             Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(5f, 0.05f, 24f), 116f, 2.1f, 2.2f);
-            Spawn("Art/Monsters/Hound", new Vector3(0f, 0.05f, 26.2f), 88f, 3.4f, 1.75f);
+            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(0f, 0.05f, 26.2f), 88f, 3.4f, 1.9f);
         }
 
         private void SpawnAnchor(Vector3 position)
