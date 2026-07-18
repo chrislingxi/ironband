@@ -12,6 +12,7 @@ namespace Nightfall3.Flow
         {
             Briefing,
             GateFight,
+            CovenantChoice,
             AdvanceCauseway,
             CausewayFight,
             AdvanceWard,
@@ -35,11 +36,16 @@ namespace Nightfall3.Flow
         private PlayerController.GrowthSnapshot encounterGrowth;
         private bool hasEncounterGrowth;
         private bool restartingEncounter;
+        private Transform stormglassShrine;
+        private Transform emberheartShrine;
 
         public string ZoneName { get; private set; } = "EMBERWATCH CAMP";
         public string ObjectiveTitle { get; private set; } = "THE SEALED APPROACH";
         public string ObjectiveDetail { get; private set; } = "Speak with Mara, Ash Warden";
-        public bool CanInteract => phase == Phase.Briefing && player != null && warden != null && Vector3.Distance(player.position, warden.position) <= 3.6f;
+        public bool CanInteract => phase == Phase.Briefing && player != null && warden != null && Vector3.Distance(player.position, warden.position) <= 3.6f
+            || phase == Phase.CovenantChoice && NearestCovenantDistance <= 2.6f;
+        public string InteractionLabel => phase == Phase.CovenantChoice ? "ATTUNE" : "SPEAK";
+        public string CovenantName => playerController != null ? playerController.CovenantName : "UNBOUND";
 
         public void Configure(Transform playerTransform, Transform wardenTransform)
         {
@@ -55,9 +61,14 @@ namespace Nightfall3.Flow
 
         public void Interact()
         {
-            if (phase != Phase.Briefing) return;
-            AudioDirector.PlaySelect();
-            BeginGateFight();
+            if (phase == Phase.Briefing)
+            {
+                AudioDirector.PlaySelect();
+                BeginGateFight();
+                return;
+            }
+            if (phase != Phase.CovenantChoice || NearestCovenantDistance > 2.6f) return;
+            ChooseCovenant(stormglassShrine != null && Vector3.Distance(player.position, stormglassShrine.position) <= Vector3.Distance(player.position, emberheartShrine.position));
         }
 
         private void Update()
@@ -68,6 +79,11 @@ namespace Nightfall3.Flow
                 if ((CanInteract && Input.GetKeyDown(KeyCode.E)) || player.position.z > -7.5f) BeginGateFight();
                 return;
             }
+            if (phase == Phase.CovenantChoice)
+            {
+                if (CanInteract && Input.GetKeyDown(KeyCode.E)) Interact();
+                return;
+            }
 
             activeEnemies.RemoveAll(enemy => enemy == null);
             switch (phase)
@@ -76,11 +92,7 @@ namespace Nightfall3.Flow
                     if (gateWave == 1) BeginGateReinforcements();
                     else
                     {
-                        phase = Phase.AdvanceCauseway;
-                        ZoneName = "ASHEN APPROACH";
-                        ObjectiveTitle = "BEYOND THE BLACK GATE";
-                        ObjectiveDetail = "Advance to the broken causeway";
-                        SetCheckpoint(new Vector3(0f, 0.05f, 5.5f));
+                        BeginCovenantChoice();
                     }
                     break;
                 case Phase.AdvanceCauseway when player.position.z >= 10f:
@@ -155,6 +167,43 @@ namespace Nightfall3.Flow
             Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(2.2f, 0.05f, 16.6f), 96f, 2f, 2.15f);
             Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(-5.2f, 0.05f, 17.5f), 68f, 3.35f, 1.8f);
             Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(5f, 0.05f, 18.1f), 68f, 3.35f, 1.8f);
+        }
+
+        private void BeginCovenantChoice()
+        {
+            phase = Phase.CovenantChoice;
+            ZoneName = "THE FORSAKEN CROSSING";
+            ObjectiveTitle = "A COVENANT IN ASH";
+            ObjectiveDetail = "West: Stormglass  •  East: Emberheart";
+            SetCheckpoint(new Vector3(0f, 0.05f, 5.5f));
+            stormglassShrine = DemoDirector.CreateCovenantShrine("Stormglass Reliquary", "Art/Props/stormglass-shrine-v1", new Vector3(-5.45f, 0.04f, 8.6f), 4.25f, new Color(0.18f, 0.78f, 1f), "STORMGLASS");
+            emberheartShrine = DemoDirector.CreateCovenantShrine("Emberheart Reliquary", "Art/Props/emberheart-shrine-v1", new Vector3(5.45f, 0.04f, 8.6f), 4.25f, new Color(1f, 0.28f, 0.06f), "EMBERHEART");
+        }
+
+        private void ChooseCovenant(bool stormglass)
+        {
+            var selected = stormglass ? stormglassShrine : emberheartShrine;
+            playerController?.ApplyCovenant(stormglass);
+            AudioDirector.PlaySelect();
+            if (selected != null) DemoDirector.SpawnShockwave(selected.position, stormglass ? new Color(0.18f, 0.78f, 1f) : new Color(1f, 0.28f, 0.06f));
+            if (stormglassShrine != null) Destroy(stormglassShrine.gameObject, 0.16f);
+            if (emberheartShrine != null) Destroy(emberheartShrine.gameObject, 0.16f);
+            stormglassShrine = emberheartShrine = null;
+            phase = Phase.AdvanceCauseway;
+            ZoneName = "ASHEN APPROACH";
+            ObjectiveTitle = stormglass ? "THE STORMGLASS OATH" : "THE EMBERHEART OATH";
+            ObjectiveDetail = stormglass ? "Faster, stronger spellcraft  •  Advance to the causeway" : "Fortified life and heavy arrows  •  Advance to the causeway";
+        }
+
+        private float NearestCovenantDistance
+        {
+            get
+            {
+                if (player == null) return float.MaxValue;
+                var west = stormglassShrine != null ? Vector3.Distance(player.position, stormglassShrine.position) : float.MaxValue;
+                var east = emberheartShrine != null ? Vector3.Distance(player.position, emberheartShrine.position) : float.MaxValue;
+                return Mathf.Min(west, east);
+            }
         }
 
         private void BeginEliteFight()

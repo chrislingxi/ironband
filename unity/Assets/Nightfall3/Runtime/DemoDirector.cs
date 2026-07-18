@@ -156,10 +156,10 @@ namespace Nightfall3
             Destroy(flame.GetComponent<Collider>());
         }
 
-        private static void CreateWorldArt(string name, string resource, Vector3 position, float height, Color tint)
+        private static Transform CreateWorldArt(string name, string resource, Vector3 position, float height, Color tint)
         {
             var texture = Resources.Load<Texture2D>(resource);
-            if (texture == null) return;
+            if (texture == null) return null;
             var sprite = Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.08f), texture.height / height);
             var visual = new GameObject(name, typeof(SpriteRenderer), typeof(BillboardActor));
             visual.transform.position = position;
@@ -167,6 +167,26 @@ namespace Nightfall3
             renderer.sprite = sprite;
             renderer.color = tint;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
+            return visual.transform;
+        }
+
+        public static Transform CreateCovenantShrine(string name, string resource, Vector3 position, float height, Color aura, string label)
+        {
+            var root = new GameObject(name).transform;
+            root.position = position;
+            var visual = CreateWorldArt($"{name} Visual", resource, position, height, Color.white);
+            if (visual != null) visual.SetParent(root, true);
+            var ring = CreateGroundRing(position, 1.48f, new Color(aura.r, aura.g, aura.b, 0.78f));
+            ring.transform.SetParent(root, true);
+            var light = new GameObject($"{name} Light", typeof(Light)).GetComponent<Light>();
+            light.transform.SetParent(root, false);
+            light.transform.localPosition = Vector3.up * 1.55f;
+            light.type = LightType.Point;
+            light.color = aura;
+            light.range = 6.5f;
+            light.intensity = 3.4f;
+            CreateWorldLabel(label, position + Vector3.up * 4.15f, aura)?.SetParent(root, true);
+            return root;
         }
 
         private static Transform BuildCamp()
@@ -183,7 +203,7 @@ namespace Nightfall3
             return GameObject.Find("Mara, Ash Warden")?.transform;
         }
 
-        private static void CreateWorldLabel(string value, Vector3 position, Color color)
+        private static Transform CreateWorldLabel(string value, Vector3 position, Color color)
         {
             var label = new GameObject(value, typeof(TextMesh), typeof(BillboardActor));
             label.transform.position = position;
@@ -195,6 +215,7 @@ namespace Nightfall3
             text.fontSize = 44;
             text.fontStyle = FontStyle.Bold;
             text.color = color;
+            return label.transform;
         }
 
         private static Transform CreatePlayer()

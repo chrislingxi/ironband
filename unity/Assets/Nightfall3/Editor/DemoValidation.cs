@@ -52,6 +52,8 @@ namespace Nightfall3.Editor
             "Assets/Resources/Art/Icons/skill-frozen-star-v2.png",
             "Assets/Resources/Art/Props/ritual_altar.png",
             "Assets/Resources/Art/Props/blacksmith_anvil.png",
+            "Assets/Resources/Art/Props/stormglass-shrine-v1.png",
+            "Assets/Resources/Art/Props/emberheart-shrine-v1.png",
             "Assets/Resources/Art/NPCs/mara-ash-warden-v2.png",
             "Assets/Resources/Art/NPCs/veyra-forgekeeper-v2.png",
             "Assets/Resources/Art/NPCs/sister-elowen-v2.png",

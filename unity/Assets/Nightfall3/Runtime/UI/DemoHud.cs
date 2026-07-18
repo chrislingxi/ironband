@@ -18,6 +18,7 @@ namespace Nightfall3.UI
         private Text objectiveTitle;
         private Text regionTitle;
         private GameObject contextAction;
+        private Text contextActionLabel;
         private GameObject bossPanel;
         private Image bossHealthFill;
         private Text bossPhase;
@@ -145,7 +146,7 @@ namespace Nightfall3.UI
         private void BuildContextAction()
         {
             var action = CreateImage("Context Action", safeAreaRoot, new Vector2(-28f, 112f), new Vector2(92f, 48f), new Color(0.92f, 0.7f, 0.32f, 0.98f), new Vector2(1f, 0f), "Art/UI/panel-v2", false);
-            CreateText("SPEAK", action.transform, Vector2.zero, new Vector2(92f, 48f), 14, new Color(1f, 0.84f, 0.46f), new Vector2(0.5f, 0.5f), TextAnchor.MiddleCenter);
+            contextActionLabel = CreateText("SPEAK", action.transform, Vector2.zero, new Vector2(92f, 48f), 14, new Color(1f, 0.84f, 0.46f), new Vector2(0.5f, 0.5f), TextAnchor.MiddleCenter);
             var button = action.gameObject.AddComponent<Button>();
             button.targetGraphic = action;
             button.onClick.AddListener(() => flow?.Interact());
@@ -162,11 +163,12 @@ namespace Nightfall3.UI
             {
                 regionTitle.text = flow.ZoneName;
                 heroName.text = $"DUSKWEAVER  LV {player.Level}";
-                heroPower.text = $"SPELL POWER  {player.SpellPower:0.00}";
+                heroPower.text = player.CovenantName == "UNBOUND" ? $"SPELL POWER  {player.SpellPower:0.00}" : $"{player.SpellPower:0.00}  •  {player.CovenantName}";
                 objectiveTitle.text = flow.ObjectiveTitle;
                 var remaining = flow.RemainingEnemies;
                 objectiveProgress.text = remaining > 0 ? $"{flow.ObjectiveDetail}  •  {remaining} remain" : flow.ObjectiveDetail;
                 contextAction.SetActive(flow.CanInteract);
+                contextActionLabel.text = flow.InteractionLabel;
                 var boss = FindFirstObjectByType<BossController>();
                 bossPanel.SetActive(boss != null);
                 if (boss != null)
@@ -180,7 +182,7 @@ namespace Nightfall3.UI
             {
                 var remaining = player.GetCooldownNormalized(i);
                 cooldownMasks[i].fillAmount = remaining;
-                cooldownLabels[i].text = remaining > 0f ? Mathf.CeilToInt(remaining * CooldownDuration(i)).ToString() : string.Empty;
+                cooldownLabels[i].text = remaining > 0f ? Mathf.CeilToInt(remaining * player.GetCooldownDuration(i)).ToString() : string.Empty;
             }
         }
 

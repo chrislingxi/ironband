@@ -71,6 +71,12 @@ namespace Nightfall3.Presentation
                 case "CausewayFight":
                     PlayCue("THE BROKEN CAUSEWAY", "THE RAVENING LINE", new Vector3(0f, 0f, 15f), 2.1f, 33f);
                     break;
+                case "CovenantChoice":
+                    PlayCue("THE FORSAKEN CROSSING", "TWO OATHS REMAIN UNBROKEN", new Vector3(0f, 0f, 8.6f), 2.4f, 32f);
+                    break;
+                case "AdvanceCauseway":
+                    PlayCue("COVENANT SEALED", flow.CovenantName, new Vector3(0f, 0f, 9.2f), 1.85f, 33f);
+                    break;
                 case "EliteFight":
                     PlayCue("WARDEN OF BLUE ASH", "AN ELITE HUNT BEGINS", new Vector3(0f, 0f, 28.5f), 2.35f, 31f);
                     break;

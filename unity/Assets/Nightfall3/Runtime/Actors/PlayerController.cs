@@ -37,11 +37,15 @@ namespace Nightfall3.Actors
         private bool defeated;
         private ActorSpriteAnimator spriteAnimator;
         private float lastHealth;
+        private float basicDamageMultiplier = 1f;
+        private float skillDamageMultiplier = 1f;
+        private float cooldownMultiplier = 1f;
 
         public Health Health { get; private set; }
         public int Level { get; private set; } = 1;
         public int Experience { get; private set; }
         public float SpellPower { get; private set; } = 1f;
+        public string CovenantName { get; private set; } = "UNBOUND";
         public Vector2 MovementInput { get; private set; }
         public Vector3 RespawnPoint { get; set; }
         public event System.Action Respawned;
@@ -123,7 +127,7 @@ namespace Nightfall3.Actors
             if (target != null && !target.IsDead)
             {
                 var critical = Random.value < 0.16f;
-                DemoDirector.SpawnArcProjectile(transform.position + Vector3.up * 0.9f, target, CombatTuning.BasicAttackDamage * SpellPower * (critical ? 1.65f : 1f), critical);
+                DemoDirector.SpawnArcProjectile(transform.position + Vector3.up * 0.9f, target, CombatTuning.BasicAttackDamage * SpellPower * basicDamageMultiplier * (critical ? 1.65f : 1f), critical);
             }
             yield return new WaitForSeconds(0.14f);
             attacking = false;
@@ -144,7 +148,7 @@ namespace Nightfall3.Actors
             foreach (var enemy in FindTargets())
             {
                 if (Vector3.Distance(transform.position, enemy.TargetTransform.position) <= CombatTuning.ArcBurstRadius)
-                    enemy.ReceiveHit(CombatTuning.ArcBurstDamage * SpellPower, transform.position, true);
+                    enemy.ReceiveHit(CombatTuning.ArcBurstDamage * SpellPower * skillDamageMultiplier, transform.position, true);
             }
             Destroy(ring, 0.16f);
             yield return new WaitForSeconds(0.28f);
@@ -166,7 +170,7 @@ namespace Nightfall3.Actors
             foreach (var enemy in FindTargets())
             {
                 if (Vector3.Distance(transform.position, enemy.TargetTransform.position) <= 4.8f)
-                    enemy.ReceiveHit(32f * SpellPower, transform.position, false);
+                    enemy.ReceiveHit(32f * SpellPower * skillDamageMultiplier, transform.position, false);
             }
             DemoDirector.SpawnShockwave(transform.position, new Color(0.58f, 0.26f, 1f));
             Destroy(field, 0.28f);
@@ -212,7 +216,7 @@ namespace Nightfall3.Actors
                 foreach (var enemy in FindTargets())
                 {
                     if (Vector3.Distance(center, enemy.TargetTransform.position) <= 1.25f)
-                        enemy.ReceiveHit(18f * SpellPower, transform.position, step == 4);
+                        enemy.ReceiveHit(18f * SpellPower * skillDamageMultiplier, transform.position, step == 4);
                 }
                 yield return new WaitForSeconds(0.075f);
             }
@@ -222,6 +226,12 @@ namespace Nightfall3.Actors
 
         public float GetCooldownNormalized(int skill)
         {
+            var duration = GetCooldownDuration(skill);
+            return Mathf.Clamp01((cooldownEnds[skill] - Time.time) / duration);
+        }
+
+        public float GetCooldownDuration(int skill)
+        {
             var duration = skill switch
             {
                 0 => CombatTuning.ChainLightningCooldown,
@@ -230,13 +240,13 @@ namespace Nightfall3.Actors
                 3 => CombatTuning.FrozenOrbCooldown,
                 _ => 1f
             };
-            return Mathf.Clamp01((cooldownEnds[skill] - Time.time) / duration);
+            return duration * cooldownMultiplier;
         }
 
         private bool BeginSkill(int skill, float cooldown)
         {
             if (attacking || Time.time < cooldownEnds[skill]) return false;
-            cooldownEnds[skill] = Time.time + cooldown;
+            cooldownEnds[skill] = Time.time + cooldown * cooldownMultiplier;
             SpriteAnimator?.PlayAttack();
             return true;
         }
@@ -267,6 +277,23 @@ namespace Nightfall3.Actors
                 Level++;
                 SpellPower += 0.08f;
                 Health.Configure(Health.Maximum + 18f);
+            }
+        }
+
+        public void ApplyCovenant(bool stormglass)
+        {
+            if (CovenantName != "UNBOUND") return;
+            if (stormglass)
+            {
+                CovenantName = "STORMGLASS";
+                skillDamageMultiplier = 1.16f;
+                cooldownMultiplier = 0.88f;
+            }
+            else
+            {
+                CovenantName = "EMBERHEART";
+                basicDamageMultiplier = 1.24f;
+                Health.Configure(Health.Maximum + 34f);
             }
         }
 

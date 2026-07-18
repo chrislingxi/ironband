@@ -31,6 +31,8 @@ Unity production assets are tracked separately from the legacy web asset contrac
 | `Art/NPCs/mara-ash-warden-v2.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and normalized frame alignment, 2026-07-18 | Mara, Ash Warden camp quest NPC | Authored v2 production sprite |
 | `Art/NPCs/veyra-forgekeeper-v2.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and normalized frame alignment, 2026-07-18 | Veyra, Forgekeeper camp NPC | Authored v2 production sprite |
 | `Art/NPCs/sister-elowen-v2.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and normalized frame alignment, 2026-07-18 | Sister Elowen camp ritual NPC | Authored v2 production sprite |
+| `Art/Props/stormglass-shrine-v1.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and normalized frame alignment, 2026-07-18 | West exploration covenant and spellcraft growth choice | Authored v1 production shrine |
+| `Art/Props/emberheart-shrine-v1.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and normalized frame alignment, 2026-07-18 | East exploration covenant and survival growth choice | Authored v1 production shrine |
 
 ## Ashen Courtyard Prompt Contract
 
@@ -140,3 +142,9 @@ Unity production assets are tracked separately from the legacy web asset contrac
 - Original camp trio with distinct professions: Mara's ward spear and buckler, Veyra's forging hammer and ember tongs, and Elowen's blue-flame ashwood reliquary staff.
 - Shared isometric camera, grounded human scale, warm camp rim light and cool key light align the NPCs with the authored Duskweaver production set.
 - No old compatibility character appearance, copied costume, familiar franchise symbol or existing NPC silhouette was retained.
+
+## Covenant Shrine Prompt Contract
+
+- Original paired reliquaries share black basalt, pitted iron and antique-brass construction while separating Stormglass through a suspended cyan crystal and Emberheart through a bound crimson heartstone.
+- The two shrines are physical world choices with identical scale and camera treatment, not menu reskins; local processing only removes chroma, normalizes the canvas and aligns the ground pivot.
+- No recognizable shrine, emblem, statue, altar layout or faction symbol from an existing franchise was copied.
