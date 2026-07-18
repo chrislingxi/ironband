@@ -28,10 +28,13 @@ namespace Nightfall3.Actors
         private EnemyArchetype archetype;
         private Vector3 facing = Vector3.back;
         private EnemySpriteAnimator spriteAnimator;
+        private bool wardShielded;
+        private GameObject wardShieldRing;
 
         public Transform TargetTransform => transform;
         public bool IsDead => health == null || health.IsDead;
         public EnemyArchetype Archetype => archetype;
+        public bool WardShielded => wardShielded;
 
         public void Configure(Transform target, float healthValue, float speed, EnemyArchetype enemyArchetype)
         {
@@ -147,6 +150,12 @@ namespace Nightfall3.Actors
 
         public void ReceiveHit(float damage, Vector3 origin, bool critical)
         {
+            if (wardShielded)
+            {
+                DemoDirector.SpawnShockwave(transform.position, new Color(0.3f, 0.72f, 1f));
+                AudioDirector.PlayHit(false);
+                return;
+            }
             var incoming = origin - transform.position;
             incoming.y = 0f;
             var blocked = archetype == EnemyArchetype.Shieldguard && incoming.sqrMagnitude > 0.01f && Vector3.Dot(incoming.normalized, facing) > 0.15f;
@@ -166,6 +175,26 @@ namespace Nightfall3.Actors
             StartCoroutine(HitFlashRoutine(critical));
         }
 
+        public void EnableWardShield()
+        {
+            if (wardShielded) return;
+            wardShielded = true;
+            wardShieldRing = DemoDirector.CreateGroundRing(transform.position, 2.25f, new Color(0.24f, 0.68f, 1f, 0.92f));
+            wardShieldRing.transform.SetParent(transform, true);
+        }
+
+        public void BreakWardShield()
+        {
+            if (!wardShielded) return;
+            wardShielded = false;
+            moveSpeed *= 1.24f;
+            attackInterval *= 0.78f;
+            if (wardShieldRing != null) Destroy(wardShieldRing);
+            DemoDirector.SpawnShockwave(transform.position, new Color(0.28f, 0.82f, 1f));
+            DemoDirector.SpawnShockwave(transform.position, new Color(0.7f, 0.22f, 1f));
+            AudioDirector.PlayDeath(true);
+        }
+
         private IEnumerator HitFlashRoutine(bool critical)
         {
             var visual = GetComponentInChildren<SpriteRenderer>();
@@ -178,10 +207,16 @@ namespace Nightfall3.Actors
 
         private void Die()
         {
+            if (wardShieldRing != null) Destroy(wardShieldRing);
             StopAllCoroutines();
             SpriteAnimator?.PlayDeath();
             AudioDirector.PlayDeath();
             StartCoroutine(DeathRoutine());
+        }
+
+        private void OnDestroy()
+        {
+            if (wardShieldRing != null) Destroy(wardShieldRing);
         }
 
         private IEnumerator DeathRoutine()

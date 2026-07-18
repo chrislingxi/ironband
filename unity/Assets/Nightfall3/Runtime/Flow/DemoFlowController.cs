@@ -67,6 +67,7 @@ namespace Nightfall3.Flow
         private Transform witnessEcho;
         private int dialogueStep;
         private bool claimedWitnessPower;
+        private EnemyController eliteWarden;
         private bool stormglassCovenant;
 
         public string ZoneName { get; private set; } = "EMBERWATCH CAMP";
@@ -237,7 +238,7 @@ namespace Nightfall3.Flow
                 case Phase.AdvanceElite when player.position.z >= 78f:
                     BeginEliteFight();
                     break;
-                case Phase.EliteFight when activeEnemies.Count == 0:
+                case Phase.EliteFight when activeEnemies.Count == 0 && activeAnchors.All(anchor => anchor == null):
                     phase = Phase.BossApproach;
                     ZoneName = "THRONE ANTECHAMBER";
                     ObjectiveTitle = "HEART OF THE SIEGE";
@@ -632,11 +633,34 @@ namespace Nightfall3.Flow
         {
             CaptureEncounterGrowth();
             phase = Phase.EliteFight;
-            ObjectiveTitle = "WARDEN OF BLUE ASH";
-            ObjectiveDetail = "Break the elite and its hunting pair";
-            Spawn("Art/Monsters/blue-ash-juggernaut-v2", new Vector3(0f, 0.05f, 80f), claimedWitnessPower ? 760f : 620f, 1.6f, 3.9f);
+            ObjectiveTitle = "THE OATH-CHAIN WARDEN";
+            ObjectiveDetail = claimedWitnessPower ? "Break three chains shielding the elite" : "Break two chains shielding the elite";
+            activeAnchors.Clear();
+            eliteWarden = Spawn("Art/Monsters/blue-ash-juggernaut-v2", new Vector3(0f, 0.05f, 80f), claimedWitnessPower ? 760f : 620f, 1.6f, 3.9f);
+            eliteWarden?.EnableWardShield();
+            SpawnEliteChain(new Vector3(-4.4f, 0.05f, 80f));
+            SpawnEliteChain(new Vector3(4.4f, 0.05f, 80f));
+            if (claimedWitnessPower) SpawnEliteChain(new Vector3(0f, 0.05f, 83f));
             Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(-4.2f, 0.05f, 79f), 148f, 3.4f, 1.95f);
             Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(4.2f, 0.05f, 79f), 148f, 3.4f, 1.95f);
+        }
+
+        private void SpawnEliteChain(Vector3 position)
+        {
+            activeAnchors.Add(DemoDirector.CreateWardAnchor(position, OnEliteChainDestroyed));
+        }
+
+        private void OnEliteChainDestroyed(WardAnchor anchor)
+        {
+            activeAnchors.Remove(anchor);
+            if (activeAnchors.Any(active => active != null))
+            {
+                ObjectiveDetail = $"Break the remaining oath-chains  •  {activeAnchors.Count(active => active != null)}";
+                return;
+            }
+            eliteWarden?.BreakWardShield();
+            ObjectiveTitle = "THE WARDEN UNBOUND";
+            ObjectiveDetail = "Survive its oathless rage";
         }
 
         private void BeginWardRitual()
@@ -665,9 +689,11 @@ namespace Nightfall3.Flow
             activeAnchors.Remove(anchor);
         }
 
-        private void Spawn(string resource, Vector3 position, float health, float speed, float height)
+        private EnemyController Spawn(string resource, Vector3 position, float health, float speed, float height)
         {
-            activeEnemies.Add(DemoDirector.CreateEnemy(player, resource, position, health, speed, height));
+            var enemy = DemoDirector.CreateEnemy(player, resource, position, health, speed, height);
+            activeEnemies.Add(enemy);
+            return enemy;
         }
 
         public int RemainingEnemies => activeEnemies.Count(enemy => enemy != null) + activeAnchors.Count(anchor => anchor != null);
