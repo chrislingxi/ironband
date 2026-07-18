@@ -31,6 +31,7 @@ namespace Nightfall3.Flow
             WitnessDialogue,
             AdvanceElite,
             EliteFight,
+            WardflameEscort,
             BossApproach,
             BossFight,
             ClaimReward,
@@ -68,6 +69,9 @@ namespace Nightfall3.Flow
         private int dialogueStep;
         private bool claimedWitnessPower;
         private EnemyController eliteWarden;
+        private Transform oathLantern;
+        private int escortStage;
+        private float escortCheckpointZ;
         private bool stormglassCovenant;
 
         public string ZoneName { get; private set; } = "EMBERWATCH CAMP";
@@ -89,6 +93,8 @@ namespace Nightfall3.Flow
         public string DialogueLine => dialogueStep == 0 ? "The Castellan fed on every ward we raised. One oath still chains his armor." : "Take the last oath, Duskweaver. Decide what should survive me.";
         public string DialogueLeftOption => dialogueStep == 0 ? "HOW DO I BREAK IT?" : "RELEASE THE OATH";
         public string DialogueRightOption => dialogueStep == 0 ? "WHY TRUST AN ECHO?" : "CLAIM ITS POWER";
+        public Vector3 EscortTargetPosition => oathLantern != null ? oathLantern.position + Vector3.forward * 1.6f : player.position;
+        public int EscortStage => escortStage;
         public Vector3 InteractionTargetPosition => phase switch
         {
             Phase.CovenantChoice when stormglassShrine != null => stormglassShrine.position,
@@ -239,13 +245,12 @@ namespace Nightfall3.Flow
                     BeginEliteFight();
                     break;
                 case Phase.EliteFight when activeEnemies.Count == 0 && activeAnchors.All(anchor => anchor == null):
-                    phase = Phase.BossApproach;
-                    ZoneName = "THRONE ANTECHAMBER";
-                    ObjectiveTitle = "HEART OF THE SIEGE";
-                    ObjectiveDetail = "Enter the antechamber and confront its master";
-                    SetCheckpoint(new Vector3(0f, 0.05f, 82f));
+                    BeginWardflameEscort();
                     break;
-                case Phase.BossApproach when player.position.z >= 84.5f:
+                case Phase.WardflameEscort:
+                    UpdateWardflameEscort();
+                    break;
+                case Phase.BossApproach when player.position.z >= 109f:
                     BeginBossFight();
                     break;
             }
@@ -663,6 +668,75 @@ namespace Nightfall3.Flow
             ObjectiveDetail = "Survive its oathless rage";
         }
 
+        private void BeginWardflameEscort()
+        {
+            phase = Phase.WardflameEscort;
+            ZoneName = "THE OATHBOUND PROCESSION";
+            ObjectiveTitle = "BEAR THE LAST WARD-FLAME";
+            ObjectiveDetail = "Stay near the flame and clear its path";
+            escortStage = 0;
+            escortCheckpointZ = 82f;
+            if (oathLantern == null)
+                oathLantern = DemoDirector.CreateCovenantShrine("Elowen's Ward-Flame", "Art/Props/emberwatch-ward-beacon-v1", new Vector3(0f, 0.04f, 82f), 3.45f, new Color(0.32f, 0.86f, 1f), "WARD-FLAME");
+            SetCheckpoint(new Vector3(0f, 0.05f, 81f));
+        }
+
+        private void UpdateWardflameEscort()
+        {
+            if (oathLantern == null || activeEnemies.Any(enemy => enemy != null)) return;
+            if (Vector3.Distance(player.position, oathLantern.position) > 4.2f)
+            {
+                ObjectiveDetail = "Return to the fading ward-flame";
+                return;
+            }
+            ObjectiveDetail = "Keep pace with the ward-flame";
+            oathLantern.position += Vector3.forward * (1.35f * Time.deltaTime);
+            if (escortStage == 0 && oathLantern.position.z >= 88f) SpawnEscortWave(1);
+            else if (escortStage == 1 && oathLantern.position.z >= 95f) SpawnEscortWave(2);
+            else if (escortStage == 2 && oathLantern.position.z >= 102f) SpawnEscortWave(3);
+            else if (escortStage == 3 && oathLantern.position.z >= 106f) CompleteWardflameEscort();
+        }
+
+        private void SpawnEscortWave(int stage)
+        {
+            escortStage = stage;
+            escortCheckpointZ = oathLantern.position.z - 0.6f;
+            ObjectiveTitle = $"WARD-FLAME AMBUSH  •  {stage}/3";
+            ObjectiveDetail = stage == 1 ? "Break the hunting crescent" : stage == 2 ? "Open the shield wall" : "Defeat the oath-eater";
+            SetCheckpoint(new Vector3(0f, 0.05f, escortCheckpointZ - 1.2f));
+            var center = oathLantern.position;
+            if (stage == 1)
+            {
+                Spawn("Art/Monsters/blood-ash-hound-v2", center + new Vector3(-4f, 0f, 1f), 135f, 3.5f, 1.95f);
+                Spawn("Art/Monsters/blood-ash-hound-v2", center + new Vector3(4f, 0f, 1f), 135f, 3.5f, 1.95f);
+                Spawn("Art/Monsters/bloodbound-fallen-v2", center + new Vector3(0f, 0f, 3.5f), 148f, 2.85f, 1.95f);
+            }
+            else if (stage == 2)
+            {
+                Spawn("Art/Monsters/coldbone-shieldguard-v2", center + new Vector3(-3.6f, 0f, 2f), 185f, 2.15f, 2.25f);
+                Spawn("Art/Monsters/coldbone-shieldguard-v2", center + new Vector3(3.6f, 0f, 2f), 185f, 2.15f, 2.25f);
+                Spawn("Art/Monsters/bloodbound-fallen-v2", center + new Vector3(0f, 0f, 4.2f), 165f, 2.9f, 1.95f);
+            }
+            else
+            {
+                Spawn("Art/Monsters/blue-ash-juggernaut-v2", center + new Vector3(0f, 0f, 4f), 520f, 1.65f, 3.8f);
+                Spawn("Art/Monsters/blood-ash-hound-v2", center + new Vector3(-4.3f, 0f, 1.5f), 155f, 3.55f, 1.95f);
+                Spawn("Art/Monsters/blood-ash-hound-v2", center + new Vector3(4.3f, 0f, 1.5f), 155f, 3.55f, 1.95f);
+            }
+        }
+
+        private void CompleteWardflameEscort()
+        {
+            DemoDirector.SpawnShockwave(oathLantern.position, new Color(0.35f, 0.9f, 1f));
+            Destroy(oathLantern.gameObject, 0.35f);
+            oathLantern = null;
+            phase = Phase.BossApproach;
+            ZoneName = "THRONE ANTECHAMBER";
+            ObjectiveTitle = "HEART OF THE SIEGE";
+            ObjectiveDetail = "Enter the antechamber and confront its master";
+            SetCheckpoint(new Vector3(0f, 0.05f, 107f));
+        }
+
         private void BeginWardRitual()
         {
             CaptureEncounterGrowth();
@@ -708,7 +782,7 @@ namespace Nightfall3.Flow
             ZoneName = "CASTELLAN'S COURT";
             ObjectiveTitle = "THE ASHEN CASTELLAN";
             ObjectiveDetail = "Survive the three judgments";
-            boss = DemoDirector.CreateBoss(player, new Vector3(0f, 0.05f, 86f));
+            boss = DemoDirector.CreateBoss(player, new Vector3(0f, 0.05f, 112f));
             boss.Defeated += OfferBossReward;
         }
 
@@ -764,6 +838,10 @@ namespace Nightfall3.Flow
                     break;
                 case Phase.EliteFight:
                     BeginEliteFight();
+                    break;
+                case Phase.WardflameEscort:
+                    if (oathLantern != null) oathLantern.position = new Vector3(0f, 0.04f, escortCheckpointZ);
+                    if (escortStage > 0) SpawnEscortWave(escortStage);
                     break;
                 case Phase.BossFight:
                     BeginBossFight();

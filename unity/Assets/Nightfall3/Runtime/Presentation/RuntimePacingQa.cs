@@ -129,7 +129,8 @@ namespace Nightfall3.Presentation
                     flow.ChooseDialogue(1);
                     return;
                 case "AdvanceElite": destination = new Vector3(0f, 0.05f, 78.5f); break;
-                case "BossApproach": destination = new Vector3(0f, 0.05f, 85f); break;
+                case "WardflameEscort" when flow.RemainingEnemies == 0: destination = flow.EscortTargetPosition; break;
+                case "BossApproach": destination = new Vector3(0f, 0.05f, 109.5f); break;
                 case "ClaimReward":
                     var reward = FindObjectsByType<LootPickup>(FindObjectsSortMode.None).FirstOrDefault(pickup => pickup.IsLegendary);
                     if (reward != null) MoveToward(player, reward.transform.position);
