@@ -11,6 +11,7 @@ Unity production assets are tracked separately from the legacy web asset contrac
 | `Art/Monsters/bloodbound-fallen-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Bloodbound Fallen ordinary melee enemy | Authored v2 key sprite; directional animation sheet pending |
 | `Art/Monsters/coldbone-shieldguard-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Coldbone Shieldguard defensive line enemy | Authored v2 key sprite; directional animation sheet pending |
 | `Art/Monsters/blood-ash-hound-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-18 | Blood-Ash Hound fast flanking enemy | Authored v2 key sprite; directional animation sheet pending |
+| `Art/Monsters/blue-ash-juggernaut-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-18 | Blue-Ash Juggernaut heavy and elite encounter anchor | Authored v2 key sprite; directional animation sheet pending |
 
 ## Ashen Courtyard Prompt Contract
 
@@ -54,3 +55,9 @@ Unity production assets are tracked separately from the legacy web asset contrac
 - Original lean corrupted war hound with charcoal hide, restrained ember fissures, asymmetrical basalt armor and a battered black-iron muzzle.
 - Low stalking posture and long-limbed silhouette communicate speed and flanking pressure at mobile scale without cute, toy-like or excessively gory treatment.
 - Uses the Duskweaver and Bloodbound Fallen assets only as internal camera, lighting and material references; no franchise creature design or symbols were copied.
+
+## Blue-Ash Juggernaut Prompt Contract
+
+- Original fortress enforcer in layered pitted black-iron and basalt plate, oxblood bindings, restrained blue-ash ward seals and a caged helm.
+- Broad shoulder bastion, grounded stance and a practical two-handed maul-cleaver communicate slow overhead impact and elite mass at mobile scale.
+- Uses project character assets only as internal camera, lighting and material references; no recognizable franchise armor, weapon, insignia or silhouette was copied.

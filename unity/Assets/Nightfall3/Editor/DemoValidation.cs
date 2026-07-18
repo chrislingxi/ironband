@@ -16,6 +16,7 @@ namespace Nightfall3.Editor
             "Assets/Resources/Art/Monsters/bloodbound-fallen-v2.png",
             "Assets/Resources/Art/Monsters/coldbone-shieldguard-v2.png",
             "Assets/Resources/Art/Monsters/blood-ash-hound-v2.png",
+            "Assets/Resources/Art/Monsters/blue-ash-juggernaut-v2.png",
             "Assets/Resources/Art/UI/hp_orb.png",
             "Assets/Resources/Art/UI/mana_orb.png",
             "Assets/Resources/Art/UI/item_slot.png",

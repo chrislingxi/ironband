@@ -128,7 +128,7 @@ namespace Nightfall3.Flow
             Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(-3.6f, 0.05f, -1.8f), 64f, 2.55f, 1.85f);
             Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(2.8f, 0.05f, -0.4f), 82f, 1.9f, 2.15f);
             Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(4.3f, 0.05f, 1.2f), 58f, 3.2f, 1.8f);
-            Spawn("Art/Monsters/Brute", new Vector3(-2.2f, 0.05f, 2.8f), 185f, 1.45f, 3.15f);
+            Spawn("Art/Monsters/blue-ash-juggernaut-v2", new Vector3(-2.2f, 0.05f, 2.8f), 185f, 1.45f, 3.3f);
         }
 
         private void BeginGateReinforcements()
@@ -140,7 +140,7 @@ namespace Nightfall3.Flow
             Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(5.1f, 0.05f, 4.1f), 72f, 3.35f, 1.85f);
             Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(-3.4f, 0.05f, 5.2f), 84f, 2.7f, 1.9f);
             Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(0f, 0.05f, 6.2f), 108f, 2.05f, 2.2f);
-            Spawn("Art/Monsters/Brute", new Vector3(3.6f, 0.05f, 5.3f), 215f, 1.5f, 3.2f);
+            Spawn("Art/Monsters/blue-ash-juggernaut-v2", new Vector3(3.6f, 0.05f, 5.3f), 215f, 1.5f, 3.35f);
         }
 
         private void BeginCausewayFight()
@@ -163,7 +163,7 @@ namespace Nightfall3.Flow
             phase = Phase.EliteFight;
             ObjectiveTitle = "WARDEN OF BLUE ASH";
             ObjectiveDetail = "Break the elite and its hunting pair";
-            Spawn("Art/Monsters/Brute", new Vector3(0f, 0.05f, 28.8f), 620f, 1.6f, 3.65f);
+            Spawn("Art/Monsters/blue-ash-juggernaut-v2", new Vector3(0f, 0.05f, 28.8f), 620f, 1.6f, 3.9f);
             Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(-4.2f, 0.05f, 27.2f), 148f, 3.4f, 1.95f);
             Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(4.2f, 0.05f, 27.2f), 148f, 3.4f, 1.95f);
         }

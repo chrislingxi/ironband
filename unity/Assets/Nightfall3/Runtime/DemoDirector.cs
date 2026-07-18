@@ -232,7 +232,7 @@ namespace Nightfall3
             var enemy = root.GetComponent<EnemyController>();
             var archetype = resource.Contains("shieldguard") ? EnemyArchetype.Shieldguard
                 : resource.Contains("hound") ? EnemyArchetype.Hound
-                : resource.Contains("Brute") ? EnemyArchetype.Brute
+                : resource.Contains("juggernaut") ? EnemyArchetype.Brute
                 : EnemyArchetype.Raider;
             enemy.Configure(target, health, speed, archetype);
             CreateActorVisual(root.transform, resource, height, Color.white);
