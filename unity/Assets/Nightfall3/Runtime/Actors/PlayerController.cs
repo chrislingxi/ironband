@@ -314,6 +314,21 @@ namespace Nightfall3.Actors
             character.Move(displacement);
         }
 
+        public void ApplyGuidedMovement(Vector3 direction, float deltaTime)
+        {
+            if (defeated || attacking || CinematicDirector.CombatSuppressed || character == null) return;
+            direction.y = 0f;
+            if (direction.sqrMagnitude <= 0.01f) return;
+            facing = direction.normalized;
+            character.Move(facing * (CombatTuning.PlayerMoveSpeed * Mathf.Max(0f, deltaTime)));
+        }
+
+        public void SetGuidedFacing(Vector3 direction)
+        {
+            direction.y = 0f;
+            if (!defeated && direction.sqrMagnitude > 0.01f) facing = direction.normalized;
+        }
+
         private void HandleDefeat()
         {
             if (!defeated) StartCoroutine(RespawnRoutine());

@@ -307,6 +307,9 @@ namespace Nightfall3.Flow
                 case Phase.BossFight:
                     BeginBossFight();
                     break;
+                case Phase.ClaimReward:
+                    OfferBossReward();
+                    break;
             }
             restartingEncounter = false;
         }
