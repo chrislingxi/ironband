@@ -25,6 +25,7 @@ namespace Nightfall3.UI
         private Text heroName;
         private Text heroPower;
         private RectTransform movementCore;
+        private GameObject masteryPanel;
         private float nextObjectiveRefresh;
 
         public static DemoHud Create(PlayerController target, DemoFlowController demoFlow)
@@ -58,6 +59,7 @@ namespace Nightfall3.UI
             BuildActionBar();
             BuildTouchStick();
             BuildContextAction();
+            BuildMasteryChoice();
         }
 
         private void BuildVitals()
@@ -153,6 +155,36 @@ namespace Nightfall3.UI
             contextAction = action.gameObject;
         }
 
+        private void BuildMasteryChoice()
+        {
+            var veil = CreateImage("Mastery Veil", safeAreaRoot, Vector2.zero, new Vector2(844f, 390f), new Color(0.008f, 0.012f, 0.02f, 0.88f), new Vector2(0.5f, 0.5f), null, false);
+            var panel = CreateImage("Mastery Panel", veil.transform, Vector2.zero, new Vector2(650f, 250f), new Color(0.78f, 0.71f, 0.58f, 1f), new Vector2(0.5f, 0.5f), "Art/UI/panel-v2", false);
+            CreateText("SHAPE THE RECALLED POWER", panel.transform, new Vector2(0f, -18f), new Vector2(610f, 28f), 22, new Color(1f, 0.82f, 0.45f), new Vector2(0.5f, 1f), TextAnchor.UpperCenter);
+            CreateText("CHOOSE ONE PERMANENT DUSKWEAVER MASTERY", panel.transform, new Vector2(0f, -48f), new Vector2(610f, 18f), 11, new Color(0.66f, 0.72f, 0.78f), new Vector2(0.5f, 1f), TextAnchor.UpperCenter);
+            BuildMasteryOption(panel.transform, 0, new Vector2(22f, -76f), "STORM LATTICE", "ARC BURST  +30%\nSTATIC FIELD  +22%", "Art/Icons/skill-chain-arc-v2", new Color(0.22f, 0.78f, 1f));
+            BuildMasteryOption(panel.transform, 1, new Vector2(330f, -76f), "FROZEN WAKE", "FROZEN ORB  +45%\nCOOLDOWN  -24%", "Art/Icons/skill-frozen-star-v2", new Color(0.58f, 0.64f, 1f));
+            masteryPanel = veil.gameObject;
+            masteryPanel.SetActive(false);
+        }
+
+        private void BuildMasteryOption(Transform parent, int mastery, Vector2 position, string title, string detail, string iconResource, Color accent)
+        {
+            var option = CreateImage(title, parent, position, new Vector2(298f, 148f), new Color(0.35f, 0.37f, 0.42f, 1f), new Vector2(0f, 1f), "Art/UI/panel-v2", false);
+            CreateImage("Mastery Icon", option.transform, new Vector2(18f, -23f), new Vector2(78f, 78f), Color.white, new Vector2(0f, 1f), iconResource);
+            CreateText(title, option.transform, new Vector2(108f, -25f), new Vector2(174f, 22f), 16, accent, new Vector2(0f, 1f));
+            CreateText(detail, option.transform, new Vector2(108f, -57f), new Vector2(174f, 44f), 12, new Color(0.85f, 0.86f, 0.84f), new Vector2(0f, 1f));
+            CreateText(mastery == 0 ? "1" : "2", option.transform, new Vector2(253f, -112f), new Vector2(24f, 22f), 12, new Color(0.98f, 0.8f, 0.44f), new Vector2(0f, 1f), TextAnchor.MiddleCenter);
+            var button = option.gameObject.AddComponent<Button>();
+            button.targetGraphic = option;
+            var colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = new Color(1.08f, 1.08f, 1.08f);
+            colors.pressedColor = accent;
+            colors.fadeDuration = 0.08f;
+            button.colors = colors;
+            button.onClick.AddListener(() => flow?.SelectMastery(mastery));
+        }
+
         private void Update()
         {
             if (Screen.safeArea != lastSafeArea) ApplySafeArea();
@@ -169,6 +201,7 @@ namespace Nightfall3.UI
                 objectiveProgress.text = remaining > 0 ? $"{flow.ObjectiveDetail}  •  {remaining} remain" : flow.ObjectiveDetail;
                 contextAction.SetActive(flow.CanInteract);
                 contextActionLabel.text = flow.InteractionLabel;
+                masteryPanel.SetActive(flow.CanChooseMastery);
                 var boss = FindFirstObjectByType<BossController>();
                 bossPanel.SetActive(boss != null);
                 if (boss != null)

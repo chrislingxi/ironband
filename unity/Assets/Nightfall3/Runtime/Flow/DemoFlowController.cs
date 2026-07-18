@@ -18,6 +18,7 @@ namespace Nightfall3.Flow
             CausewayFight,
             AdvanceEchoHunt,
             EchoHunt,
+            MasteryChoice,
             AdvanceWard,
             WardRitual,
             AdvanceDefense,
@@ -58,6 +59,7 @@ namespace Nightfall3.Flow
             || phase == Phase.EchoHunt && !echoWaveActive && CurrentEcho != null && Vector3.Distance(player.position, CurrentEcho.position) <= 2.6f;
         public string InteractionLabel => phase == Phase.CovenantChoice ? "ATTUNE" : phase == Phase.EchoHunt ? "RECALL" : "SPEAK";
         public string CovenantName => playerController != null ? playerController.CovenantName : "UNBOUND";
+        public bool CanChooseMastery => phase == Phase.MasteryChoice;
         public Vector3 InteractionTargetPosition => phase switch
         {
             Phase.CovenantChoice when stormglassShrine != null => stormglassShrine.position,
@@ -111,6 +113,12 @@ namespace Nightfall3.Flow
             if (phase == Phase.EchoHunt && !echoWaveActive)
             {
                 if (CanInteract && Input.GetKeyDown(KeyCode.E)) InteractWithEcho();
+                return;
+            }
+            if (phase == Phase.MasteryChoice)
+            {
+                if (Input.GetKeyDown(KeyCode.Alpha1)) SelectMastery(0);
+                else if (Input.GetKeyDown(KeyCode.Alpha2)) SelectMastery(1);
                 return;
             }
 
@@ -335,16 +343,27 @@ namespace Nightfall3.Flow
             echoIndex++;
             if (echoIndex >= echoMonoliths.Count)
             {
-                phase = Phase.AdvanceWard;
-                ZoneName = "THE COLD WARD";
-                ObjectiveTitle = "THE MEMORY OPENS";
-                ObjectiveDetail = "Follow the recalled path to the blue seals";
-                SetCheckpoint(new Vector3(0f, 0.05f, 42.5f));
+                phase = Phase.MasteryChoice;
+                ObjectiveTitle = "SHAPE THE RECALLED POWER";
+                ObjectiveDetail = "Choose one permanent Duskweaver mastery";
                 return;
             }
             ObjectiveTitle = $"ASHEN ECHO {echoIndex + 1}";
             ObjectiveDetail = echoIndex == 1 ? "Seek the eastern memory stele" : "Find the final echo beneath the ward";
             SetCheckpoint(CurrentEcho.position + Vector3.back * 1.8f);
+        }
+
+        public void SelectMastery(int mastery)
+        {
+            if (phase != Phase.MasteryChoice) return;
+            playerController?.ApplyMastery(mastery);
+            AudioDirector.PlaySelect();
+            DemoDirector.SpawnShockwave(player.position, mastery == 0 ? new Color(0.2f, 0.8f, 1f) : new Color(0.58f, 0.38f, 1f));
+            phase = Phase.AdvanceWard;
+            ZoneName = "THE COLD WARD";
+            ObjectiveTitle = mastery == 0 ? "STORM LATTICE FORGED" : "FROZEN WAKE FORGED";
+            ObjectiveDetail = "Follow the recalled path to the blue seals";
+            SetCheckpoint(new Vector3(0f, 0.05f, 42.5f));
         }
 
         private void BeginSanctumDefense()

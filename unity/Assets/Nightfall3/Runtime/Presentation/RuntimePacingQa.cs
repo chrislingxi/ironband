@@ -88,6 +88,9 @@ namespace Nightfall3.Presentation
             Vector3 destination;
             switch (flow.PhaseId)
             {
+                case "MasteryChoice":
+                    flow.SelectMastery(0);
+                    return;
                 case "CovenantChoice":
                     destination = flow.InteractionTargetPosition;
                     if (Vector3.Distance(player.transform.position, destination) <= 2.5f) flow.Interact();
