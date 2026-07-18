@@ -17,6 +17,11 @@ Unity production assets are tracked separately from the legacy web asset contrac
 | `Art/Icons/skill-static-dominion-v2.png` | OpenAI built-in image generation plus local sheet crop and chroma-key removal, 2026-07-18 | Static Dominion skill icon | Authored v2 production icon |
 | `Art/Icons/skill-phase-step-v2.png` | OpenAI built-in image generation plus local sheet crop and chroma-key removal, 2026-07-18 | Phase Step skill icon | Authored v2 production icon |
 | `Art/Icons/skill-frozen-star-v2.png` | OpenAI built-in image generation plus local sheet crop and chroma-key removal, 2026-07-18 | Frozen Star skill icon | Authored v2 production icon |
+| `Art/UI/hero-portrait-v2.png` | OpenAI built-in image generation plus local sheet crop and chroma-key removal, 2026-07-18 | Duskweaver hero HUD portrait | Authored v2 production medallion |
+| `Art/UI/vitality-orb-v2.png` | OpenAI built-in image generation plus local sheet crop and chroma-key removal, 2026-07-18 | Player vitality HUD vessel | Authored v2 production vessel |
+| `Art/UI/aether-orb-v2.png` | OpenAI built-in image generation plus local sheet crop and chroma-key removal, 2026-07-18 | Player aether HUD vessel | Authored v2 production vessel |
+| `Art/UI/joystick-v2.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and radial split, 2026-07-18 | Touch movement outer ring | Authored v2 production control |
+| `Art/UI/joystick-core-v2.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and radial split, 2026-07-18 | Touch movement responsive core | Authored v2 production control |
 
 ## Ashen Courtyard Prompt Contract
 
@@ -78,3 +83,9 @@ Unity production assets are tracked separately from the legacy web asset contrac
 - Original four-icon family: a chained storm arc, a concentric static dominion, a dissolving phase step and a crystalline frozen star.
 - Shared front-facing black-iron bevel, basalt field, antique-brass rim and cold emissive lighting preserve consistency and mobile readability.
 - Contains no text, copied ability symbol, recognizable franchise iconography or existing game UI layout.
+
+## Nightfall HUD Vessel Prompt Contract
+
+- Original Duskweaver portrait, crimson vitality vessel, cobalt aether vessel and split touch-control ring built as one coherent black-iron and antique-brass family.
+- The portrait derives only from the project's authored Duskweaver character; the vessels and control contain no copied skull, frame, symbol or recognizable existing-game HUD design.
+- Separate transparent joystick ring and center assets preserve live input motion instead of presenting a static decorative control.

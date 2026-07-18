@@ -65,7 +65,7 @@ namespace Nightfall3.UI
             heroName = CreateText("DUSKWEAVER  LV 1", plate.transform, new Vector2(62f, -10f), new Vector2(142f, 20f), 13, new Color(0.96f, 0.81f, 0.47f), new Vector2(0f, 1f));
             heroPower = CreateText("SPELL POWER  1.00", plate.transform, new Vector2(62f, -32f), new Vector2(142f, 18f), 11, new Color(0.68f, 0.72f, 0.76f), new Vector2(0f, 1f));
 
-            CreateImage("Blood Orb", plate.transform, new Vector2(6f, -5f), new Vector2(52f, 52f), Color.white, new Vector2(0f, 1f), "Art/UI/hp_orb");
+            CreateImage("Hero Portrait", plate.transform, new Vector2(6f, -5f), new Vector2(52f, 52f), Color.white, new Vector2(0f, 1f), "Art/UI/hero-portrait-v2");
             var track = CreateImage("Health Track", plate.transform, new Vector2(62f, -51f), new Vector2(140f, 5f), new Color(0.08f, 0.008f, 0.008f, 1f), new Vector2(0f, 1f));
             healthFill = CreateImage("Health", track.transform, Vector2.zero, new Vector2(140f, 5f), new Color(0.82f, 0.045f, 0.025f, 1f), new Vector2(0f, 1f));
             healthFill.type = Image.Type.Filled;
@@ -85,8 +85,8 @@ namespace Nightfall3.UI
         private void BuildActionBar()
         {
             var bar = CreateImage("Action Bar", safeAreaRoot, new Vector2(0f, 8f), new Vector2(320f, 75f), new Color(0.78f, 0.72f, 0.6f, 0.98f), new Vector2(0.5f, 0f), "Art/UI/panel-v2", false);
-            CreateImage("Blood Orb", safeAreaRoot, new Vector2(-214f, 5f), new Vector2(92f, 92f), Color.white, new Vector2(0.5f, 0f), "Art/UI/hp_orb");
-            CreateImage("Aether Orb", safeAreaRoot, new Vector2(214f, 5f), new Vector2(92f, 92f), Color.white, new Vector2(0.5f, 0f), "Art/UI/mana_orb");
+            CreateImage("Vitality Vessel", safeAreaRoot, new Vector2(-214f, 5f), new Vector2(92f, 92f), Color.white, new Vector2(0.5f, 0f), "Art/UI/vitality-orb-v2");
+            CreateImage("Aether Vessel", safeAreaRoot, new Vector2(214f, 5f), new Vector2(92f, 92f), Color.white, new Vector2(0.5f, 0f), "Art/UI/aether-orb-v2");
 
             var icons = new[]
             {
@@ -138,8 +138,8 @@ namespace Nightfall3.UI
 
         private void BuildTouchStick()
         {
-            var ring = CreateImage("Movement Ring", safeAreaRoot, new Vector2(28f, 22f), new Vector2(82f, 82f), new Color(0.6f, 0.62f, 0.64f, 0.22f), new Vector2(0f, 0f), "Art/UI/btn_frame");
-            movementCore = CreateImage("Movement Core", ring.transform, new Vector2(22f, -22f), new Vector2(38f, 38f), new Color(0.64f, 0.72f, 0.78f, 0.34f), new Vector2(0f, 1f), "Art/UI/btn_frame").rectTransform;
+            var ring = CreateImage("Movement Ring", safeAreaRoot, new Vector2(28f, 22f), new Vector2(82f, 82f), new Color(1f, 1f, 1f, 0.52f), new Vector2(0f, 0f), "Art/UI/joystick-v2");
+            movementCore = CreateImage("Movement Core", ring.transform, new Vector2(22f, -22f), new Vector2(38f, 38f), new Color(1f, 1f, 1f, 0.68f), new Vector2(0f, 1f), "Art/UI/joystick-core-v2").rectTransform;
         }
 
         private void BuildContextAction()
