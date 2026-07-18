@@ -257,6 +257,16 @@ namespace Nightfall3
                     "Art/Monsters/coldbone-hit-v3",
                     "Art/Monsters/coldbone-defeated-v3");
             }
+            else if (visual != null && archetype == EnemyArchetype.Hound)
+            {
+                var animator = visual.gameObject.AddComponent<EnemySpriteAnimator>();
+                animator.Configure(root.transform, height,
+                    "Art/Monsters/blood-ash-hound-run-v3",
+                    "Art/Monsters/blood-ash-hound-run-v3",
+                    "Art/Monsters/blood-ash-hound-pounce-v3",
+                    "Art/Monsters/blood-ash-hound-hit-v3",
+                    "Art/Monsters/blood-ash-hound-defeated-v3");
+            }
             return enemy;
         }
 

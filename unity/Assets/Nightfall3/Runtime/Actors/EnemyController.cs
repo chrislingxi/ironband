@@ -73,7 +73,7 @@ namespace Nightfall3.Actors
         private IEnumerator AttackRoutine()
         {
             telegraphing = true;
-            SpriteAnimator?.PlayAttack(archetype == EnemyArchetype.Brute ? 0.72f : archetype == EnemyArchetype.Hound ? 0.42f : 0.34f);
+            SpriteAnimator?.PlayAttack(archetype == EnemyArchetype.Brute ? 1.08f : archetype == EnemyArchetype.Hound ? 0.78f : 0.34f);
             switch (archetype)
             {
                 case EnemyArchetype.Hound:

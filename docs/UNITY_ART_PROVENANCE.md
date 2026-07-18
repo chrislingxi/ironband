@@ -15,6 +15,7 @@ Unity production assets are tracked separately from the legacy web asset contrac
 | `Art/Monsters/coldbone-shieldguard-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Coldbone Shieldguard defensive line enemy | Authored v2 key sprite; directional animation sheet pending |
 | `Art/Monsters/coldbone-*-v3.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal, component cleanup and normalized frame alignment, 2026-07-18 | Coldbone Shieldguard advance, guarded strike, hit and defeated state set | Authored v3 production action set |
 | `Art/Monsters/blood-ash-hound-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-18 | Blood-Ash Hound fast flanking enemy | Authored v2 key sprite; directional animation sheet pending |
+| `Art/Monsters/blood-ash-hound-*-v3.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal, component cleanup and normalized frame alignment, 2026-07-18 | Blood-Ash Hound run, pounce, hit and defeated state set | Authored v3 production action set |
 | `Art/Monsters/blue-ash-juggernaut-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-18 | Blue-Ash Juggernaut heavy and elite encounter anchor | Authored v2 key sprite; directional animation sheet pending |
 | `Art/UI/panel-v2.png` | OpenAI built-in image generation plus local chroma-key removal and alpha-bound crop, 2026-07-18 | Shared 9-slice HUD, objective, Boss and interaction panel | Authored v2 production frame |
 | `Art/Icons/skill-chain-arc-v2.png` | OpenAI built-in image generation plus local sheet crop and chroma-key removal, 2026-07-18 | Chain Arc skill icon | Authored v2 production icon |
@@ -96,6 +97,12 @@ Unity production assets are tracked separately from the legacy web asset contrac
 - Original lean corrupted war hound with charcoal hide, restrained ember fissures, asymmetrical basalt armor and a battered black-iron muzzle.
 - Low stalking posture and long-limbed silhouette communicate speed and flanking pressure at mobile scale without cute, toy-like or excessively gory treatment.
 - Uses the Duskweaver and Bloodbound Fallen assets only as internal camera, lighting and material references; no franchise creature design or symbols were copied.
+
+## Blood-Ash Hound Animation Prompt Contract
+
+- Four consistent full-body states preserve the authored charcoal hide, ember fissures, asymmetrical basalt armor, back spikes, iron muzzle and long tail across run, pounce, hit and defeated poses.
+- The airborne pounce silhouette remains active across the telegraph and landing window; local processing only removes chroma, clears disconnected sheet spill, normalizes the canvas and aligns the pivot.
+- No creature animation, armor treatment or silhouette was copied from an existing franchise.
 
 ## Blue-Ash Juggernaut Prompt Contract
 
