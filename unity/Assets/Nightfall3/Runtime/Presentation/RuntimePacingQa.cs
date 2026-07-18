@@ -97,7 +97,7 @@ namespace Nightfall3.Presentation
                 "ArchiveCipher" => 6f,
                 "RelicChoice" => 12f,
                 "ReturnPortal" => 4f,
-                "AdvanceCauseway" or "AdvanceEchoHunt" or "AdvanceWard" or "AdvanceDefense" or "AdvanceGauntlet" or "AdvanceElite" or "SepulcherApproach" or "ArchiveApproach" => 2.5f,
+                "AdvanceCauseway" or "AdvanceEchoHunt" or "AdvanceWard" or "AdvanceDefense" or "AdvanceGauntlet" or "AdvanceElite" or "SepulcherApproach" or "ArchiveApproach" or "SiegeApproach" => 2.5f,
                 "BossApproach" => 4f,
                 _ => 0.35f
             };
@@ -162,7 +162,10 @@ namespace Nightfall3.Presentation
                     if (flow.RemainingEnemies == 0 && Vector3.Distance(player.transform.position, destination) <= 2.2f) flow.Interact();
                     MoveToward(player, destination);
                     return;
-                case "BossApproach": destination = new Vector3(0f, 0.05f, 178.5f); break;
+                case "SiegeApproach": destination = new Vector3(0f, 0.05f, 181.5f); break;
+                case "SiegeAssault" when flow.RemainingEnemies == 0: destination = flow.SiegeSafePosition; break;
+                case "OathEngine" when flow.OathEngineShielded && flow.RemainingEnemies == 1: destination = flow.SiegeSafePosition; break;
+                case "BossApproach": destination = new Vector3(0f, 0.05f, 218.5f); break;
                 case "RelicChoice":
                 case "ReturnPortal":
                     destination = flow.InteractionTargetPosition;

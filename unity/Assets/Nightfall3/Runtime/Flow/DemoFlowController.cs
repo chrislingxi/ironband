@@ -39,10 +39,14 @@ namespace Nightfall3.Flow
             ArchiveCipher,
             ArchivePurge,
             ArchiveCurator,
+            SiegeApproach,
+            SiegeAssault,
+            OathEngine,
             BossApproach,
             BossFight,
             RelicChoice,
             ReturnPortal,
+            Epilogue,
             Complete
         }
 
@@ -95,6 +99,15 @@ namespace Nightfall3.Flow
         private int archiveCollapseRunId;
         private EnemyController archiveCurator;
         private bool curatorSecondJudgment;
+        private int siegeWave;
+        private int siegeHazardRunId;
+        private float siegeWaveReadyAt;
+        private float siegeSafeX;
+        private EnemyController oathEngine;
+        private bool oathEngineSecondJudgment;
+        private bool oathBellsDestroyed;
+        private float oathEngineShieldReadyAt;
+        private Transform ashenGateFacade;
         private readonly List<Transform> relicAltars = new();
         private Transform returnPortal;
         private bool stormglassCovenant;
@@ -118,6 +131,8 @@ namespace Nightfall3.Flow
         public int RuneFailures => runeFailures;
         public int ArchiveFailures => archiveFailures;
         public int SepulchersCompleted => completedSepulchers.Count;
+        public Vector3 SiegeSafePosition => new(siegeSafeX, 0.05f, player != null ? Mathf.Clamp(player.position.z, 183f, 211f) : 196f);
+        public bool OathEngineShielded => oathEngine != null && oathEngine.WardShielded;
         public Vector3 GauntletSafePosition => new(gauntletSafeX, 0.05f, 74f);
         public bool HasDialogue => phase == Phase.WitnessDialogue;
         public string DialogueSpeaker => "ELOWEN'S ECHO  •  LAST WARDEN";
@@ -340,7 +355,16 @@ namespace Nightfall3.Flow
                 case Phase.ArchiveCurator:
                     UpdateArchiveCurator();
                     break;
-                case Phase.BossApproach when player.position.z >= 178f:
+                case Phase.SiegeApproach when player.position.z >= 181f:
+                    BeginSiegeAssault();
+                    break;
+                case Phase.SiegeAssault:
+                    UpdateSiegeAssault();
+                    break;
+                case Phase.OathEngine:
+                    UpdateOathEngine();
+                    break;
+                case Phase.BossApproach when player.position.z >= 218f:
                     BeginBossFight();
                     break;
             }
@@ -1144,11 +1168,201 @@ namespace Nightfall3.Flow
 
         private void CompleteArchiveCurator()
         {
+            phase = Phase.SiegeApproach;
+            ZoneName = "THE IRON LITANY";
+            ObjectiveTitle = "THE CASTELLAN'S WAR ENGINE";
+            ObjectiveDetail = "Advance into the siege ritual";
+            SetCheckpoint(new Vector3(0f, 0.05f, 176f));
+        }
+
+        private void BeginSiegeAssault()
+        {
+            CaptureEncounterGrowth();
+            phase = Phase.SiegeAssault;
+            ZoneName = "THE IRON LITANY";
+            siegeWave = 1;
+            activeAnchors.Clear();
+            SpawnSiegeWave(siegeWave);
+        }
+
+        private void SpawnSiegeWave(int wave)
+        {
+            ObjectiveTitle = $"BREAK THE SIEGE LITANY  •  {wave}/4";
+            ObjectiveDetail = wave == 1 ? "Shatter the forward resonance pylon" : wave == 2 ? "Cross the censor barrage" : wave == 3 ? "Break the shielded gunline" : "Silence the final bell";
+            var center = new Vector3(0f, 0.05f, 183f + wave * 4.2f);
+            activeAnchors.Add(DemoDirector.CreateWardAnchor(center + new Vector3(wave % 2 == 0 ? 3.8f : -3.8f, 0f, 1.4f), OnSiegePylonDestroyed));
+            if (wave == 1)
+            {
+                Spawn("Art/Monsters/bloodbound-fallen-v2", center + new Vector3(-2.6f, 0f, 0f), 205f, 3.1f, 2f);
+                Spawn("Art/Monsters/bloodbound-fallen-v2", center + new Vector3(2.6f, 0f, 0f), 205f, 3.1f, 2f);
+                Spawn("Art/Monsters/blood-ash-hound-v2", center + new Vector3(0f, 0f, 3.8f), 185f, 3.75f, 2f);
+            }
+            else if (wave == 2)
+            {
+                Spawn("Art/Monsters/blood-ash-hound-v2", center + new Vector3(-4.5f, 0f, 0f), 205f, 3.8f, 2f);
+                Spawn("Art/Monsters/blood-ash-hound-v2", center + new Vector3(4.5f, 0f, 0f), 205f, 3.8f, 2f);
+                Spawn("Art/Monsters/coldbone-shieldguard-v2", center + new Vector3(0f, 0f, 4f), 285f, 2.35f, 2.4f);
+            }
+            else if (wave == 3)
+            {
+                Spawn("Art/Monsters/coldbone-shieldguard-v2", center + new Vector3(-3.8f, 0f, 0f), 310f, 2.4f, 2.4f);
+                Spawn("Art/Monsters/coldbone-shieldguard-v2", center + new Vector3(3.8f, 0f, 0f), 310f, 2.4f, 2.4f);
+                Spawn("Art/Monsters/bloodbound-fallen-v2", center + new Vector3(-1.6f, 0f, 4f), 235f, 3.15f, 2f);
+                Spawn("Art/Monsters/bloodbound-fallen-v2", center + new Vector3(1.6f, 0f, 4f), 235f, 3.15f, 2f);
+            }
+            else
+            {
+                Spawn("Art/Monsters/blue-ash-juggernaut-v2", center + new Vector3(0f, 0f, 4f), 820f, 1.75f, 4.15f);
+                Spawn("Art/Monsters/blood-ash-hound-v2", center + new Vector3(-4.5f, 0f, 0.8f), 225f, 3.85f, 2f);
+                Spawn("Art/Monsters/blood-ash-hound-v2", center + new Vector3(4.5f, 0f, 0.8f), 225f, 3.85f, 2f);
+            }
+            SetCheckpoint(new Vector3(0f, 0.05f, center.z - 3f));
+            siegeWaveReadyAt = Time.realtimeSinceStartup + 38f;
+            StartCoroutine(SiegeBarrageRoutine(++siegeHazardRunId, wave));
+        }
+
+        private void UpdateSiegeAssault()
+        {
+            if (activeEnemies.Count > 0 || activeAnchors.Any(anchor => anchor != null)) return;
+            var remaining = Mathf.CeilToInt(siegeWaveReadyAt - Time.realtimeSinceStartup);
+            if (remaining > 0)
+            {
+                ObjectiveTitle = $"RESONANCE CYCLE  •  {siegeWave}/4";
+                ObjectiveDetail = $"Survive the remaining bell barrage  •  {remaining}s";
+                return;
+            }
+            if (siegeWave < 4) SpawnSiegeWave(++siegeWave);
+            else BeginOathEngine();
+        }
+
+        private void OnSiegePylonDestroyed(WardAnchor anchor)
+        {
+            activeAnchors.Remove(anchor);
+        }
+
+        private System.Collections.IEnumerator SiegeBarrageRoutine(int runId, int wave)
+        {
+            yield return new WaitForSecondsRealtime(1f);
+            for (var pulse = 0; pulse < 15; pulse++)
+            {
+                if (phase != Phase.SiegeAssault || runId != siegeHazardRunId) yield break;
+                var safeLane = wave % 2 == 0 ? 2 - pulse % 3 : pulse % 3;
+                siegeSafeX = (safeLane - 1) * 4f;
+                for (var lane = 0; lane < 3; lane++)
+                {
+                    if (lane == safeLane) continue;
+                    var hazard = new GameObject($"Siege Barrage {wave} Lane {lane}", typeof(AshfallHazard)).GetComponent<AshfallHazard>();
+                    hazard.Configure(new Vector3((lane - 1) * 4f, 0.05f, Mathf.Clamp(player.position.z, 183f, 202f)), playerController);
+                }
+                yield return new WaitForSecondsRealtime(2.3f);
+            }
+        }
+
+        private void BeginOathEngine()
+        {
+            CaptureEncounterGrowth();
+            ++siegeHazardRunId;
+            phase = Phase.OathEngine;
+            ZoneName = "THE ENGINE NAVE";
+            ObjectiveTitle = "THE OATH ENGINE";
+            ObjectiveDetail = "Crack the soul furnace before it tolls";
+            oathEngineSecondJudgment = false;
+            oathBellsDestroyed = false;
+            activeAnchors.Clear();
+            oathEngine = Spawn("Art/Monsters/oath-engine-v1", new Vector3(0f, 0.05f, 207f), 1680f, 0f, 5.1f);
+            oathEngine?.SetStationary();
+            Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(-4.8f, 0.05f, 204f), 285f, 2.4f, 2.4f);
+            Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(4.8f, 0.05f, 204f), 285f, 2.4f, 2.4f);
+            SetCheckpoint(new Vector3(0f, 0.05f, 201f));
+        }
+
+        private void UpdateOathEngine()
+        {
+            if (oathEngine != null && !oathEngineSecondJudgment)
+            {
+                var health = oathEngine.GetComponent<Nightfall3.Combat.Health>();
+                if (health != null && health.Current <= health.Maximum * 0.5f)
+                {
+                    oathEngineSecondJudgment = true;
+                    oathEngineShieldReadyAt = Time.realtimeSinceStartup + 42f;
+                    oathEngine.EnableWardShield();
+                    ObjectiveTitle = "THE FOUR BELLS TOLL";
+                    ObjectiveDetail = "Shatter the resonance pylons";
+                    SpawnOathBell(new Vector3(-5f, 0.05f, 206f));
+                    SpawnOathBell(new Vector3(5f, 0.05f, 206f));
+                    SpawnOathBell(new Vector3(-3f, 0.05f, 211f));
+                    SpawnOathBell(new Vector3(3f, 0.05f, 211f));
+                    Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(-3f, 0.05f, 203f), 245f, 3.2f, 2f);
+                    Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(3f, 0.05f, 203f), 245f, 3.2f, 2f);
+                    StartCoroutine(OathEngineBarrageRoutine());
+                }
+                return;
+            }
+            if (oathEngine != null && oathEngineSecondJudgment && oathBellsDestroyed && Time.realtimeSinceStartup >= oathEngineShieldReadyAt)
+            {
+                ReleaseOathEngineShield();
+                return;
+            }
+            if (oathEngine == null && activeEnemies.Count == 0 && activeAnchors.All(anchor => anchor == null)) CompleteOathEngine();
+        }
+
+        private void SpawnOathBell(Vector3 position)
+        {
+            activeAnchors.Add(DemoDirector.CreateWardAnchor(position, OnOathBellDestroyed));
+        }
+
+        private void OnOathBellDestroyed(WardAnchor anchor)
+        {
+            activeAnchors.Remove(anchor);
+            var remaining = activeAnchors.Count(active => active != null);
+            if (remaining > 0)
+            {
+                ObjectiveDetail = $"Shatter the remaining resonance pylons  •  {remaining}";
+                return;
+            }
+            if (Time.realtimeSinceStartup < oathEngineShieldReadyAt)
+            {
+                oathBellsDestroyed = true;
+                ObjectiveTitle = "THE FINAL RESONANCE";
+                ObjectiveDetail = "Survive until the exposed bells fall silent";
+                return;
+            }
+            ReleaseOathEngineShield();
+        }
+
+        private void ReleaseOathEngineShield()
+        {
+            oathBellsDestroyed = false;
+            oathEngine?.BreakWardShield();
+            ObjectiveTitle = "THE ENGINE CORE IS BARE";
+            ObjectiveDetail = "End the iron litany";
+        }
+
+        private System.Collections.IEnumerator OathEngineBarrageRoutine()
+        {
+            for (var pulse = 0; pulse < 19 && phase == Phase.OathEngine && oathEngine != null; pulse++)
+            {
+                yield return new WaitForSecondsRealtime(2.2f);
+                var safeLane = pulse % 3;
+                siegeSafeX = (safeLane - 1) * 4f;
+                for (var lane = 0; lane < 3; lane++)
+                {
+                    if (lane == safeLane) continue;
+                    var hazard = new GameObject($"Oath Engine Toll {pulse} Lane {lane}", typeof(AshfallHazard)).GetComponent<AshfallHazard>();
+                    hazard.Configure(new Vector3((lane - 1) * 4f, 0.05f, Mathf.Clamp(player.position.z, 202f, 211f)), playerController);
+                }
+            }
+        }
+
+        private void CompleteOathEngine()
+        {
             phase = Phase.BossApproach;
             ZoneName = "THRONE ANTECHAMBER";
             ObjectiveTitle = "HEART OF THE SIEGE";
             ObjectiveDetail = "Enter the throne court and confront its master";
-            SetCheckpoint(new Vector3(0f, 0.05f, 176f));
+            if (ashenGateFacade == null)
+                ashenGateFacade = DemoDirector.CreateWorldArt("Ashen Gate Facade", "Art/Environment/ashen-gate-facade-v1", new Vector3(0f, 0.05f, 226f), 8.4f, Color.white);
+            SetCheckpoint(new Vector3(0f, 0.05f, 216f));
         }
 
         private void BeginWardRitual()
@@ -1196,7 +1410,7 @@ namespace Nightfall3.Flow
             ZoneName = "CASTELLAN'S COURT";
             ObjectiveTitle = "THE ASHEN CASTELLAN";
             ObjectiveDetail = "Survive the three judgments";
-            boss = DemoDirector.CreateBoss(player, new Vector3(0f, 0.05f, 181f));
+            boss = DemoDirector.CreateBoss(player, new Vector3(0f, 0.05f, 221f));
             boss.Defeated += OfferBossReward;
         }
 
@@ -1207,9 +1421,9 @@ namespace Nightfall3.Flow
             ObjectiveTitle = "THREE RELICS REMAIN";
             ObjectiveDetail = "Choose one legacy to carry beyond Act I";
             relicAltars.Clear();
-            relicAltars.Add(DemoDirector.CreateCovenantShrine("Storm Crown", "Art/Relics/storm-crown-v1", new Vector3(-4.3f, 0.04f, 181f), 2.75f, new Color(0.22f, 0.78f, 1f), "STORM CROWN", 3.65f));
-            relicAltars.Add(DemoDirector.CreateCovenantShrine("Frostheart", "Art/Relics/frostheart-v1", new Vector3(0f, 0.04f, 183f), 3.15f, new Color(0.48f, 0.58f, 1f), "FROSTHEART", 3.65f));
-            relicAltars.Add(DemoDirector.CreateCovenantShrine("Ember Aegis", "Art/Relics/ember-aegis-v1", new Vector3(4.3f, 0.04f, 181f), 3.2f, new Color(1f, 0.3f, 0.06f), "EMBER AEGIS", 3.65f));
+            relicAltars.Add(DemoDirector.CreateCovenantShrine("Storm Crown", "Art/Relics/storm-crown-v1", new Vector3(-4.3f, 0.04f, 221f), 2.75f, new Color(0.22f, 0.78f, 1f), "STORM CROWN", 3.65f));
+            relicAltars.Add(DemoDirector.CreateCovenantShrine("Frostheart", "Art/Relics/frostheart-v1", new Vector3(0f, 0.04f, 223f), 3.15f, new Color(0.48f, 0.58f, 1f), "FROSTHEART", 3.65f));
+            relicAltars.Add(DemoDirector.CreateCovenantShrine("Ember Aegis", "Art/Relics/ember-aegis-v1", new Vector3(4.3f, 0.04f, 221f), 3.2f, new Color(1f, 0.3f, 0.06f), "EMBER AEGIS", 3.65f));
         }
 
         private Transform NearestRelic => relicAltars.Where(relic => relic != null).OrderBy(relic => Vector3.Distance(player.position, relic.position)).FirstOrDefault();
@@ -1229,7 +1443,7 @@ namespace Nightfall3.Flow
             phase = Phase.ReturnPortal;
             ObjectiveTitle = $"{playerController?.FinalRelicName ?? "RELIC"} CLAIMED";
             ObjectiveDetail = "Enter the Emberwatch return gate";
-            returnPortal = DemoDirector.CreateCovenantShrine("Emberwatch Return Gate", "Art/Props/exit_gate", new Vector3(0f, 0.04f, 185f), 4.6f, new Color(0.35f, 0.82f, 1f), "RETURN TO EMBERWATCH");
+            returnPortal = DemoDirector.CreateCovenantShrine("Emberwatch Return Gate", "Art/Props/exit_gate", new Vector3(0f, 0.04f, 225f), 4.6f, new Color(0.35f, 0.82f, 1f), "RETURN TO EMBERWATCH");
         }
 
         private void CompleteDemo()
@@ -1237,10 +1451,26 @@ namespace Nightfall3.Flow
             if (phase != Phase.ReturnPortal) return;
             if (returnPortal != null) Destroy(returnPortal.gameObject, 0.2f);
             playerController?.TeleportTo(new Vector3(0f, 0.05f, -8.6f));
-            phase = Phase.Complete;
+            phase = Phase.Epilogue;
             ZoneName = "EMBERWATCH CAMP";
+            ObjectiveTitle = "THE IRON LITANY FALLS SILENT";
+            ObjectiveDetail = "The ward-flame returns to Emberwatch";
+            StartCoroutine(CompleteEpilogueRoutine());
+        }
+
+        private System.Collections.IEnumerator CompleteEpilogueRoutine()
+        {
+            DemoDirector.SpawnShockwave(player.position, new Color(0.3f, 0.82f, 1f));
+            yield return new WaitForSecondsRealtime(4.5f);
+            ObjectiveTitle = $"{playerController?.FinalRelicName ?? "THE RELIC"} ENDURES";
+            ObjectiveDetail = "A new covenant is carried beyond the gate";
+            AudioDirector.PlaySelect();
+            yield return new WaitForSecondsRealtime(4.5f);
             ObjectiveTitle = "ACT I  •  THE GATE REMEMBERS";
             ObjectiveDetail = "The Ashen Approach is reclaimed";
+            DemoDirector.SpawnShockwave(player.position, new Color(1f, 0.38f, 0.08f));
+            yield return new WaitForSecondsRealtime(5f);
+            phase = Phase.Complete;
         }
 
         private void SetCheckpoint(Vector3 position)
@@ -1299,6 +1529,12 @@ namespace Nightfall3.Flow
                     break;
                 case Phase.ArchiveCurator:
                     BeginArchiveCurator();
+                    break;
+                case Phase.SiegeAssault:
+                    SpawnSiegeWave(siegeWave);
+                    break;
+                case Phase.OathEngine:
+                    BeginOathEngine();
                     break;
                 case Phase.BossFight:
                     BeginBossFight();

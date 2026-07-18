@@ -60,8 +60,8 @@ namespace Nightfall3
 
             var ground = GameObject.CreatePrimitive(PrimitiveType.Cube);
             ground.name = "Corrupted Flagstone";
-            ground.transform.position = new Vector3(0f, -0.28f, 79f);
-            ground.transform.localScale = new Vector3(25f, 0.5f, 210f);
+            ground.transform.position = new Vector3(0f, -0.28f, 99f);
+            ground.transform.localScale = new Vector3(25f, 0.5f, 250f);
             var floorTexture = Resources.Load<Texture2D>("Art/Environment/ashen-courtyard-albedo-v1");
             if (floorTexture != null) floorTexture.wrapMode = TextureWrapMode.Repeat;
             var floorMaterial = Material(Color.white, 0.08f, 0.48f, texture: floorTexture);
@@ -74,8 +74,8 @@ namespace Nightfall3
             for (var i = 0; i < 170; i++)
             {
                 var x = Random.Range(-11f, 11f);
-                var z = Random.Range(-19f, 186f);
-                if (Mathf.Abs(x) < 4.8f && z < 178f) continue;
+                var z = Random.Range(-19f, 226f);
+                if (Mathf.Abs(x) < 4.8f && z < 218f) continue;
                 var stone = GameObject.CreatePrimitive(i % 4 == 0 ? PrimitiveType.Cylinder : PrimitiveType.Cube);
                 stone.name = "Ruin Debris";
                 stone.transform.position = new Vector3(x, Random.Range(-0.02f, 0.12f), z);
@@ -90,18 +90,17 @@ namespace Nightfall3
             CreateWorldArt("Western Archive Reliquary", "Art/Environment/black-archive-facade-v1", new Vector3(-8.4f, 0.04f, 159f), 4.8f, new Color(0.58f, 0.66f, 0.78f));
             CreateWorldArt("Eastern Archive Reliquary", "Art/Environment/black-archive-facade-v1", new Vector3(8.4f, 0.04f, 163f), 4.8f, new Color(0.72f, 0.58f, 0.48f));
 
-            for (var z = -16f; z <= 183f; z += 6.5f)
+            for (var z = -16f; z <= 223f; z += 6.5f)
             {
                 CreateTorch(new Vector3(-7.5f, 1.15f, z));
                 CreateTorch(new Vector3(7.5f, 1.15f, z + 2.4f));
             }
 
-            CreateWorldArt("Ashen Gate Facade", "Art/Environment/ashen-gate-facade-v1", new Vector3(0f, 0.05f, 186f), 8.4f, Color.white);
         }
 
         private static void BuildProcessionalPath()
         {
-            for (var row = -11; row <= 120; row++)
+            for (var row = -11; row <= 146; row++)
             {
                 for (var side = -1; side <= 1; side += 2)
                 {
@@ -114,7 +113,7 @@ namespace Nightfall3
                 }
             }
 
-            for (var row = -2; row <= 186; row += 4)
+            for (var row = -2; row <= 226; row += 4)
             {
                 var sigil = CreateGroundRing(new Vector3(0f, 0.06f, row), 1.18f, new Color(0.18f, 0.56f, 0.72f, 0.52f));
                 sigil.name = "Cold Ward Sigil";
@@ -123,7 +122,7 @@ namespace Nightfall3
 
         private static void BuildCourtyardWalls()
         {
-            for (var z = -18f; z <= 186f; z += 3.2f)
+            for (var z = -18f; z <= 226f; z += 3.2f)
             {
                 for (var side = -1; side <= 1; side += 2)
                 {
@@ -242,7 +241,7 @@ namespace Nightfall3
             var camera = go.GetComponent<Camera>();
             camera.fieldOfView = 38f;
             camera.nearClipPlane = 0.15f;
-            camera.farClipPlane = 220f;
+            camera.farClipPlane = 260f;
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.backgroundColor = new Color(0.012f, 0.014f, 0.016f);
             var rig = go.GetComponent<CameraRig>();
@@ -258,7 +257,7 @@ namespace Nightfall3
             var enemy = root.GetComponent<EnemyController>();
             var archetype = resource.Contains("shieldguard") ? EnemyArchetype.Shieldguard
                 : resource.Contains("hound") ? EnemyArchetype.Hound
-                : resource.Contains("juggernaut") || resource.Contains("curator") ? EnemyArchetype.Brute
+                : resource.Contains("juggernaut") || resource.Contains("curator") || resource.Contains("engine") ? EnemyArchetype.Brute
                 : EnemyArchetype.Raider;
             enemy.Configure(target, health, speed, archetype);
             var visual = CreateActorVisual(root.transform, resource, height, Color.white);
@@ -292,7 +291,7 @@ namespace Nightfall3
                     "Art/Monsters/blood-ash-hound-hit-v3",
                     "Art/Monsters/blood-ash-hound-defeated-v3");
             }
-            else if (visual != null && resource.Contains("curator"))
+            else if (visual != null && (resource.Contains("curator") || resource.Contains("engine")))
             {
                 var animator = visual.gameObject.AddComponent<EnemySpriteAnimator>();
                 animator.Configure(root.transform, height, resource, resource, resource, resource, resource);

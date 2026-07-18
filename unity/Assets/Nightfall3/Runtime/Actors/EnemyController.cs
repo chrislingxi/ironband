@@ -30,6 +30,7 @@ namespace Nightfall3.Actors
         private EnemySpriteAnimator spriteAnimator;
         private bool wardShielded;
         private GameObject wardShieldRing;
+        private bool stationary;
 
         public Transform TargetTransform => transform;
         public bool IsDead => health == null || health.IsDead;
@@ -62,7 +63,7 @@ namespace Nightfall3.Actors
                 return;
             }
 
-            var attackRange = archetype == EnemyArchetype.Brute ? 1.75f : CombatTuning.EnemyAttackRange;
+            var attackRange = stationary ? 6.2f : archetype == EnemyArchetype.Brute ? 1.75f : CombatTuning.EnemyAttackRange;
             if (distance > attackRange)
             {
                 transform.position += delta.normalized * (moveSpeed * Time.deltaTime);
@@ -77,7 +78,11 @@ namespace Nightfall3.Actors
         {
             telegraphing = true;
             SpriteAnimator?.PlayAttack(archetype == EnemyArchetype.Brute ? 1.08f : archetype == EnemyArchetype.Hound ? 0.78f : 0.34f);
-            switch (archetype)
+            if (stationary)
+            {
+                yield return EngineBarrageRoutine();
+            }
+            else switch (archetype)
             {
                 case EnemyArchetype.Hound:
                     yield return HoundPounceRoutine();
@@ -95,6 +100,18 @@ namespace Nightfall3.Actors
 
             nextAttack = Time.time + attackInterval;
             telegraphing = false;
+        }
+
+        private IEnumerator EngineBarrageRoutine()
+        {
+            if (player == null) yield break;
+            var targetPosition = player.position;
+            var warning = DemoDirector.CreateGroundRing(targetPosition, 1.35f, new Color(0.2f, 0.72f, 1f, 0.72f));
+            yield return new WaitForSeconds(0.82f);
+            Destroy(warning);
+            DemoDirector.SpawnShockwave(targetPosition, new Color(0.25f, 0.74f, 1f));
+            if (!CinematicDirector.CombatSuppressed && player != null && Vector3.Distance(player.position, targetPosition) <= 1.45f)
+                DamagePlayer(17f, 0.38f);
         }
 
         private IEnumerator MeleeRoutine(float radius, float telegraphSeconds, float damage, float trauma)
@@ -193,6 +210,12 @@ namespace Nightfall3.Actors
             DemoDirector.SpawnShockwave(transform.position, new Color(0.28f, 0.82f, 1f));
             DemoDirector.SpawnShockwave(transform.position, new Color(0.7f, 0.22f, 1f));
             AudioDirector.PlayDeath(true);
+        }
+
+        public void SetStationary()
+        {
+            stationary = true;
+            moveSpeed = 0f;
         }
 
         private IEnumerator HitFlashRoutine(bool critical)
