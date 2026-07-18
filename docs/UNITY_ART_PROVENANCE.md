@@ -33,6 +33,8 @@ Unity production assets are tracked separately from the legacy web asset contrac
 | `Art/NPCs/sister-elowen-v2.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and normalized frame alignment, 2026-07-18 | Sister Elowen camp ritual NPC | Authored v2 production sprite |
 | `Art/Props/stormglass-shrine-v1.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and normalized frame alignment, 2026-07-18 | West exploration covenant and spellcraft growth choice | Authored v1 production shrine |
 | `Art/Props/emberheart-shrine-v1.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and normalized frame alignment, 2026-07-18 | East exploration covenant and survival growth choice | Authored v1 production shrine |
+| `Art/Props/ashen-echo-monolith-v1.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and normalized frame alignment, 2026-07-18 | Three-step memory exploration and ambush chain | Authored v1 production interactable |
+| `Art/Props/emberwatch-ward-beacon-v1.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and normalized frame alignment, 2026-07-18 | Three-wave redoubt defense anchor | Authored v1 production encounter prop |
 
 ## Ashen Courtyard Prompt Contract
 
@@ -148,3 +150,9 @@ Unity production assets are tracked separately from the legacy web asset contrac
 - Original paired reliquaries share black basalt, pitted iron and antique-brass construction while separating Stormglass through a suspended cyan crystal and Emberheart through a bound crimson heartstone.
 - The two shrines are physical world choices with identical scale and camera treatment, not menu reskins; local processing only removes chroma, normalizes the canvas and aligns the ground pivot.
 - No recognizable shrine, emblem, statue, altar layout or faction symbol from an existing franchise was copied.
+
+## Echo And Beacon Prompt Contract
+
+- The Ashen Echo is an original fractured spectral-glass memory stele held by a practical iron tripod; the Ward Beacon is a stout basalt redoubt pylon carrying a caged blue-white flame.
+- Both objects use the same isometric camera, grounded scale, basalt, pitted iron and antique-brass material language as the covenant shrines while retaining distinct interaction silhouettes.
+- No recognizable pylon, waypoint, gravestone, defense structure, symbol or layout from an existing franchise was copied.

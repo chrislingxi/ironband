@@ -13,10 +13,15 @@ namespace Nightfall3.Flow
             Briefing,
             GateFight,
             CovenantChoice,
+            CovenantTrial,
             AdvanceCauseway,
             CausewayFight,
+            AdvanceEchoHunt,
+            EchoHunt,
             AdvanceWard,
             WardRitual,
+            AdvanceDefense,
+            SanctumDefense,
             AdvanceElite,
             EliteFight,
             BossApproach,
@@ -38,14 +43,28 @@ namespace Nightfall3.Flow
         private bool restartingEncounter;
         private Transform stormglassShrine;
         private Transform emberheartShrine;
+        private readonly List<Transform> echoMonoliths = new();
+        private int echoIndex;
+        private bool echoWaveActive;
+        private Transform defenseBeacon;
+        private int defenseWave;
+        private bool stormglassCovenant;
 
         public string ZoneName { get; private set; } = "EMBERWATCH CAMP";
         public string ObjectiveTitle { get; private set; } = "THE SEALED APPROACH";
         public string ObjectiveDetail { get; private set; } = "Speak with Mara, Ash Warden";
         public bool CanInteract => phase == Phase.Briefing && player != null && warden != null && Vector3.Distance(player.position, warden.position) <= 3.6f
-            || phase == Phase.CovenantChoice && NearestCovenantDistance <= 2.6f;
-        public string InteractionLabel => phase == Phase.CovenantChoice ? "ATTUNE" : "SPEAK";
+            || phase == Phase.CovenantChoice && NearestCovenantDistance <= 2.6f
+            || phase == Phase.EchoHunt && !echoWaveActive && CurrentEcho != null && Vector3.Distance(player.position, CurrentEcho.position) <= 2.6f;
+        public string InteractionLabel => phase == Phase.CovenantChoice ? "ATTUNE" : phase == Phase.EchoHunt ? "RECALL" : "SPEAK";
         public string CovenantName => playerController != null ? playerController.CovenantName : "UNBOUND";
+        public Vector3 InteractionTargetPosition => phase switch
+        {
+            Phase.CovenantChoice when stormglassShrine != null => stormglassShrine.position,
+            Phase.EchoHunt when CurrentEcho != null => CurrentEcho.position,
+            _ when warden != null => warden.position,
+            _ => player != null ? player.position : Vector3.zero
+        };
 
         public void Configure(Transform playerTransform, Transform wardenTransform)
         {
@@ -67,6 +86,11 @@ namespace Nightfall3.Flow
                 BeginGateFight();
                 return;
             }
+            if (phase == Phase.EchoHunt)
+            {
+                InteractWithEcho();
+                return;
+            }
             if (phase != Phase.CovenantChoice || NearestCovenantDistance > 2.6f) return;
             ChooseCovenant(stormglassShrine != null && Vector3.Distance(player.position, stormglassShrine.position) <= Vector3.Distance(player.position, emberheartShrine.position));
         }
@@ -84,6 +108,11 @@ namespace Nightfall3.Flow
                 if (CanInteract && Input.GetKeyDown(KeyCode.E)) Interact();
                 return;
             }
+            if (phase == Phase.EchoHunt && !echoWaveActive)
+            {
+                if (CanInteract && Input.GetKeyDown(KeyCode.E)) InteractWithEcho();
+                return;
+            }
 
             activeEnemies.RemoveAll(enemy => enemy == null);
             switch (phase)
@@ -95,25 +124,46 @@ namespace Nightfall3.Flow
                         BeginCovenantChoice();
                     }
                     break;
-                case Phase.AdvanceCauseway when player.position.z >= 10f:
+                case Phase.CovenantTrial when activeEnemies.Count == 0:
+                    phase = Phase.AdvanceCauseway;
+                    ZoneName = "THE BROKEN CAUSEWAY";
+                    ObjectiveTitle = "BEYOND THE BLACK GATE";
+                    ObjectiveDetail = "Carry the covenant into the ravine";
+                    SetCheckpoint(new Vector3(0f, 0.05f, 13.5f));
+                    break;
+                case Phase.AdvanceCauseway when player.position.z >= 17.5f:
                     BeginCausewayFight();
                     break;
                 case Phase.CausewayFight when activeEnemies.Count == 0:
-                    phase = Phase.AdvanceWard;
-                    ObjectiveTitle = "THE COLD WARD";
-                    ObjectiveDetail = "Follow the blue seals to the warden elite";
-                    SetCheckpoint(new Vector3(0f, 0.05f, 17.5f));
+                    phase = Phase.AdvanceEchoHunt;
+                    ZoneName = "THE SUNKEN PROCESSION";
+                    ObjectiveTitle = "VOICES BENEATH THE STONE";
+                    ObjectiveDetail = "Find the first Ashen Echo";
+                    SetCheckpoint(new Vector3(0f, 0.05f, 24.5f));
                     break;
-                case Phase.AdvanceWard when player.position.z >= 20f:
+                case Phase.AdvanceEchoHunt when player.position.z >= 27f:
+                    BeginEchoHunt();
+                    break;
+                case Phase.EchoHunt when echoWaveActive && activeEnemies.Count == 0:
+                    CompleteEchoWave();
+                    break;
+                case Phase.AdvanceWard when player.position.z >= 45f:
                     BeginWardRitual();
                     break;
                 case Phase.WardRitual when activeEnemies.Count == 0 && activeAnchors.All(anchor => anchor == null):
-                    phase = Phase.AdvanceElite;
-                    ObjectiveTitle = "THE INNER PROCESSION";
-                    ObjectiveDetail = "Cross the broken seals to the blue-ash warden";
-                    SetCheckpoint(new Vector3(0f, 0.05f, 24.5f));
+                    phase = Phase.AdvanceDefense;
+                    ObjectiveTitle = "THE LAST WARD-FLAME";
+                    ObjectiveDetail = "Reach the Emberwatch beacon";
+                    SetCheckpoint(new Vector3(0f, 0.05f, 51.5f));
                     break;
-                case Phase.AdvanceElite when player.position.z >= 25.5f:
+                case Phase.AdvanceDefense when player.position.z >= 55f:
+                    BeginSanctumDefense();
+                    break;
+                case Phase.SanctumDefense when activeEnemies.Count == 0:
+                    if (defenseWave < 3) SpawnDefenseWave(++defenseWave);
+                    else CompleteSanctumDefense();
+                    break;
+                case Phase.AdvanceElite when player.position.z >= 63f:
                     BeginEliteFight();
                     break;
                 case Phase.EliteFight when activeEnemies.Count == 0:
@@ -121,9 +171,9 @@ namespace Nightfall3.Flow
                     ZoneName = "THRONE ANTECHAMBER";
                     ObjectiveTitle = "HEART OF THE SIEGE";
                     ObjectiveDetail = "Enter the antechamber and confront its master";
-                    SetCheckpoint(new Vector3(0f, 0.05f, 29.2f));
+                    SetCheckpoint(new Vector3(0f, 0.05f, 66.5f));
                     break;
-                case Phase.BossApproach when player.position.z >= 30f:
+                case Phase.BossApproach when player.position.z >= 68f:
                     BeginBossFight();
                     break;
             }
@@ -161,12 +211,12 @@ namespace Nightfall3.Flow
             phase = Phase.CausewayFight;
             ObjectiveTitle = "THE RAVENING LINE";
             ObjectiveDetail = "Destroy the ambush on the causeway";
-            Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(-4.5f, 0.05f, 13f), 78f, 2.7f, 1.85f);
-            Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(3.9f, 0.05f, 14.2f), 78f, 2.7f, 1.85f);
-            Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(-1.8f, 0.05f, 15.8f), 96f, 2f, 2.15f);
-            Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(2.2f, 0.05f, 16.6f), 96f, 2f, 2.15f);
-            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(-5.2f, 0.05f, 17.5f), 68f, 3.35f, 1.8f);
-            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(5f, 0.05f, 18.1f), 68f, 3.35f, 1.8f);
+            Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(-4.5f, 0.05f, 19f), 78f, 2.7f, 1.85f);
+            Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(3.9f, 0.05f, 20.2f), 78f, 2.7f, 1.85f);
+            Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(-1.8f, 0.05f, 21.8f), 96f, 2f, 2.15f);
+            Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(2.2f, 0.05f, 22.6f), 96f, 2f, 2.15f);
+            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(-5.2f, 0.05f, 23.5f), 68f, 3.35f, 1.8f);
+            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(5f, 0.05f, 24.1f), 68f, 3.35f, 1.8f);
         }
 
         private void BeginCovenantChoice()
@@ -189,10 +239,30 @@ namespace Nightfall3.Flow
             if (stormglassShrine != null) Destroy(stormglassShrine.gameObject, 0.16f);
             if (emberheartShrine != null) Destroy(emberheartShrine.gameObject, 0.16f);
             stormglassShrine = emberheartShrine = null;
-            phase = Phase.AdvanceCauseway;
-            ZoneName = "ASHEN APPROACH";
-            ObjectiveTitle = stormglass ? "THE STORMGLASS OATH" : "THE EMBERHEART OATH";
-            ObjectiveDetail = stormglass ? "Faster, stronger spellcraft  •  Advance to the causeway" : "Fortified life and heavy arrows  •  Advance to the causeway";
+            stormglassCovenant = stormglass;
+            BeginCovenantTrial();
+        }
+
+        private void BeginCovenantTrial()
+        {
+            CaptureEncounterGrowth();
+            phase = Phase.CovenantTrial;
+            ZoneName = "THE FORSAKEN CROSSING";
+            ObjectiveTitle = stormglassCovenant ? "THE STORMGLASS TRIAL" : "THE EMBERHEART TRIAL";
+            ObjectiveDetail = stormglassCovenant ? "Break the hunting current" : "Stand against the iron tide";
+            if (stormglassCovenant)
+            {
+                Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(-4.2f, 0.05f, 11.2f), 76f, 3.45f, 1.85f);
+                Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(4.2f, 0.05f, 11.6f), 76f, 3.45f, 1.85f);
+                Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(-1.8f, 0.05f, 13f), 92f, 2.8f, 1.9f);
+                Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(2.1f, 0.05f, 13.4f), 92f, 2.8f, 1.9f);
+            }
+            else
+            {
+                Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(-3.2f, 0.05f, 11.8f), 128f, 2.1f, 2.2f);
+                Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(3.2f, 0.05f, 12.1f), 128f, 2.1f, 2.2f);
+                Spawn("Art/Monsters/blue-ash-juggernaut-v2", new Vector3(0f, 0.05f, 14.2f), 275f, 1.55f, 3.45f);
+            }
         }
 
         private float NearestCovenantDistance
@@ -206,15 +276,133 @@ namespace Nightfall3.Flow
             }
         }
 
+        private Transform CurrentEcho => echoIndex >= 0 && echoIndex < echoMonoliths.Count ? echoMonoliths[echoIndex] : null;
+
+        private void BeginEchoHunt()
+        {
+            CaptureEncounterGrowth();
+            phase = Phase.EchoHunt;
+            ZoneName = "THE SUNKEN PROCESSION";
+            ObjectiveTitle = "ASHEN ECHO I";
+            ObjectiveDetail = "Recall the western memory stele";
+            echoIndex = 0;
+            echoWaveActive = false;
+            echoMonoliths.Clear();
+            echoMonoliths.Add(DemoDirector.CreateCovenantShrine("Ashen Echo I", "Art/Props/ashen-echo-monolith-v1", new Vector3(-5.4f, 0.04f, 30f), 3.75f, new Color(0.5f, 0.88f, 1f), "ECHO I"));
+            echoMonoliths.Add(DemoDirector.CreateCovenantShrine("Ashen Echo II", "Art/Props/ashen-echo-monolith-v1", new Vector3(5.35f, 0.04f, 36f), 3.75f, new Color(0.5f, 0.88f, 1f), "ECHO II"));
+            echoMonoliths.Add(DemoDirector.CreateCovenantShrine("Ashen Echo III", "Art/Props/ashen-echo-monolith-v1", new Vector3(-4.8f, 0.04f, 42f), 3.75f, new Color(0.5f, 0.88f, 1f), "ECHO III"));
+        }
+
+        private void InteractWithEcho()
+        {
+            if (phase != Phase.EchoHunt || echoWaveActive || CurrentEcho == null || Vector3.Distance(player.position, CurrentEcho.position) > 2.6f) return;
+            StartEchoWave();
+        }
+
+        private void StartEchoWave()
+        {
+            if (CurrentEcho == null) return;
+            AudioDirector.PlaySelect();
+            DemoDirector.SpawnShockwave(CurrentEcho.position, new Color(0.45f, 0.86f, 1f));
+            echoWaveActive = true;
+            ObjectiveTitle = $"MEMORY AMBUSH {echoIndex + 1}/3";
+            ObjectiveDetail = "Survive what the fortress remembers";
+            var center = CurrentEcho.position;
+            if (echoIndex == 0)
+            {
+                Spawn("Art/Monsters/bloodbound-fallen-v2", center + new Vector3(-2.8f, 0f, 1.4f), 92f, 2.75f, 1.9f);
+                Spawn("Art/Monsters/bloodbound-fallen-v2", center + new Vector3(2.6f, 0f, 1.8f), 92f, 2.75f, 1.9f);
+                Spawn("Art/Monsters/blood-ash-hound-v2", center + new Vector3(0.4f, 0f, 3.4f), 82f, 3.4f, 1.85f);
+            }
+            else if (echoIndex == 1)
+            {
+                Spawn("Art/Monsters/coldbone-shieldguard-v2", center + new Vector3(-2.6f, 0f, 1.7f), 132f, 2.05f, 2.2f);
+                Spawn("Art/Monsters/coldbone-shieldguard-v2", center + new Vector3(2.8f, 0f, 1.4f), 132f, 2.05f, 2.2f);
+                Spawn("Art/Monsters/blood-ash-hound-v2", center + new Vector3(0f, 0f, 3.8f), 96f, 3.45f, 1.9f);
+            }
+            else
+            {
+                Spawn("Art/Monsters/blue-ash-juggernaut-v2", center + new Vector3(0f, 0f, 3.4f), 360f, 1.55f, 3.55f);
+                Spawn("Art/Monsters/bloodbound-fallen-v2", center + new Vector3(-3.4f, 0f, 1.5f), 108f, 2.8f, 1.9f);
+                Spawn("Art/Monsters/bloodbound-fallen-v2", center + new Vector3(3.4f, 0f, 1.5f), 108f, 2.8f, 1.9f);
+            }
+        }
+
+        private void CompleteEchoWave()
+        {
+            echoWaveActive = false;
+            if (CurrentEcho != null) Destroy(CurrentEcho.gameObject, 0.2f);
+            echoIndex++;
+            if (echoIndex >= echoMonoliths.Count)
+            {
+                phase = Phase.AdvanceWard;
+                ZoneName = "THE COLD WARD";
+                ObjectiveTitle = "THE MEMORY OPENS";
+                ObjectiveDetail = "Follow the recalled path to the blue seals";
+                SetCheckpoint(new Vector3(0f, 0.05f, 42.5f));
+                return;
+            }
+            ObjectiveTitle = $"ASHEN ECHO {echoIndex + 1}";
+            ObjectiveDetail = echoIndex == 1 ? "Seek the eastern memory stele" : "Find the final echo beneath the ward";
+            SetCheckpoint(CurrentEcho.position + Vector3.back * 1.8f);
+        }
+
+        private void BeginSanctumDefense()
+        {
+            CaptureEncounterGrowth();
+            phase = Phase.SanctumDefense;
+            ZoneName = "EMBERWATCH REDOUBT";
+            defenseWave = 1;
+            if (defenseBeacon == null)
+                defenseBeacon = DemoDirector.CreateCovenantShrine("Emberwatch Ward Beacon", "Art/Props/emberwatch-ward-beacon-v1", new Vector3(0f, 0.04f, 58f), 4.3f, new Color(0.35f, 0.84f, 1f), "WARD-FLAME");
+            SpawnDefenseWave(defenseWave);
+        }
+
+        private void SpawnDefenseWave(int wave)
+        {
+            ObjectiveTitle = $"HOLD THE WARD-FLAME  •  WAVE {wave}/3";
+            ObjectiveDetail = wave == 1 ? "Break the hunting ring" : wave == 2 ? "Hold against the shield line" : "Survive the blue-ash breaker";
+            if (wave == 1)
+            {
+                Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(-5.4f, 0.05f, 58f), 105f, 3.45f, 1.9f);
+                Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(5.4f, 0.05f, 58.5f), 105f, 3.45f, 1.9f);
+                Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(0f, 0.05f, 62f), 118f, 2.8f, 1.9f);
+            }
+            else if (wave == 2)
+            {
+                Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(-4.5f, 0.05f, 60f), 155f, 2.1f, 2.2f);
+                Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(4.5f, 0.05f, 60f), 155f, 2.1f, 2.2f);
+                Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(-1.8f, 0.05f, 63f), 125f, 2.8f, 1.9f);
+                Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(1.8f, 0.05f, 63f), 125f, 2.8f, 1.9f);
+            }
+            else
+            {
+                Spawn("Art/Monsters/blue-ash-juggernaut-v2", new Vector3(0f, 0.05f, 63.5f), 460f, 1.58f, 3.7f);
+                Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(-4.8f, 0.05f, 61f), 120f, 3.5f, 1.95f);
+                Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(4.8f, 0.05f, 61f), 120f, 3.5f, 1.95f);
+                Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(0f, 0.05f, 60.5f), 170f, 2.15f, 2.25f);
+            }
+        }
+
+        private void CompleteSanctumDefense()
+        {
+            if (defenseBeacon != null) DemoDirector.SpawnShockwave(defenseBeacon.position, new Color(0.4f, 0.9f, 1f));
+            phase = Phase.AdvanceElite;
+            ZoneName = "THE INNER PROCESSION";
+            ObjectiveTitle = "WARD-FLAME RESTORED";
+            ObjectiveDetail = "Hunt the blue-ash warden beyond the redoubt";
+            SetCheckpoint(new Vector3(0f, 0.05f, 61.5f));
+        }
+
         private void BeginEliteFight()
         {
             CaptureEncounterGrowth();
             phase = Phase.EliteFight;
             ObjectiveTitle = "WARDEN OF BLUE ASH";
             ObjectiveDetail = "Break the elite and its hunting pair";
-            Spawn("Art/Monsters/blue-ash-juggernaut-v2", new Vector3(0f, 0.05f, 28.8f), 620f, 1.6f, 3.9f);
-            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(-4.2f, 0.05f, 27.2f), 148f, 3.4f, 1.95f);
-            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(4.2f, 0.05f, 27.2f), 148f, 3.4f, 1.95f);
+            Spawn("Art/Monsters/blue-ash-juggernaut-v2", new Vector3(0f, 0.05f, 65.2f), 620f, 1.6f, 3.9f);
+            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(-4.2f, 0.05f, 64f), 148f, 3.4f, 1.95f);
+            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(4.2f, 0.05f, 64f), 148f, 3.4f, 1.95f);
         }
 
         private void BeginWardRitual()
@@ -225,12 +413,12 @@ namespace Nightfall3.Flow
             ObjectiveTitle = "THREE SEALS OF BLUE ASH";
             ObjectiveDetail = "Shatter the ward anchors under pursuit";
             activeAnchors.Clear();
-            SpawnAnchor(new Vector3(-3.4f, 0.05f, 21.6f));
-            SpawnAnchor(new Vector3(3.4f, 0.05f, 22.8f));
-            SpawnAnchor(new Vector3(0f, 0.05f, 24.8f));
-            Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(-5.2f, 0.05f, 23f), 92f, 2.75f, 1.9f);
-            Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(5f, 0.05f, 24f), 116f, 2.1f, 2.2f);
-            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(0f, 0.05f, 26.2f), 88f, 3.4f, 1.9f);
+            SpawnAnchor(new Vector3(-3.4f, 0.05f, 47.2f));
+            SpawnAnchor(new Vector3(3.4f, 0.05f, 48.5f));
+            SpawnAnchor(new Vector3(0f, 0.05f, 51f));
+            Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(-5.2f, 0.05f, 48.8f), 92f, 2.75f, 1.9f);
+            Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(5f, 0.05f, 50f), 116f, 2.1f, 2.2f);
+            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(0f, 0.05f, 52.4f), 88f, 3.4f, 1.9f);
         }
 
         private void SpawnAnchor(Vector3 position)
@@ -260,7 +448,7 @@ namespace Nightfall3.Flow
             ZoneName = "CASTELLAN'S COURT";
             ObjectiveTitle = "THE ASHEN CASTELLAN";
             ObjectiveDetail = "Survive the three judgments";
-            boss = DemoDirector.CreateBoss(player, new Vector3(0f, 0.05f, 33.2f));
+            boss = DemoDirector.CreateBoss(player, new Vector3(0f, 0.05f, 70f));
             boss.Defeated += OfferBossReward;
         }
 
@@ -295,11 +483,21 @@ namespace Nightfall3.Flow
                 case Phase.GateFight:
                     BeginGateFight();
                     break;
+                case Phase.CovenantTrial:
+                    BeginCovenantTrial();
+                    break;
                 case Phase.CausewayFight:
                     BeginCausewayFight();
                     break;
+                case Phase.EchoHunt:
+                    echoWaveActive = false;
+                    StartEchoWave();
+                    break;
                 case Phase.WardRitual:
                     BeginWardRitual();
+                    break;
+                case Phase.SanctumDefense:
+                    SpawnDefenseWave(defenseWave);
                     break;
                 case Phase.EliteFight:
                     BeginEliteFight();

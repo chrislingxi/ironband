@@ -89,14 +89,21 @@ namespace Nightfall3.Presentation
             switch (flow.PhaseId)
             {
                 case "CovenantChoice":
-                    destination = new Vector3(-5.45f, 0.05f, 8.6f);
+                    destination = flow.InteractionTargetPosition;
                     if (Vector3.Distance(player.transform.position, destination) <= 2.5f) flow.Interact();
                     MoveToward(player, destination);
                     return;
-                case "AdvanceCauseway": destination = new Vector3(0f, 0.05f, 10.6f); break;
-                case "AdvanceWard": destination = new Vector3(0f, 0.05f, 20.6f); break;
-                case "AdvanceElite": destination = new Vector3(0f, 0.05f, 25.8f); break;
-                case "BossApproach": destination = new Vector3(0f, 0.05f, 30.4f); break;
+                case "AdvanceCauseway": destination = new Vector3(0f, 0.05f, 18f); break;
+                case "AdvanceEchoHunt": destination = new Vector3(0f, 0.05f, 27.5f); break;
+                case "EchoHunt" when flow.RemainingEnemies == 0:
+                    destination = flow.InteractionTargetPosition;
+                    if (Vector3.Distance(player.transform.position, destination) <= 2.5f) flow.Interact();
+                    MoveToward(player, destination);
+                    return;
+                case "AdvanceWard": destination = new Vector3(0f, 0.05f, 45.5f); break;
+                case "AdvanceDefense": destination = new Vector3(0f, 0.05f, 55.5f); break;
+                case "AdvanceElite": destination = new Vector3(0f, 0.05f, 63.5f); break;
+                case "BossApproach": destination = new Vector3(0f, 0.05f, 68.5f); break;
                 case "ClaimReward":
                     var reward = FindFirstObjectByType<LootPickup>();
                     if (reward != null) MoveToward(player, reward.transform.position);

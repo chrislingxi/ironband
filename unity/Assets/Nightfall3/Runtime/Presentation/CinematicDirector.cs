@@ -69,25 +69,34 @@ namespace Nightfall3.Presentation
                     PlayCue("THE SEALED APPROACH", "BLOODBOUND AT THE GATE", new Vector3(0f, 0f, 0.5f), 2.25f, 34f);
                     break;
                 case "CausewayFight":
-                    PlayCue("THE BROKEN CAUSEWAY", "THE RAVENING LINE", new Vector3(0f, 0f, 15f), 2.1f, 33f);
+                    PlayCue("THE BROKEN CAUSEWAY", "THE RAVENING LINE", new Vector3(0f, 0f, 21f), 2.1f, 33f);
                     break;
                 case "CovenantChoice":
                     PlayCue("THE FORSAKEN CROSSING", "TWO OATHS REMAIN UNBROKEN", new Vector3(0f, 0f, 8.6f), 2.4f, 32f);
                     break;
+                case "CovenantTrial":
+                    PlayCue("THE OATH ANSWERS", flow.CovenantName, new Vector3(0f, 0f, 12f), 2.05f, 32f);
+                    break;
                 case "AdvanceCauseway":
                     PlayCue("COVENANT SEALED", flow.CovenantName, new Vector3(0f, 0f, 9.2f), 1.85f, 33f);
                     break;
+                case "EchoHunt":
+                    PlayCue("THE SUNKEN PROCESSION", "THREE MEMORIES REMAIN", new Vector3(0f, 0f, 35f), 2.45f, 32f);
+                    break;
                 case "EliteFight":
-                    PlayCue("WARDEN OF BLUE ASH", "AN ELITE HUNT BEGINS", new Vector3(0f, 0f, 28.5f), 2.35f, 31f);
+                    PlayCue("WARDEN OF BLUE ASH", "AN ELITE HUNT BEGINS", new Vector3(0f, 0f, 65f), 2.35f, 31f);
                     break;
                 case "WardRitual":
-                    PlayCue("THE COLD WARD", "SHATTER THE THREE SEALS", new Vector3(0f, 0f, 23f), 2.4f, 32f);
+                    PlayCue("THE COLD WARD", "SHATTER THE THREE SEALS", new Vector3(0f, 0f, 49f), 2.4f, 32f);
+                    break;
+                case "SanctumDefense":
+                    PlayCue("EMBERWATCH REDOUBT", "HOLD THE LAST WARD-FLAME", new Vector3(0f, 0f, 58f), 2.5f, 31f);
                     break;
                 case "BossFight":
-                    PlayCue("THE ASHEN CASTELLAN", "FIRST JUDGMENT: CLEAVING OATH", new Vector3(0f, 0f, 33.2f), 3.1f, 29f);
+                    PlayCue("THE ASHEN CASTELLAN", "FIRST JUDGMENT: CLEAVING OATH", new Vector3(0f, 0f, 70f), 3.1f, 29f);
                     break;
                 case "ClaimReward":
-                    PlayCue("THE CASTELLAN FALLS", "AN EMBER-BOUND RELIC REMAINS", new Vector3(0f, 0f, 33.2f), 2.7f, 31f);
+                    PlayCue("THE CASTELLAN FALLS", "AN EMBER-BOUND RELIC REMAINS", new Vector3(0f, 0f, 70f), 2.7f, 31f);
                     break;
                 case "Complete":
                     PlayCue("THE GATE REMEMBERS", "ASHEN APPROACH CLEARED", Camera.main != null ? Camera.main.transform.position + Camera.main.transform.forward * 8f : Vector3.zero, 3.5f, 34f);

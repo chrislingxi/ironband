@@ -45,6 +45,8 @@ namespace Nightfall3.Presentation
             var observedBossPhase3 = false;
             var observedWardRitual = false;
             var observedCovenantChoice = false;
+            var observedEchoHunt = false;
+            var observedSanctumDefense = false;
             var observedRespawn = false;
             if (player != null) player.Respawned += () => observedRespawn = true;
             var issuedPhaseOneDamage = false;
@@ -56,7 +58,7 @@ namespace Nightfall3.Presentation
             var animatedEnemies = startingEnemies.Where(enemy => enemy.GetComponentInChildren<EnemySpriteAnimator>() != null).ToArray();
             var animatedEnemyNames = animatedEnemies.Select(enemy => enemy.Archetype.ToString()).ToArray();
             var observedEnemyStates = new bool[animatedEnemies.Length, 5];
-            var frameBudget = exerciseBossMechanics ? 1200 : exerciseBoss ? 620 : exerciseCovenant ? 420 : exerciseFullFlow || exerciseEnemyAnimation ? 360 : exerciseAnimation ? 240 : 180;
+            var frameBudget = exerciseBossMechanics ? 1600 : exerciseBoss ? 900 : exerciseCovenant ? 420 : exerciseFullFlow ? 720 : exerciseEnemyAnimation ? 360 : exerciseAnimation ? 240 : 180;
             for (var frame = 0; frame < frameBudget; frame++)
             {
                 if (exerciseAnimation && player != null)
@@ -110,18 +112,30 @@ namespace Nightfall3.Presentation
                 if ((exerciseFullFlow || exerciseBoss || exerciseBossMechanics) && player != null && flow != null)
                 {
                     if (flow.PhaseId == "WardRitual") observedWardRitual = true;
+                    if (flow.PhaseId == "EchoHunt")
+                    {
+                        observedEchoHunt = true;
+                        if (flow.RemainingEnemies == 0)
+                        {
+                            player.transform.position = flow.InteractionTargetPosition;
+                            flow.Interact();
+                        }
+                    }
+                    if (flow.PhaseId == "SanctumDefense") observedSanctumDefense = true;
                     if (flow.PhaseId == "CovenantChoice")
                     {
                         observedCovenantChoice = true;
                         player.transform.position = new Vector3(-5.45f, 0.05f, 8.6f);
                         flow.Interact();
                     }
-                    if (frame > 16 && frame % 12 == 0 && flow.PhaseId is "GateFight" or "CausewayFight" or "WardRitual" or "EliteFight")
+                    if (frame > 16 && frame % 12 == 0 && flow.PhaseId is "GateFight" or "CovenantTrial" or "CausewayFight" or "EchoHunt" or "WardRitual" or "SanctumDefense" or "EliteFight")
                         KillAllTargets(player.transform.position);
-                    if (flow.PhaseId == "AdvanceCauseway") player.transform.position = new Vector3(0f, 0.05f, 10.5f);
-                    if (flow.PhaseId == "AdvanceWard") player.transform.position = new Vector3(0f, 0.05f, 20.5f);
-                    if (flow.PhaseId == "AdvanceElite") player.transform.position = new Vector3(0f, 0.05f, 26f);
-                    if ((exerciseBoss || exerciseBossMechanics) && flow.PhaseId == "BossApproach") player.transform.position = new Vector3(0f, 0.05f, 30.5f);
+                    if (flow.PhaseId == "AdvanceCauseway") player.transform.position = new Vector3(0f, 0.05f, 18f);
+                    if (flow.PhaseId == "AdvanceEchoHunt") player.transform.position = new Vector3(0f, 0.05f, 27.5f);
+                    if (flow.PhaseId == "AdvanceWard") player.transform.position = new Vector3(0f, 0.05f, 45.5f);
+                    if (flow.PhaseId == "AdvanceDefense") player.transform.position = new Vector3(0f, 0.05f, 55.5f);
+                    if (flow.PhaseId == "AdvanceElite") player.transform.position = new Vector3(0f, 0.05f, 63.5f);
+                    if ((exerciseBoss || exerciseBossMechanics) && flow.PhaseId == "BossApproach") player.transform.position = new Vector3(0f, 0.05f, 68.5f);
 
                     var boss = FindFirstObjectByType<BossController>();
                     if (exerciseBossMechanics && boss != null)
@@ -214,8 +228,8 @@ namespace Nightfall3.Presentation
                 var completingBoss = exerciseBoss || exerciseBossMechanics;
                 var rewardApplied = !completingBoss || player != null && player.SpellPower > initialPower;
                 var mechanicsObserved = !exerciseBossMechanics || observedDirectionalCleave && observedCenterRupture && observedConvergence;
-                var flowSucceeded = flow != null && observedCovenantChoice && observedWardRitual && (completingBoss ? flow.IsComplete && observedBossPhase2 && observedBossPhase3 && rewardApplied && mechanicsObserved : flow.ReachedBossApproach);
-                Debug.Log($"QA flow exercised: phase={flow?.PhaseId ?? "missing"}, covenant={observedCovenantChoice}, ward={observedWardRitual}, bossII={observedBossPhase2}, bossIII={observedBossPhase3}, cleave={observedDirectionalCleave}, rupture={observedCenterRupture}, convergence={observedConvergence}, reward={rewardApplied}, success={flowSucceeded}");
+                var flowSucceeded = flow != null && observedCovenantChoice && observedEchoHunt && observedWardRitual && observedSanctumDefense && (completingBoss ? flow.IsComplete && observedBossPhase2 && observedBossPhase3 && rewardApplied && mechanicsObserved : flow.ReachedBossApproach);
+                Debug.Log($"QA flow exercised: phase={flow?.PhaseId ?? "missing"}, covenant={observedCovenantChoice}, echoes={observedEchoHunt}, ward={observedWardRitual}, defense={observedSanctumDefense}, bossII={observedBossPhase2}, bossIII={observedBossPhase3}, cleave={observedDirectionalCleave}, rupture={observedCenterRupture}, convergence={observedConvergence}, reward={rewardApplied}, success={flowSucceeded}");
                 combatSucceeded &= flowSucceeded;
                 if (!flowSucceeded) Debug.LogError(exerciseBoss ? "QA Boss failed to complete all three phases" : "QA flow failed to reach the Boss approach");
             }
