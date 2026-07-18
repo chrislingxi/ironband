@@ -118,8 +118,10 @@ namespace Nightfall3.Presentation
                     return;
                 case "AdvanceWard": destination = new Vector3(0f, 0.05f, 45.5f); break;
                 case "AdvanceDefense": destination = new Vector3(0f, 0.05f, 55.5f); break;
-                case "AdvanceElite": destination = new Vector3(0f, 0.05f, 63.5f); break;
-                case "BossApproach": destination = new Vector3(0f, 0.05f, 68.5f); break;
+                case "AdvanceGauntlet": destination = new Vector3(0f, 0.05f, 62.5f); break;
+                case "AshfallGauntlet": destination = flow.GauntletSafePosition; break;
+                case "AdvanceElite": destination = new Vector3(0f, 0.05f, 78.5f); break;
+                case "BossApproach": destination = new Vector3(0f, 0.05f, 85f); break;
                 case "ClaimReward":
                     var reward = FindObjectsByType<LootPickup>(FindObjectsSortMode.None).FirstOrDefault(pickup => pickup.IsLegendary);
                     if (reward != null) MoveToward(player, reward.transform.position);

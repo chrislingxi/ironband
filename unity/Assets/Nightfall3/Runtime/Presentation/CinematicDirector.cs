@@ -87,7 +87,7 @@ namespace Nightfall3.Presentation
                     PlayCue("THE CONSTELLATION OPENS", "THE COLD WARD LIES BEYOND", new Vector3(0f, 0f, 47f), 2.15f, 31f);
                     break;
                 case "EliteFight":
-                    PlayCue("WARDEN OF BLUE ASH", "AN ELITE HUNT BEGINS", new Vector3(0f, 0f, 65f), 2.35f, 31f);
+                    PlayCue("WARDEN OF BLUE ASH", "AN ELITE HUNT BEGINS", new Vector3(0f, 0f, 80f), 2.35f, 31f);
                     break;
                 case "WardRitual":
                     PlayCue("THE COLD WARD", "SHATTER THE THREE SEALS", new Vector3(0f, 0f, 49f), 2.4f, 32f);
@@ -95,11 +95,14 @@ namespace Nightfall3.Presentation
                 case "SanctumDefense":
                     PlayCue("EMBERWATCH REDOUBT", "HOLD THE LAST WARD-FLAME", new Vector3(0f, 0f, 58f), 2.5f, 31f);
                     break;
+                case "AshfallGauntlet":
+                    PlayCue("THE SHATTERED SPAN", "THE CITADEL FALLS AROUND YOU", new Vector3(0f, 0f, 69f), 2.5f, 30f);
+                    break;
                 case "BossFight":
-                    PlayCue("THE ASHEN CASTELLAN", "FIRST JUDGMENT: CLEAVING OATH", new Vector3(0f, 0f, 70f), 3.1f, 29f);
+                    PlayCue("THE ASHEN CASTELLAN", "FIRST JUDGMENT: CLEAVING OATH", new Vector3(0f, 0f, 86f), 3.1f, 29f);
                     break;
                 case "ClaimReward":
-                    PlayCue("THE CASTELLAN FALLS", "AN EMBER-BOUND RELIC REMAINS", new Vector3(0f, 0f, 70f), 2.7f, 31f);
+                    PlayCue("THE CASTELLAN FALLS", "AN EMBER-BOUND RELIC REMAINS", new Vector3(0f, 0f, 86f), 2.7f, 31f);
                     break;
                 case "Complete":
                     PlayCue("THE GATE REMEMBERS", "ASHEN APPROACH CLEARED", Camera.main != null ? Camera.main.transform.position + Camera.main.transform.forward * 8f : Vector3.zero, 3.5f, 34f);

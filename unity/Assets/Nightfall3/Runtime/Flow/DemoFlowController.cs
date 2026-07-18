@@ -25,6 +25,8 @@ namespace Nightfall3.Flow
             WardRitual,
             AdvanceDefense,
             SanctumDefense,
+            AdvanceGauntlet,
+            AshfallGauntlet,
             AdvanceElite,
             EliteFight,
             BossApproach,
@@ -56,6 +58,10 @@ namespace Nightfall3.Flow
         private bool runePlaybackActive;
         private Transform defenseBeacon;
         private int defenseWave;
+        private int ashfallWave;
+        private int ashfallRunId;
+        private bool ashfallComplete;
+        private float gauntletSafeX;
         private bool stormglassCovenant;
 
         public string ZoneName { get; private set; } = "EMBERWATCH CAMP";
@@ -70,6 +76,7 @@ namespace Nightfall3.Flow
         public bool CanChooseMastery => phase == Phase.MasteryChoice;
         public int RuneProgress => runeProgress;
         public int RuneFailures => runeFailures;
+        public Vector3 GauntletSafePosition => new(gauntletSafeX, 0.05f, 74f);
         public Vector3 InteractionTargetPosition => phase switch
         {
             Phase.CovenantChoice when stormglassShrine != null => stormglassShrine.position,
@@ -193,7 +200,13 @@ namespace Nightfall3.Flow
                     if (defenseWave < 3) SpawnDefenseWave(++defenseWave);
                     else CompleteSanctumDefense();
                     break;
-                case Phase.AdvanceElite when player.position.z >= 63f:
+                case Phase.AdvanceGauntlet when player.position.z >= 62f:
+                    BeginAshfallGauntlet();
+                    break;
+                case Phase.AshfallGauntlet when ashfallComplete && player.position.z >= 73.5f:
+                    CompleteAshfallGauntlet();
+                    break;
+                case Phase.AdvanceElite when player.position.z >= 78f:
                     BeginEliteFight();
                     break;
                 case Phase.EliteFight when activeEnemies.Count == 0:
@@ -201,9 +214,9 @@ namespace Nightfall3.Flow
                     ZoneName = "THRONE ANTECHAMBER";
                     ObjectiveTitle = "HEART OF THE SIEGE";
                     ObjectiveDetail = "Enter the antechamber and confront its master";
-                    SetCheckpoint(new Vector3(0f, 0.05f, 66.5f));
+                    SetCheckpoint(new Vector3(0f, 0.05f, 82f));
                     break;
-                case Phase.BossApproach when player.position.z >= 68f:
+                case Phase.BossApproach when player.position.z >= 84.5f:
                     BeginBossFight();
                     break;
             }
@@ -496,11 +509,61 @@ namespace Nightfall3.Flow
         private void CompleteSanctumDefense()
         {
             if (defenseBeacon != null) DemoDirector.SpawnShockwave(defenseBeacon.position, new Color(0.4f, 0.9f, 1f));
+            phase = Phase.AdvanceGauntlet;
+            ZoneName = "THE SHATTERED SPAN";
+            ObjectiveTitle = "WARD-FLAME RESTORED";
+            ObjectiveDetail = "Enter the bridge beneath the falling citadel";
+            SetCheckpoint(new Vector3(0f, 0.05f, 61.5f));
+        }
+
+        private void BeginAshfallGauntlet()
+        {
+            phase = Phase.AshfallGauntlet;
+            ZoneName = "THE SHATTERED SPAN";
+            ObjectiveTitle = "ASHFALL DESCENT";
+            ObjectiveDetail = "Read the impact signs and cross the bridge";
+            ashfallWave = 0;
+            ashfallComplete = false;
+            gauntletSafeX = 0f;
+            var runId = ++ashfallRunId;
+            StartCoroutine(AshfallRoutine(runId));
+        }
+
+        private System.Collections.IEnumerator AshfallRoutine(int runId)
+        {
+            yield return new WaitForSecondsRealtime(0.8f);
+            var safeLanes = new[] { 1, 0, 2, 1, 2, 0, 1, 0, 2, 1 };
+            for (var wave = 0; wave < safeLanes.Length && phase == Phase.AshfallGauntlet && runId == ashfallRunId; wave++)
+            {
+                ashfallWave = wave + 1;
+                var safeLane = safeLanes[wave];
+                gauntletSafeX = (safeLane - 1) * 4f;
+                ObjectiveTitle = $"ASHFALL DESCENT  •  {ashfallWave}/{safeLanes.Length}";
+                ObjectiveDetail = "Move through the unmarked lane before impact";
+                var impactZ = Mathf.Clamp(player.position.z + 3.6f, 64f, 73f);
+                for (var lane = 0; lane < 3; lane++)
+                {
+                    if (lane == safeLane) continue;
+                    var hazard = new GameObject($"Ashfall Wave {ashfallWave} Lane {lane}", typeof(AshfallHazard)).GetComponent<AshfallHazard>();
+                    hazard.Configure(new Vector3((lane - 1) * 4f, 0.05f, impactZ), playerController);
+                }
+                yield return new WaitForSecondsRealtime(2.15f);
+            }
+            if (phase != Phase.AshfallGauntlet || runId != ashfallRunId) yield break;
+            ashfallComplete = true;
+            gauntletSafeX = 0f;
+            ObjectiveTitle = "THE SPAN ENDURES";
+            ObjectiveDetail = "Reach the far rampart";
+        }
+
+        private void CompleteAshfallGauntlet()
+        {
+            ++ashfallRunId;
             phase = Phase.AdvanceElite;
             ZoneName = "THE INNER PROCESSION";
-            ObjectiveTitle = "WARD-FLAME RESTORED";
-            ObjectiveDetail = "Hunt the blue-ash warden beyond the redoubt";
-            SetCheckpoint(new Vector3(0f, 0.05f, 61.5f));
+            ObjectiveTitle = "WARDEN OF BLUE ASH";
+            ObjectiveDetail = "Hunt the elite beyond the shattered span";
+            SetCheckpoint(new Vector3(0f, 0.05f, 75f));
         }
 
         private void BeginEliteFight()
@@ -509,9 +572,9 @@ namespace Nightfall3.Flow
             phase = Phase.EliteFight;
             ObjectiveTitle = "WARDEN OF BLUE ASH";
             ObjectiveDetail = "Break the elite and its hunting pair";
-            Spawn("Art/Monsters/blue-ash-juggernaut-v2", new Vector3(0f, 0.05f, 65.2f), 620f, 1.6f, 3.9f);
-            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(-4.2f, 0.05f, 64f), 148f, 3.4f, 1.95f);
-            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(4.2f, 0.05f, 64f), 148f, 3.4f, 1.95f);
+            Spawn("Art/Monsters/blue-ash-juggernaut-v2", new Vector3(0f, 0.05f, 80f), 620f, 1.6f, 3.9f);
+            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(-4.2f, 0.05f, 79f), 148f, 3.4f, 1.95f);
+            Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(4.2f, 0.05f, 79f), 148f, 3.4f, 1.95f);
         }
 
         private void BeginWardRitual()
@@ -557,7 +620,7 @@ namespace Nightfall3.Flow
             ZoneName = "CASTELLAN'S COURT";
             ObjectiveTitle = "THE ASHEN CASTELLAN";
             ObjectiveDetail = "Survive the three judgments";
-            boss = DemoDirector.CreateBoss(player, new Vector3(0f, 0.05f, 70f));
+            boss = DemoDirector.CreateBoss(player, new Vector3(0f, 0.05f, 86f));
             boss.Defeated += OfferBossReward;
         }
 
@@ -607,6 +670,9 @@ namespace Nightfall3.Flow
                     break;
                 case Phase.SanctumDefense:
                     SpawnDefenseWave(defenseWave);
+                    break;
+                case Phase.AshfallGauntlet:
+                    BeginAshfallGauntlet();
                     break;
                 case Phase.EliteFight:
                     BeginEliteFight();
