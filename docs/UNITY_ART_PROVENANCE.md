@@ -11,6 +11,7 @@ Unity production assets are tracked separately from the legacy web asset contrac
 | `Art/Characters/duskweaver-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Duskweaver player character and rune-bow combat silhouette | Authored v2 key sprite; directional animation sheet pending |
 | `Art/Characters/duskweaver-*-v3.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and normalized frame alignment, 2026-07-18 | Duskweaver idle, run, attack, hit and defeated animation set | Authored v3 production animation set |
 | `Art/Monsters/bloodbound-fallen-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Bloodbound Fallen ordinary melee enemy | Authored v2 key sprite; directional animation sheet pending |
+| `Art/Monsters/bloodbound-*-v3.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and normalized frame alignment, 2026-07-18 | Bloodbound Fallen advance, cleave, hit and defeated state set | Authored v3 production action set |
 | `Art/Monsters/coldbone-shieldguard-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Coldbone Shieldguard defensive line enemy | Authored v2 key sprite; directional animation sheet pending |
 | `Art/Monsters/blood-ash-hound-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-18 | Blood-Ash Hound fast flanking enemy | Authored v2 key sprite; directional animation sheet pending |
 | `Art/Monsters/blue-ash-juggernaut-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-18 | Blue-Ash Juggernaut heavy and elite encounter anchor | Authored v2 key sprite; directional animation sheet pending |
@@ -70,6 +71,12 @@ Unity production assets are tracked separately from the legacy web asset contrac
 - Original wiry infernal raider with scarred red skin, cracked swept horns, ash-black bone-and-iron armor and a low hooked cleaver.
 - Kept deliberately smaller and warmer than the player, elite and Boss silhouettes; no chibi proportions, toy surfaces, gore or franchise-specific motifs.
 - Uses the Duskweaver production asset only as the internal lighting, material and camera consistency reference.
+
+## Bloodbound Fallen Animation Prompt Contract
+
+- Four consistent full-body states preserve the authored red skin, swept horns, bone-and-iron armor and hooked cleaver across advance, cleave, hit and defeated poses.
+- Every state shares the same isometric camera, grounded scale and lighting contract; local processing only removes chroma, normalizes the canvas and aligns the pivot.
+- No animation pose, costume element, weapon design or silhouette was copied from an existing franchise.
 
 ## Coldbone Shieldguard Prompt Contract
 

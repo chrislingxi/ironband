@@ -26,14 +26,15 @@ namespace Nightfall3.Presentation
                 Array.IndexOf(args, "-qaBoss") >= 0,
                 Array.IndexOf(args, "-qaRespawn") >= 0,
                 Array.IndexOf(args, "-qaAnimation") >= 0,
+                Array.IndexOf(args, "-qaEnemyAnimation") >= 0,
                 Array.IndexOf(args, "-qaBossMechanics") >= 0));
         }
 
-        private IEnumerator Capture(string path, bool exerciseCombat, bool exerciseFullFlow, bool exerciseBoss, bool exerciseRespawn, bool exerciseAnimation, bool exerciseBossMechanics)
+        private IEnumerator Capture(string path, bool exerciseCombat, bool exerciseFullFlow, bool exerciseBoss, bool exerciseRespawn, bool exerciseAnimation, bool exerciseEnemyAnimation, bool exerciseBossMechanics)
         {
             var player = FindFirstObjectByType<PlayerController>();
             var flow = FindFirstObjectByType<DemoFlowController>();
-            if (exerciseCombat || exerciseFullFlow || exerciseBoss || exerciseRespawn || exerciseAnimation || exerciseBossMechanics) flow?.Interact();
+            if (exerciseCombat || exerciseFullFlow || exerciseBoss || exerciseRespawn || exerciseAnimation || exerciseEnemyAnimation || exerciseBossMechanics) flow?.Interact();
             var startingEnemies = FindObjectsByType<EnemyController>(FindObjectsSortMode.None);
             var initialEnemies = startingEnemies.Length;
             var initialHealth = startingEnemies.Sum(enemy => enemy.GetComponent<Health>().Current);
@@ -50,7 +51,13 @@ namespace Nightfall3.Presentation
             var observedDirectionalCleave = false;
             var observedCenterRupture = false;
             var observedConvergence = false;
-            var frameBudget = exerciseBossMechanics ? 1200 : exerciseBoss ? 620 : exerciseFullFlow ? 360 : exerciseAnimation ? 240 : 180;
+            var observedEnemyIdle = false;
+            var observedEnemyMove = false;
+            var observedEnemyAttack = false;
+            var observedEnemyHit = false;
+            var observedEnemyDeath = false;
+            EnemyController animatedEnemy = null;
+            var frameBudget = exerciseBossMechanics ? 1200 : exerciseBoss ? 620 : exerciseFullFlow || exerciseEnemyAnimation ? 360 : exerciseAnimation ? 240 : 180;
             for (var frame = 0; frame < frameBudget; frame++)
             {
                 if (exerciseAnimation && player != null)
@@ -59,6 +66,26 @@ namespace Nightfall3.Presentation
                     if (frame == 30) player.CastArcBurst();
                     if (frame == 72) player.Health.TakeDamage(1f);
                     if (frame == 108) player.Health.TakeDamage(99999f);
+                }
+                if (exerciseEnemyAnimation && player != null)
+                {
+                    if (animatedEnemy == null)
+                    {
+                        animatedEnemy = FindObjectsByType<EnemyController>(FindObjectsSortMode.None)
+                            .FirstOrDefault(enemy => enemy.GetComponentInChildren<EnemySpriteAnimator>() != null);
+                    }
+                    var enemyAnimator = animatedEnemy != null ? animatedEnemy.GetComponentInChildren<EnemySpriteAnimator>() : null;
+                    if (enemyAnimator != null)
+                    {
+                        observedEnemyIdle |= enemyAnimator.ObservedIdle;
+                        observedEnemyMove |= enemyAnimator.ObservedMove;
+                        observedEnemyAttack |= enemyAnimator.ObservedAttack;
+                        observedEnemyHit |= enemyAnimator.ObservedHit;
+                        observedEnemyDeath |= enemyAnimator.ObservedDeath;
+                        if (frame == 210) player.transform.position = animatedEnemy.transform.position + Vector3.back * 0.8f;
+                        if (frame == 250) animatedEnemy.ReceiveHit(1f, player.transform.position, false);
+                        if (frame == 286) animatedEnemy.ReceiveHit(99999f, player.transform.position, true);
+                    }
                 }
                 if (exerciseRespawn && frame == 12 && player != null)
                 {
@@ -147,6 +174,13 @@ namespace Nightfall3.Presentation
                 Debug.Log($"QA animation exercised: idle={animator?.ObservedIdle}, run={animator?.ObservedRun}, attack={animator?.ObservedAttack}, hit={animator?.ObservedHit}, defeated={animator?.ObservedDefeated}, success={animationSucceeded}");
                 combatSucceeded &= animationSucceeded;
                 if (!animationSucceeded) Debug.LogError("QA animation failed to observe the complete Duskweaver state set");
+            }
+            if (exerciseEnemyAnimation)
+            {
+                var animationSucceeded = observedEnemyIdle && observedEnemyMove && observedEnemyAttack && observedEnemyHit && observedEnemyDeath;
+                Debug.Log($"QA enemy animation exercised: idle={observedEnemyIdle}, move={observedEnemyMove}, attack={observedEnemyAttack}, hit={observedEnemyHit}, death={observedEnemyDeath}, success={animationSucceeded}");
+                combatSucceeded &= animationSucceeded;
+                if (!animationSucceeded) Debug.LogError("QA enemy animation failed to observe the complete Bloodbound Fallen state set");
             }
             if (exerciseFullFlow || exerciseBoss || exerciseBossMechanics)
             {

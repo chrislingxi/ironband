@@ -236,7 +236,18 @@ namespace Nightfall3
                 : resource.Contains("juggernaut") ? EnemyArchetype.Brute
                 : EnemyArchetype.Raider;
             enemy.Configure(target, health, speed, archetype);
-            CreateActorVisual(root.transform, resource, height, Color.white);
+            var visual = CreateActorVisual(root.transform, resource, height, Color.white);
+            if (visual != null && archetype == EnemyArchetype.Raider)
+            {
+                visual.gameObject.AddComponent<EnemySpriteAnimator>().Configure(
+                    root.transform,
+                    height,
+                    "Art/Monsters/bloodbound-advance-v3",
+                    "Art/Monsters/bloodbound-advance-v3",
+                    "Art/Monsters/bloodbound-cleave-v3",
+                    "Art/Monsters/bloodbound-hit-v3",
+                    "Art/Monsters/bloodbound-defeated-v3");
+            }
             return enemy;
         }
 

@@ -27,6 +27,7 @@ namespace Nightfall3.Actors
         private bool telegraphing;
         private EnemyArchetype archetype;
         private Vector3 facing = Vector3.back;
+        private EnemySpriteAnimator spriteAnimator;
 
         public Transform TargetTransform => transform;
         public bool IsDead => health == null || health.IsDead;
@@ -71,6 +72,7 @@ namespace Nightfall3.Actors
         private IEnumerator AttackRoutine()
         {
             telegraphing = true;
+            SpriteAnimator?.PlayAttack(archetype == EnemyArchetype.Brute ? 0.72f : archetype == EnemyArchetype.Hound ? 0.42f : 0.34f);
             switch (archetype)
             {
                 case EnemyArchetype.Hound:
@@ -149,6 +151,7 @@ namespace Nightfall3.Actors
             var blocked = archetype == EnemyArchetype.Shieldguard && incoming.sqrMagnitude > 0.01f && Vector3.Dot(incoming.normalized, facing) > 0.15f;
             var appliedDamage = blocked ? damage * 0.42f : damage;
             if (!health.TakeDamage(appliedDamage)) return;
+            SpriteAnimator?.PlayHit();
             var away = (transform.position - origin).normalized;
             var knockback = archetype == EnemyArchetype.Brute ? 0.08f : blocked ? 0.12f : critical ? 0.55f : 0.24f;
             transform.position += away * knockback;
@@ -174,17 +177,25 @@ namespace Nightfall3.Actors
         private void Die()
         {
             StopAllCoroutines();
+            SpriteAnimator?.PlayDeath();
             AudioDirector.PlayDeath();
             StartCoroutine(DeathRoutine());
         }
 
         private IEnumerator DeathRoutine()
         {
-            var start = transform.localScale;
-            for (var t = 0f; t < 1f; t += Time.deltaTime * 4f)
+            if (SpriteAnimator != null && SpriteAnimator.HasDeathFrame)
             {
-                transform.localScale = Vector3.Lerp(start, new Vector3(start.x * 1.25f, start.y * 0.18f, start.z), t);
-                yield return null;
+                yield return new WaitForSeconds(0.48f);
+            }
+            else
+            {
+                var start = transform.localScale;
+                for (var t = 0f; t < 1f; t += Time.deltaTime * 4f)
+                {
+                    transform.localScale = Vector3.Lerp(start, new Vector3(start.x * 1.25f, start.y * 0.18f, start.z), t);
+                    yield return null;
+                }
             }
             if (player != null && Random.value <= 0.36f)
             {
@@ -193,5 +204,7 @@ namespace Nightfall3.Actors
             }
             Destroy(gameObject);
         }
+
+        private EnemySpriteAnimator SpriteAnimator => spriteAnimator != null ? spriteAnimator : spriteAnimator = GetComponentInChildren<EnemySpriteAnimator>();
     }
 }
