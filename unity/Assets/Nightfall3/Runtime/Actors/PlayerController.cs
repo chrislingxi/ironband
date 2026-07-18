@@ -51,6 +51,7 @@ namespace Nightfall3.Actors
         public float SpellPower { get; private set; } = 1f;
         public string CovenantName { get; private set; } = "UNBOUND";
         public string MasteryName { get; private set; } = "UNSHAPED";
+        public string WitnessChoice { get; private set; } = "UNCHOSEN";
         public Vector2 MovementInput { get; private set; }
         public Vector3 RespawnPoint { get; set; }
         public event System.Action Respawned;
@@ -316,6 +317,21 @@ namespace Nightfall3.Actors
                 MasteryName = "FROZEN WAKE";
                 frozenDamageMultiplier = 1.45f;
                 frozenCooldownMultiplier = 0.76f;
+            }
+        }
+
+        public void ApplyWitnessChoice(bool claimPower)
+        {
+            if (WitnessChoice != "UNCHOSEN") return;
+            if (claimPower)
+            {
+                WitnessChoice = "OATH CLAIMED";
+                skillDamageMultiplier *= 1.15f;
+            }
+            else
+            {
+                WitnessChoice = "OATH RELEASED";
+                Health.IncreaseMaximum(22f, true);
             }
         }
 

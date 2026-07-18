@@ -27,6 +27,8 @@ namespace Nightfall3.Flow
             SanctumDefense,
             AdvanceGauntlet,
             AshfallGauntlet,
+            WitnessApproach,
+            WitnessDialogue,
             AdvanceElite,
             EliteFight,
             BossApproach,
@@ -62,6 +64,9 @@ namespace Nightfall3.Flow
         private int ashfallRunId;
         private bool ashfallComplete;
         private float gauntletSafeX;
+        private Transform witnessEcho;
+        private int dialogueStep;
+        private bool claimedWitnessPower;
         private bool stormglassCovenant;
 
         public string ZoneName { get; private set; } = "EMBERWATCH CAMP";
@@ -70,18 +75,25 @@ namespace Nightfall3.Flow
         public bool CanInteract => phase == Phase.Briefing && player != null && warden != null && Vector3.Distance(player.position, warden.position) <= 3.6f
             || phase == Phase.CovenantChoice && NearestCovenantDistance <= 2.6f
             || phase == Phase.EchoHunt && !echoWaveActive && CurrentEcho != null && Vector3.Distance(player.position, CurrentEcho.position) <= 2.6f
-            || phase == Phase.RunePuzzle && NearestRuneDistance <= 1.65f;
-        public string InteractionLabel => phase == Phase.CovenantChoice ? "ATTUNE" : phase == Phase.EchoHunt ? "RECALL" : phase == Phase.RunePuzzle ? "ACTIVATE" : "SPEAK";
+            || phase == Phase.RunePuzzle && NearestRuneDistance <= 1.65f
+            || phase == Phase.WitnessApproach && witnessEcho != null && Vector3.Distance(player.position, witnessEcho.position) <= 2.6f;
+        public string InteractionLabel => phase == Phase.CovenantChoice ? "ATTUNE" : phase == Phase.EchoHunt ? "RECALL" : phase == Phase.RunePuzzle ? "ACTIVATE" : phase == Phase.WitnessApproach ? "LISTEN" : "SPEAK";
         public string CovenantName => playerController != null ? playerController.CovenantName : "UNBOUND";
         public bool CanChooseMastery => phase == Phase.MasteryChoice;
         public int RuneProgress => runeProgress;
         public int RuneFailures => runeFailures;
         public Vector3 GauntletSafePosition => new(gauntletSafeX, 0.05f, 74f);
+        public bool HasDialogue => phase == Phase.WitnessDialogue;
+        public string DialogueSpeaker => "ELOWEN'S ECHO  •  LAST WARDEN";
+        public string DialogueLine => dialogueStep == 0 ? "The Castellan fed on every ward we raised. One oath still chains his armor." : "Take the last oath, Duskweaver. Decide what should survive me.";
+        public string DialogueLeftOption => dialogueStep == 0 ? "HOW DO I BREAK IT?" : "RELEASE THE OATH";
+        public string DialogueRightOption => dialogueStep == 0 ? "WHY TRUST AN ECHO?" : "CLAIM ITS POWER";
         public Vector3 InteractionTargetPosition => phase switch
         {
             Phase.CovenantChoice when stormglassShrine != null => stormglassShrine.position,
             Phase.EchoHunt when CurrentEcho != null => CurrentEcho.position,
             Phase.RunePuzzle when NearestRune != null => NearestRune.position,
+            Phase.WitnessApproach when witnessEcho != null => witnessEcho.position,
             _ when warden != null => warden.position,
             _ => player != null ? player.position : Vector3.zero
         };
@@ -116,6 +128,11 @@ namespace Nightfall3.Flow
                 ActivateNearestRune();
                 return;
             }
+            if (phase == Phase.WitnessApproach)
+            {
+                if (CanInteract) BeginWitnessDialogue();
+                return;
+            }
             if (phase != Phase.CovenantChoice || NearestCovenantDistance > 2.6f) return;
             ChooseCovenant(stormglassShrine != null && Vector3.Distance(player.position, stormglassShrine.position) <= Vector3.Distance(player.position, emberheartShrine.position));
         }
@@ -148,6 +165,17 @@ namespace Nightfall3.Flow
             if (phase == Phase.RunePuzzle)
             {
                 if (CanInteract && Input.GetKeyDown(KeyCode.E)) ActivateNearestRune();
+                return;
+            }
+            if (phase == Phase.WitnessApproach)
+            {
+                if (CanInteract && Input.GetKeyDown(KeyCode.E)) BeginWitnessDialogue();
+                return;
+            }
+            if (phase == Phase.WitnessDialogue)
+            {
+                if (Input.GetKeyDown(KeyCode.Alpha1)) ChooseDialogue(0);
+                else if (Input.GetKeyDown(KeyCode.Alpha2)) ChooseDialogue(1);
                 return;
             }
 
@@ -559,11 +587,45 @@ namespace Nightfall3.Flow
         private void CompleteAshfallGauntlet()
         {
             ++ashfallRunId;
+            phase = Phase.WitnessApproach;
+            ZoneName = "THE OATHBOUND LANDING";
+            ObjectiveTitle = "A VOICE IN THE ASH";
+            ObjectiveDetail = "Listen to the last Warden's echo";
+            witnessEcho = DemoDirector.CreateCovenantShrine("Elowen's Echo", "Art/NPCs/sister-elowen-v2", new Vector3(0f, 0.04f, 76.5f), 3.35f, new Color(0.52f, 0.82f, 1f), "ELOWEN'S ECHO");
+            SetCheckpoint(new Vector3(0f, 0.05f, 75f));
+        }
+
+        private void BeginWitnessDialogue()
+        {
+            if (phase != Phase.WitnessApproach) return;
+            phase = Phase.WitnessDialogue;
+            dialogueStep = 0;
+            ObjectiveTitle = "THE LAST OATH";
+            ObjectiveDetail = "Hear what the fortress buried";
+            AudioDirector.PlaySelect();
+        }
+
+        public void ChooseDialogue(int option)
+        {
+            if (phase != Phase.WitnessDialogue) return;
+            AudioDirector.PlaySelect();
+            if (dialogueStep == 0)
+            {
+                dialogueStep = 1;
+                return;
+            }
+            claimedWitnessPower = option == 1;
+            playerController?.ApplyWitnessChoice(claimedWitnessPower);
+            if (witnessEcho != null)
+            {
+                DemoDirector.SpawnShockwave(witnessEcho.position, claimedWitnessPower ? new Color(0.62f, 0.28f, 1f) : new Color(0.35f, 0.86f, 1f));
+                Destroy(witnessEcho.gameObject, 0.3f);
+            }
             phase = Phase.AdvanceElite;
             ZoneName = "THE INNER PROCESSION";
-            ObjectiveTitle = "WARDEN OF BLUE ASH";
-            ObjectiveDetail = "Hunt the elite beyond the shattered span";
-            SetCheckpoint(new Vector3(0f, 0.05f, 75f));
+            ObjectiveTitle = claimedWitnessPower ? "THE OATH IS YOURS" : "THE OATH IS FREE";
+            ObjectiveDetail = "Hunt the blue-ash warden beyond the landing";
+            SetCheckpoint(new Vector3(0f, 0.05f, 77f));
         }
 
         private void BeginEliteFight()
@@ -572,7 +634,7 @@ namespace Nightfall3.Flow
             phase = Phase.EliteFight;
             ObjectiveTitle = "WARDEN OF BLUE ASH";
             ObjectiveDetail = "Break the elite and its hunting pair";
-            Spawn("Art/Monsters/blue-ash-juggernaut-v2", new Vector3(0f, 0.05f, 80f), 620f, 1.6f, 3.9f);
+            Spawn("Art/Monsters/blue-ash-juggernaut-v2", new Vector3(0f, 0.05f, 80f), claimedWitnessPower ? 760f : 620f, 1.6f, 3.9f);
             Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(-4.2f, 0.05f, 79f), 148f, 3.4f, 1.95f);
             Spawn("Art/Monsters/blood-ash-hound-v2", new Vector3(4.2f, 0.05f, 79f), 148f, 3.4f, 1.95f);
         }

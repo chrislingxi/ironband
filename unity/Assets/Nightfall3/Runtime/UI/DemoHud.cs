@@ -26,6 +26,11 @@ namespace Nightfall3.UI
         private Text heroPower;
         private RectTransform movementCore;
         private GameObject masteryPanel;
+        private GameObject dialoguePanel;
+        private Text dialogueSpeaker;
+        private Text dialogueLine;
+        private Text dialogueLeft;
+        private Text dialogueRight;
         private float nextObjectiveRefresh;
 
         public static DemoHud Create(PlayerController target, DemoFlowController demoFlow)
@@ -60,6 +65,7 @@ namespace Nightfall3.UI
             BuildTouchStick();
             BuildContextAction();
             BuildMasteryChoice();
+            BuildDialogue();
         }
 
         private void BuildVitals()
@@ -185,6 +191,28 @@ namespace Nightfall3.UI
             button.onClick.AddListener(() => flow?.SelectMastery(mastery));
         }
 
+        private void BuildDialogue()
+        {
+            var veil = CreateImage("Dialogue Veil", safeAreaRoot, Vector2.zero, new Vector2(844f, 390f), new Color(0.008f, 0.012f, 0.02f, 0.74f), new Vector2(0.5f, 0.5f), null, false);
+            var panel = CreateImage("Witness Dialogue", veil.transform, new Vector2(0f, -42f), new Vector2(680f, 214f), new Color(0.78f, 0.71f, 0.58f, 1f), new Vector2(0.5f, 0.5f), "Art/UI/panel-v2", false);
+            CreateImage("Elowen Portrait", panel.transform, new Vector2(24f, -28f), new Vector2(116f, 142f), Color.white, new Vector2(0f, 1f), "Art/NPCs/sister-elowen-v2");
+            dialogueSpeaker = CreateText("ELOWEN'S ECHO", panel.transform, new Vector2(158f, -27f), new Vector2(486f, 22f), 15, new Color(0.48f, 0.82f, 1f), new Vector2(0f, 1f));
+            dialogueLine = CreateText("Dialogue", panel.transform, new Vector2(158f, -58f), new Vector2(486f, 52f), 14, new Color(0.9f, 0.9f, 0.86f), new Vector2(0f, 1f));
+            BuildDialogueOption(panel.transform, 0, new Vector2(158f, -126f), out dialogueLeft);
+            BuildDialogueOption(panel.transform, 1, new Vector2(407f, -126f), out dialogueRight);
+            dialoguePanel = veil.gameObject;
+            dialoguePanel.SetActive(false);
+        }
+
+        private void BuildDialogueOption(Transform parent, int option, Vector2 position, out Text label)
+        {
+            var choice = CreateImage($"Dialogue Option {option + 1}", parent, position, new Vector2(232f, 54f), new Color(0.38f, 0.4f, 0.44f, 1f), new Vector2(0f, 1f), "Art/UI/panel-v2", false);
+            label = CreateText("CHOICE", choice.transform, new Vector2(12f, -8f), new Vector2(198f, 38f), 12, new Color(1f, 0.8f, 0.42f), new Vector2(0f, 1f), TextAnchor.MiddleCenter);
+            var button = choice.gameObject.AddComponent<Button>();
+            button.targetGraphic = choice;
+            button.onClick.AddListener(() => flow?.ChooseDialogue(option));
+        }
+
         private void Update()
         {
             if (Screen.safeArea != lastSafeArea) ApplySafeArea();
@@ -202,6 +230,14 @@ namespace Nightfall3.UI
                 contextAction.SetActive(flow.CanInteract);
                 contextActionLabel.text = flow.InteractionLabel;
                 masteryPanel.SetActive(flow.CanChooseMastery);
+                dialoguePanel.SetActive(flow.HasDialogue);
+                if (flow.HasDialogue)
+                {
+                    dialogueSpeaker.text = flow.DialogueSpeaker;
+                    dialogueLine.text = flow.DialogueLine;
+                    dialogueLeft.text = $"1  {flow.DialogueLeftOption}";
+                    dialogueRight.text = $"2  {flow.DialogueRightOption}";
+                }
                 var boss = FindFirstObjectByType<BossController>();
                 bossPanel.SetActive(boss != null);
                 if (boss != null)

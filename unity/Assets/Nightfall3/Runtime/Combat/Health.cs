@@ -34,5 +34,13 @@ namespace Nightfall3.Combat
             if (IsDead) Died?.Invoke();
             return true;
         }
+
+        public void IncreaseMaximum(float amount, bool restoreGain)
+        {
+            if (amount <= 0f) return;
+            maximum += amount;
+            if (restoreGain) Current = Mathf.Min(maximum, Current + amount);
+            Changed?.Invoke(Current, maximum);
+        }
     }
 }

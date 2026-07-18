@@ -120,6 +120,14 @@ namespace Nightfall3.Presentation
                 case "AdvanceDefense": destination = new Vector3(0f, 0.05f, 55.5f); break;
                 case "AdvanceGauntlet": destination = new Vector3(0f, 0.05f, 62.5f); break;
                 case "AshfallGauntlet": destination = flow.GauntletSafePosition; break;
+                case "WitnessApproach":
+                    destination = flow.InteractionTargetPosition;
+                    if (Vector3.Distance(player.transform.position, destination) <= 2.5f) flow.Interact();
+                    MoveToward(player, destination);
+                    return;
+                case "WitnessDialogue":
+                    flow.ChooseDialogue(1);
+                    return;
                 case "AdvanceElite": destination = new Vector3(0f, 0.05f, 78.5f); break;
                 case "BossApproach": destination = new Vector3(0f, 0.05f, 85f); break;
                 case "ClaimReward":
