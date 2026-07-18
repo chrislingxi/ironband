@@ -8,6 +8,7 @@ Unity production assets are tracked separately from the legacy web asset contrac
 | `Art/Environment/ashen-gate-facade-v1.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-15 | Ashen Approach sealed fortress entrance | Authored v1; animation and separate emissive flame pass pending |
 | `Art/Bosses/ashen-castellan-v1.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Original three-phase demo Boss | Authored v1 key sprite; animation sheet pending |
 | `Art/Characters/duskweaver-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Duskweaver player character and rune-bow combat silhouette | Authored v2 key sprite; directional animation sheet pending |
+| `Art/Characters/duskweaver-*-v3.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and normalized frame alignment, 2026-07-18 | Duskweaver idle, run, attack, hit and defeated animation set | Authored v3 production animation set |
 | `Art/Monsters/bloodbound-fallen-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Bloodbound Fallen ordinary melee enemy | Authored v2 key sprite; directional animation sheet pending |
 | `Art/Monsters/coldbone-shieldguard-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Coldbone Shieldguard defensive line enemy | Authored v2 key sprite; directional animation sheet pending |
 | `Art/Monsters/blood-ash-hound-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-18 | Blood-Ash Hound fast flanking enemy | Authored v2 key sprite; directional animation sheet pending |
@@ -47,6 +48,12 @@ Unity production assets are tracked separately from the legacy web asset contrac
 - Original female arcane ranger-sorceress in blackened steel, oxblood leather and a storm-blue mantle, carrying a compact lightning rune bow.
 - Full-body isolated production sprite with warm rim light, cold key light, mobile-readable silhouette and locally removed green chroma background.
 - The supplied gameplay reference informed only finish, material richness, readability and lighting hierarchy; no character, costume, weapon, symbol or UI was copied.
+
+## Duskweaver Animation Prompt Contract
+
+- Eight consistent full-body frames preserve the authored Duskweaver face, silver hair, armor, storm-blue mantle and compact rune bow across idle, movement, attack, hit and defeated states.
+- Every frame shares the same isometric camera, scale, ground contact and lighting contract; local processing only removes chroma, normalizes the shared canvas and aligns the pivot.
+- No animation pose, costume element, weapon design or silhouette was copied from an existing franchise.
 
 ## Bloodbound Fallen Prompt Contract
 

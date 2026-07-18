@@ -205,7 +205,8 @@ namespace Nightfall3
             controller.height = 1.7f;
             controller.radius = 0.4f;
             controller.center = new Vector3(0f, 0.85f, 0f);
-            CreateActorVisual(root.transform, "Art/Characters/duskweaver-v2", 2.9f, Color.white);
+            var visual = CreateActorVisual(root.transform, "Art/Characters/duskweaver-idle-a-v3", 3.1f, Color.white);
+            visual.gameObject.AddComponent<ActorSpriteAnimator>().ConfigureDuskweaver(root.transform, 3.1f);
             return root.transform;
         }
 
@@ -270,7 +271,7 @@ namespace Nightfall3
             return root.GetComponent<WardAnchor>();
         }
 
-        private static void CreateActorVisual(Transform root, string resource, float height, Color tint)
+        private static SpriteRenderer CreateActorVisual(Transform root, string resource, float height, Color tint)
         {
             var shadow = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
             shadow.name = "Contact Shadow";
@@ -281,7 +282,7 @@ namespace Nightfall3
             Destroy(shadow.GetComponent<Collider>());
 
             var texture = Resources.Load<Texture2D>(resource);
-            if (texture == null) return;
+            if (texture == null) return null;
             var sprite = Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.06f), texture.height / height);
             var visual = new GameObject("Visual", typeof(SpriteRenderer), typeof(BillboardActor));
             visual.transform.SetParent(root, false);
@@ -291,6 +292,7 @@ namespace Nightfall3
             renderer.color = tint;
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
             renderer.receiveShadows = true;
+            return renderer;
         }
 
         public static GameObject CreateGroundRing(Vector3 position, float radius, Color color)

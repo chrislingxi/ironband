@@ -24,14 +24,15 @@ namespace Nightfall3.Presentation
                 Array.IndexOf(args, "-qaCombat") >= 0,
                 Array.IndexOf(args, "-qaFlow") >= 0,
                 Array.IndexOf(args, "-qaBoss") >= 0,
-                Array.IndexOf(args, "-qaRespawn") >= 0));
+                Array.IndexOf(args, "-qaRespawn") >= 0,
+                Array.IndexOf(args, "-qaAnimation") >= 0));
         }
 
-        private IEnumerator Capture(string path, bool exerciseCombat, bool exerciseFullFlow, bool exerciseBoss, bool exerciseRespawn)
+        private IEnumerator Capture(string path, bool exerciseCombat, bool exerciseFullFlow, bool exerciseBoss, bool exerciseRespawn, bool exerciseAnimation)
         {
             var player = FindFirstObjectByType<PlayerController>();
             var flow = FindFirstObjectByType<DemoFlowController>();
-            if (exerciseCombat || exerciseFullFlow || exerciseBoss || exerciseRespawn) flow?.Interact();
+            if (exerciseCombat || exerciseFullFlow || exerciseBoss || exerciseRespawn || exerciseAnimation) flow?.Interact();
             var startingEnemies = FindObjectsByType<EnemyController>(FindObjectsSortMode.None);
             var initialEnemies = startingEnemies.Length;
             var initialHealth = startingEnemies.Sum(enemy => enemy.GetComponent<Health>().Current);
@@ -45,9 +46,16 @@ namespace Nightfall3.Presentation
             var issuedPhaseOneDamage = false;
             var issuedPhaseTwoDamage = false;
             var issuedKillingDamage = false;
-            var frameBudget = exerciseBoss ? 620 : exerciseFullFlow ? 360 : 180;
+            var frameBudget = exerciseBoss ? 620 : exerciseFullFlow ? 360 : exerciseAnimation ? 240 : 180;
             for (var frame = 0; frame < frameBudget; frame++)
             {
+                if (exerciseAnimation && player != null)
+                {
+                    if (frame is >= 12 and <= 18) player.transform.position += Vector3.right * 0.08f;
+                    if (frame == 30) player.CastArcBurst();
+                    if (frame == 72) player.Health.TakeDamage(1f);
+                    if (frame == 108) player.Health.TakeDamage(99999f);
+                }
                 if (exerciseRespawn && frame == 12 && player != null)
                 {
                     player.GrantRelic(0.5f, 50);
@@ -121,6 +129,14 @@ namespace Nightfall3.Presentation
                 Debug.Log($"QA respawn exercised: observed={observedRespawn}, health={health:0.0}, phase={flow?.PhaseId ?? "missing"}, growthRollback={growthRolledBack}, looseLoot={looseLoot}, success={respawnSucceeded}");
                 combatSucceeded &= respawnSucceeded;
                 if (!respawnSucceeded) Debug.LogError("QA respawn failed to restore the checkpoint encounter");
+            }
+            if (exerciseAnimation)
+            {
+                var animator = FindFirstObjectByType<ActorSpriteAnimator>();
+                var animationSucceeded = animator != null && animator.ObservedIdle && animator.ObservedRun && animator.ObservedAttack && animator.ObservedHit && animator.ObservedDefeated;
+                Debug.Log($"QA animation exercised: idle={animator?.ObservedIdle}, run={animator?.ObservedRun}, attack={animator?.ObservedAttack}, hit={animator?.ObservedHit}, defeated={animator?.ObservedDefeated}, success={animationSucceeded}");
+                combatSucceeded &= animationSucceeded;
+                if (!animationSucceeded) Debug.LogError("QA animation failed to observe the complete Duskweaver state set");
             }
             if (exerciseFullFlow || exerciseBoss)
             {

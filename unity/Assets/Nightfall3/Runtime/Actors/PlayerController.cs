@@ -2,6 +2,7 @@ using System.Collections;
 using System.Linq;
 using Nightfall3.Combat;
 using Nightfall3.Audio;
+using Nightfall3.Presentation;
 using UnityEngine;
 
 namespace Nightfall3.Actors
@@ -34,6 +35,8 @@ namespace Nightfall3.Actors
         private Vector3 facing = Vector3.forward;
         private readonly float[] cooldownEnds = new float[4];
         private bool defeated;
+        private ActorSpriteAnimator spriteAnimator;
+        private float lastHealth;
 
         public Health Health { get; private set; }
         public int Level { get; private set; } = 1;
@@ -48,6 +51,8 @@ namespace Nightfall3.Actors
             character = GetComponent<CharacterController>();
             Health = GetComponent<Health>();
             Health.Configure(120f);
+            lastHealth = Health.Current;
+            Health.Changed += HandleHealthChanged;
             Health.Died += HandleDefeat;
             RespawnPoint = transform.position;
         }
@@ -108,15 +113,13 @@ namespace Nightfall3.Actors
         {
             attacking = true;
             nextAttack = Time.time + CombatTuning.BasicAttackInterval;
-            var start = transform.localScale;
-            transform.localScale = new Vector3(start.x * 0.9f, start.y * 1.06f, start.z);
+            SpriteAnimator?.PlayAttack();
             yield return new WaitForSeconds(0.085f);
             if (target != null && !target.IsDead)
             {
                 var critical = Random.value < 0.16f;
                 DemoDirector.SpawnArcProjectile(transform.position + Vector3.up * 0.9f, target, CombatTuning.BasicAttackDamage * SpellPower * (critical ? 1.65f : 1f), critical);
             }
-            transform.localScale = start;
             yield return new WaitForSeconds(0.14f);
             attacking = false;
         }
@@ -229,7 +232,16 @@ namespace Nightfall3.Actors
         {
             if (attacking || Time.time < cooldownEnds[skill]) return false;
             cooldownEnds[skill] = Time.time + cooldown;
+            SpriteAnimator?.PlayAttack();
             return true;
+        }
+
+        private ActorSpriteAnimator SpriteAnimator => spriteAnimator != null ? spriteAnimator : spriteAnimator = GetComponentInChildren<ActorSpriteAnimator>();
+
+        private void HandleHealthChanged(float current, float maximum)
+        {
+            if (current < lastHealth && current > 0f) SpriteAnimator?.PlayHit();
+            lastHealth = current;
         }
 
         private static ICombatTarget[] FindTargets()
@@ -282,6 +294,7 @@ namespace Nightfall3.Actors
             movementFinger = -1;
             touchMove = Vector2.zero;
             MovementInput = Vector2.zero;
+            SpriteAnimator?.SetDefeated(true);
             AudioDirector.PlayDeath(true);
             var visual = GetComponentInChildren<SpriteRenderer>();
             var originalColor = visual != null ? visual.color : Color.white;
@@ -293,6 +306,7 @@ namespace Nightfall3.Actors
             character.enabled = true;
             Health.Configure(Health.Maximum);
             if (visual != null) visual.color = originalColor;
+            SpriteAnimator?.SetDefeated(false);
             DemoDirector.SpawnShockwave(transform.position, new Color(1f, 0.46f, 0.12f));
             defeated = false;
             Respawned?.Invoke();

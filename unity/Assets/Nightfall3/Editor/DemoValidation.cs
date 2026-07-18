@@ -12,7 +12,14 @@ namespace Nightfall3.Editor
     {
         private static readonly string[] RequiredTextures =
         {
-            "Assets/Resources/Art/Characters/duskweaver-v2.png",
+            "Assets/Resources/Art/Characters/duskweaver-idle-a-v3.png",
+            "Assets/Resources/Art/Characters/duskweaver-idle-b-v3.png",
+            "Assets/Resources/Art/Characters/duskweaver-run-a-v3.png",
+            "Assets/Resources/Art/Characters/duskweaver-run-b-v3.png",
+            "Assets/Resources/Art/Characters/duskweaver-draw-v3.png",
+            "Assets/Resources/Art/Characters/duskweaver-release-v3.png",
+            "Assets/Resources/Art/Characters/duskweaver-hit-v3.png",
+            "Assets/Resources/Art/Characters/duskweaver-defeated-v3.png",
             "Assets/Resources/Art/Monsters/bloodbound-fallen-v2.png",
             "Assets/Resources/Art/Monsters/coldbone-shieldguard-v2.png",
             "Assets/Resources/Art/Monsters/blood-ash-hound-v2.png",
