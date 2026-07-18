@@ -200,7 +200,7 @@ namespace Nightfall3.Presentation
                     }
                     if ((exerciseBoss || exerciseBossMechanics) && flow.PhaseId == "ClaimReward")
                     {
-                        var reward = FindFirstObjectByType<LootPickup>();
+                        var reward = FindObjectsByType<LootPickup>(FindObjectsSortMode.None).FirstOrDefault(pickup => pickup.IsLegendary);
                         if (reward != null) player.transform.position = reward.transform.position;
                     }
                 }

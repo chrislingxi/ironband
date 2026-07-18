@@ -39,7 +39,6 @@ namespace Nightfall3.Presentation
             var lastPhase = flow.PhaseId;
             var nextStatus = startedAt + 15f;
             var deaths = 0;
-            var runeProgress = 0;
             player.Respawned += () =>
             {
                 deaths++;
@@ -57,7 +56,7 @@ namespace Nightfall3.Presentation
 
                 if (!CinematicDirector.CombatSuppressed)
                 {
-                    GuideMovement(player, flow, ref runeProgress);
+                    GuideMovement(player, flow);
                     if (Time.realtimeSinceStartup >= nextDecision)
                     {
                         CastNextUsefulSkill(player, ref skillCursor);
@@ -84,7 +83,7 @@ namespace Nightfall3.Presentation
             Application.Quit(completed && targetPassed ? 0 : 3);
         }
 
-        private static void GuideMovement(PlayerController player, DemoFlowController flow, ref int runeProgress)
+        private static void GuideMovement(PlayerController player, DemoFlowController flow)
         {
             Vector3 destination;
             switch (flow.PhaseId)
@@ -101,12 +100,8 @@ namespace Nightfall3.Presentation
                         new Vector3(-4.25f, 0.05f, 45f),
                         new Vector3(4.25f, 0.05f, 45f)
                     };
-                    var runeTarget = runes[Mathf.Clamp(runeProgress, 0, 2)];
-                    if (Vector3.Distance(player.transform.position, runeTarget) <= 2.5f)
-                    {
-                        flow.Interact();
-                        runeProgress++;
-                    }
+                    var runeTarget = runes[Mathf.Clamp(flow.RuneProgress, 0, 2)];
+                    if (Vector3.Distance(player.transform.position, runeTarget) <= 1.15f) flow.Interact();
                     MoveToward(player, runeTarget);
                     return;
                 case "CovenantChoice":
@@ -126,7 +121,7 @@ namespace Nightfall3.Presentation
                 case "AdvanceElite": destination = new Vector3(0f, 0.05f, 63.5f); break;
                 case "BossApproach": destination = new Vector3(0f, 0.05f, 68.5f); break;
                 case "ClaimReward":
-                    var reward = FindFirstObjectByType<LootPickup>();
+                    var reward = FindObjectsByType<LootPickup>(FindObjectsSortMode.None).FirstOrDefault(pickup => pickup.IsLegendary);
                     if (reward != null) MoveToward(player, reward.transform.position);
                     return;
                 default:

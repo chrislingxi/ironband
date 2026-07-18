@@ -14,6 +14,8 @@ namespace Nightfall3.Flow
         private float power;
         private Vector3 start;
 
+        public bool IsLegendary => power >= 0.2f;
+
         public void Configure(PlayerController target, float powerGain, float experienceGain, Action onCollected)
         {
             player = target;

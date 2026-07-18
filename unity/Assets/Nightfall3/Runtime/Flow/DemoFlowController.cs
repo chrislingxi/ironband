@@ -64,7 +64,7 @@ namespace Nightfall3.Flow
         public bool CanInteract => phase == Phase.Briefing && player != null && warden != null && Vector3.Distance(player.position, warden.position) <= 3.6f
             || phase == Phase.CovenantChoice && NearestCovenantDistance <= 2.6f
             || phase == Phase.EchoHunt && !echoWaveActive && CurrentEcho != null && Vector3.Distance(player.position, CurrentEcho.position) <= 2.6f
-            || phase == Phase.RunePuzzle && NearestRuneDistance <= 2.6f;
+            || phase == Phase.RunePuzzle && NearestRuneDistance <= 1.65f;
         public string InteractionLabel => phase == Phase.CovenantChoice ? "ATTUNE" : phase == Phase.EchoHunt ? "RECALL" : phase == Phase.RunePuzzle ? "ACTIVATE" : "SPEAK";
         public string CovenantName => playerController != null ? playerController.CovenantName : "UNBOUND";
         public bool CanChooseMastery => phase == Phase.MasteryChoice;
@@ -417,7 +417,7 @@ namespace Nightfall3.Flow
 
         private void ActivateNearestRune()
         {
-            if (phase != Phase.RunePuzzle || runePlaybackActive || NearestRuneDistance > 2.6f) return;
+            if (phase != Phase.RunePuzzle || runePlaybackActive || NearestRuneDistance > 1.65f) return;
             var selected = memoryRunes.IndexOf(NearestRune);
             if (selected == runeSequence[runeProgress])
             {
