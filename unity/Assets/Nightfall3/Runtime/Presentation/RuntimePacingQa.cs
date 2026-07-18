@@ -32,11 +32,13 @@ namespace Nightfall3.Presentation
                 yield break;
             }
 
-            flow.Interact();
             var startedAt = Time.realtimeSinceStartup;
-            var nextDecision = startedAt + 1.2f;
+            yield return new WaitForSecondsRealtime(8f);
+            flow.Interact();
+            var nextDecision = Time.realtimeSinceStartup + 1.55f;
             var skillCursor = 0;
             var lastPhase = flow.PhaseId;
+            var phaseReadyAt = Time.realtimeSinceStartup + GetFirstRunPause(lastPhase);
             var nextStatus = startedAt + 15f;
             var deaths = 0;
             player.Respawned += () =>
@@ -51,16 +53,17 @@ namespace Nightfall3.Presentation
                 if (flow.PhaseId != lastPhase)
                 {
                     lastPhase = flow.PhaseId;
+                    phaseReadyAt = Time.realtimeSinceStartup + GetFirstRunPause(lastPhase);
                     Debug.Log($"QA pacing phase: {lastPhase} at {Time.realtimeSinceStartup - startedAt:0.0}s");
                 }
 
-                if (!CinematicDirector.CombatSuppressed)
+                if (!CinematicDirector.CombatSuppressed && Time.realtimeSinceStartup >= phaseReadyAt)
                 {
                     GuideMovement(player, flow);
                     if (Time.realtimeSinceStartup >= nextDecision)
                     {
                         CastNextUsefulSkill(player, ref skillCursor);
-                        nextDecision = Time.realtimeSinceStartup + 1.2f;
+                        nextDecision = Time.realtimeSinceStartup + 1.55f;
                     }
                 }
                 if (Time.realtimeSinceStartup >= nextStatus)
@@ -81,6 +84,23 @@ namespace Nightfall3.Presentation
             if (!completed) Debug.LogError("QA pacing timed out before completing the demo");
             else if (!targetPassed) Debug.LogError("QA pacing completed outside the 15-20 minute target");
             Application.Quit(completed && targetPassed ? 0 : 3);
+        }
+
+        private static float GetFirstRunPause(string phase)
+        {
+            return phase switch
+            {
+                "CovenantChoice" => 8f,
+                "MasteryChoice" => 10f,
+                "WitnessDialogue" => 12f,
+                "SepulcherChoice" => 10f,
+                "ArchiveCipher" => 6f,
+                "RelicChoice" => 12f,
+                "ReturnPortal" => 4f,
+                "AdvanceCauseway" or "AdvanceEchoHunt" or "AdvanceWard" or "AdvanceDefense" or "AdvanceGauntlet" or "AdvanceElite" or "SepulcherApproach" or "ArchiveApproach" => 2.5f,
+                "BossApproach" => 4f,
+                _ => 0.35f
+            };
         }
 
         private static void GuideMovement(PlayerController player, DemoFlowController flow)
@@ -130,13 +150,19 @@ namespace Nightfall3.Presentation
                     return;
                 case "AdvanceElite": destination = new Vector3(0f, 0.05f, 78.5f); break;
                 case "WardflameEscort" when flow.RemainingEnemies == 0: destination = flow.EscortTargetPosition; break;
-                case "ArchiveApproach": destination = new Vector3(0f, 0.05f, 110.5f); break;
+                case "SepulcherApproach": destination = new Vector3(0f, 0.05f, flow.SepulchersCompleted == 0 ? 110.5f : 126.5f); break;
+                case "SepulcherChoice":
+                    destination = flow.InteractionTargetPosition;
+                    if (Vector3.Distance(player.transform.position, destination) <= 2.35f) flow.Interact();
+                    MoveToward(player, destination);
+                    return;
+                case "ArchiveApproach": destination = new Vector3(0f, 0.05f, 145.5f); break;
                 case "ArchiveCipher":
                     destination = flow.InteractionTargetPosition;
                     if (flow.RemainingEnemies == 0 && Vector3.Distance(player.transform.position, destination) <= 2.2f) flow.Interact();
                     MoveToward(player, destination);
                     return;
-                case "BossApproach": destination = new Vector3(0f, 0.05f, 143.5f); break;
+                case "BossApproach": destination = new Vector3(0f, 0.05f, 178.5f); break;
                 case "RelicChoice":
                 case "ReturnPortal":
                     destination = flow.InteractionTargetPosition;

@@ -36,14 +36,15 @@ namespace Nightfall3.Presentation
                 Array.IndexOf(args, "-qaElite") >= 0,
                 Array.IndexOf(args, "-qaEscort") >= 0,
                 Array.IndexOf(args, "-qaRelic") >= 0,
-                Array.IndexOf(args, "-qaArchive") >= 0));
+                Array.IndexOf(args, "-qaArchive") >= 0,
+                Array.IndexOf(args, "-qaSepulcher") >= 0));
         }
 
-        private IEnumerator Capture(string path, bool exerciseCombat, bool exerciseFullFlow, bool exerciseBoss, bool exerciseRespawn, bool exerciseAnimation, bool exerciseEnemyAnimation, bool exerciseCovenant, bool exerciseBossMechanics, bool exerciseMastery, bool exerciseRune, bool exerciseAshfall, bool exerciseWitness, bool exerciseElite, bool exerciseEscort, bool exerciseRelic, bool exerciseArchive)
+        private IEnumerator Capture(string path, bool exerciseCombat, bool exerciseFullFlow, bool exerciseBoss, bool exerciseRespawn, bool exerciseAnimation, bool exerciseEnemyAnimation, bool exerciseCovenant, bool exerciseBossMechanics, bool exerciseMastery, bool exerciseRune, bool exerciseAshfall, bool exerciseWitness, bool exerciseElite, bool exerciseEscort, bool exerciseRelic, bool exerciseArchive, bool exerciseSepulcher)
         {
             var player = FindFirstObjectByType<PlayerController>();
             var flow = FindFirstObjectByType<DemoFlowController>();
-            if (exerciseCombat || exerciseFullFlow || exerciseBoss || exerciseRespawn || exerciseAnimation || exerciseEnemyAnimation || exerciseCovenant || exerciseBossMechanics || exerciseMastery || exerciseRune || exerciseAshfall || exerciseWitness || exerciseElite || exerciseEscort || exerciseRelic || exerciseArchive) flow?.Interact();
+            if (exerciseCombat || exerciseFullFlow || exerciseBoss || exerciseRespawn || exerciseAnimation || exerciseEnemyAnimation || exerciseCovenant || exerciseBossMechanics || exerciseMastery || exerciseRune || exerciseAshfall || exerciseWitness || exerciseElite || exerciseEscort || exerciseRelic || exerciseArchive || exerciseSepulcher) flow?.Interact();
             var startingEnemies = FindObjectsByType<EnemyController>(FindObjectsSortMode.None);
             var initialEnemies = startingEnemies.Length;
             var initialHealth = startingEnemies.Sum(enemy => enemy.GetComponent<Health>().Current);
@@ -76,6 +77,9 @@ namespace Nightfall3.Presentation
             var observedArchiveSecondJudgment = false;
             var issuedCuratorThresholdDamage = false;
             var archiveCaptureFrames = 0;
+            var observedSepulcherChoice = false;
+            var observedSepulcherRuin = false;
+            var sepulcherCaptureFrames = 0;
             var observedRelicChoice = false;
             var observedReturnPortal = false;
             var relicCaptureFrames = 0;
@@ -90,7 +94,7 @@ namespace Nightfall3.Presentation
             var animatedEnemies = startingEnemies.Where(enemy => enemy.GetComponentInChildren<EnemySpriteAnimator>() != null).ToArray();
             var animatedEnemyNames = animatedEnemies.Select(enemy => enemy.Archetype.ToString()).ToArray();
             var observedEnemyStates = new bool[animatedEnemies.Length, 5];
-            var frameBudget = exerciseRelic ? 7600 : exerciseBossMechanics ? 6500 : exerciseBoss ? 5800 : exerciseArchive ? 5600 : exerciseEscort ? 4300 : exerciseElite ? 3100 : exerciseWitness ? 2800 : exerciseAshfall ? 2200 : exerciseRune ? 760 : exerciseMastery ? 560 : exerciseCovenant ? 420 : exerciseFullFlow ? 5200 : exerciseEnemyAnimation ? 360 : exerciseAnimation ? 240 : 180;
+            var frameBudget = exerciseRelic ? 9800 : exerciseBossMechanics ? 8600 : exerciseBoss ? 7800 : exerciseArchive ? 7600 : exerciseSepulcher ? 6200 : exerciseEscort ? 4300 : exerciseElite ? 3100 : exerciseWitness ? 2800 : exerciseAshfall ? 2200 : exerciseRune ? 760 : exerciseMastery ? 560 : exerciseCovenant ? 420 : exerciseFullFlow ? 7200 : exerciseEnemyAnimation ? 360 : exerciseAnimation ? 240 : 180;
             for (var frame = 0; frame < frameBudget; frame++)
             {
                 if (exerciseAnimation && player != null)
@@ -141,7 +145,7 @@ namespace Nightfall3.Presentation
                     if (frame > 16 && frame % 12 == 0 && flow.PhaseId == "GateFight") KillAllTargets(player.transform.position);
                     if (flow.PhaseId == "CovenantChoice") player.transform.position = new Vector3(-3.6f, 0.05f, 7.2f);
                 }
-                if ((exerciseFullFlow || exerciseBoss || exerciseBossMechanics || exerciseMastery || exerciseRune || exerciseAshfall || exerciseWitness || exerciseElite || exerciseEscort || exerciseRelic || exerciseArchive) && player != null && flow != null)
+                if ((exerciseFullFlow || exerciseBoss || exerciseBossMechanics || exerciseMastery || exerciseRune || exerciseAshfall || exerciseWitness || exerciseElite || exerciseEscort || exerciseRelic || exerciseArchive || exerciseSepulcher) && player != null && flow != null)
                 {
                     if (flow.PhaseId == "WardRitual") observedWardRitual = true;
                     if (flow.PhaseId == "EchoHunt")
@@ -194,16 +198,27 @@ namespace Nightfall3.Presentation
                         if (!attemptedWrongArchive)
                         {
                             attemptedWrongArchive = true;
-                            player.transform.position = new Vector3(0f, 0.05f, 117f);
+                            player.transform.position = new Vector3(0f, 0.05f, 152f);
                             flow.Interact();
                         }
                         else if (flow.RemainingEnemies == 0)
                         {
                             observedArchiveReset |= flow.ArchiveFailures == 1;
-                            player.transform.position = new Vector3(-5f, 0.05f, 114f);
+                            player.transform.position = new Vector3(-5f, 0.05f, 149f);
                             flow.Interact();
                         }
                         else if (frame % 12 == 0) KillAllTargets(player.transform.position);
+                    }
+                    if (flow.PhaseId == "SepulcherChoice")
+                    {
+                        observedSepulcherChoice = true;
+                        player.transform.position = flow.SepulchersCompleted == 0 ? new Vector3(-5.25f, 0.05f, 113f) : new Vector3(5.25f, 0.05f, 129f);
+                        flow.Interact();
+                    }
+                    if (flow.PhaseId == "SepulcherTrial" && flow.SepulchersCompleted == 1)
+                    {
+                        observedSepulcherRuin |= FindFirstObjectByType<AshfallHazard>() != null;
+                        if (exerciseSepulcher && observedSepulcherRuin && ++sepulcherCaptureFrames >= 24) frame = frameBudget;
                     }
                     if (flow.PhaseId == "ArchivePurge") observedArchivePurge = true;
                     if (flow.PhaseId == "ArchiveCurator")
@@ -216,7 +231,7 @@ namespace Nightfall3.Presentation
                             issuedCuratorThresholdDamage = true;
                         }
                         observedArchiveSecondJudgment |= curator != null && curator.WardShielded;
-                        if (exerciseArchive && observedArchiveSecondJudgment) player.transform.position = new Vector3(-5.4f, 0.05f, 132f);
+                        if (exerciseArchive && observedArchiveSecondJudgment) player.transform.position = new Vector3(-5.4f, 0.05f, 167f);
                         if (!exerciseArchive && observedArchiveSecondJudgment && frame % 12 == 0) KillAllTargets(player.transform.position);
                         if (exerciseArchive && observedArchiveSecondJudgment && ++archiveCaptureFrames >= 24) frame = frameBudget;
                     }
@@ -251,7 +266,7 @@ namespace Nightfall3.Presentation
                         player.transform.position = new Vector3(-5.45f, 0.05f, 8.6f);
                         flow.Interact();
                     }
-                    if (frame > 16 && frame % 12 == 0 && flow.PhaseId is "GateFight" or "CovenantTrial" or "CausewayFight" or "EchoHunt" or "WardRitual" or "SanctumDefense" or "EliteFight" or "WardflameEscort" or "ArchivePurge" && !(exerciseElite && flow.PhaseId == "EliteFight") && !(exerciseEscort && flow.PhaseId == "WardflameEscort"))
+                    if (frame > 16 && frame % 12 == 0 && flow.PhaseId is "GateFight" or "CovenantTrial" or "CausewayFight" or "EchoHunt" or "WardRitual" or "SanctumDefense" or "EliteFight" or "WardflameEscort" or "SepulcherTrial" or "ArchivePurge" && !(exerciseElite && flow.PhaseId == "EliteFight") && !(exerciseEscort && flow.PhaseId == "WardflameEscort") && !(exerciseSepulcher && flow.PhaseId == "SepulcherTrial" && flow.SepulchersCompleted == 1))
                         KillAllTargets(player.transform.position);
                     if (flow.PhaseId == "AdvanceCauseway") player.transform.position = new Vector3(0f, 0.05f, 18f);
                     if (flow.PhaseId == "AdvanceEchoHunt") player.transform.position = new Vector3(0f, 0.05f, 27.5f);
@@ -259,8 +274,9 @@ namespace Nightfall3.Presentation
                     if (flow.PhaseId == "AdvanceDefense") player.transform.position = new Vector3(0f, 0.05f, 55.5f);
                     if (flow.PhaseId == "AdvanceGauntlet") player.transform.position = new Vector3(0f, 0.05f, 62.5f);
                     if (flow.PhaseId == "AdvanceElite") player.transform.position = new Vector3(0f, 0.05f, 78.5f);
-                    if (flow.PhaseId == "ArchiveApproach") player.transform.position = new Vector3(0f, 0.05f, 110.5f);
-                    if ((exerciseBoss || exerciseBossMechanics || exerciseRelic) && flow.PhaseId == "BossApproach") player.transform.position = new Vector3(0f, 0.05f, 143.5f);
+                    if (flow.PhaseId == "SepulcherApproach") player.transform.position = new Vector3(0f, 0.05f, flow.SepulchersCompleted == 0 ? 110.5f : 126.5f);
+                    if (flow.PhaseId == "ArchiveApproach") player.transform.position = new Vector3(0f, 0.05f, 145.5f);
+                    if ((exerciseBoss || exerciseBossMechanics || exerciseRelic) && flow.PhaseId == "BossApproach") player.transform.position = new Vector3(0f, 0.05f, 178.5f);
 
                     var boss = FindFirstObjectByType<BossController>();
                     if (exerciseBossMechanics && boss != null)
@@ -418,6 +434,13 @@ namespace Nightfall3.Presentation
                 combatSucceeded &= archiveSucceeded;
                 if (!archiveSucceeded) Debug.LogError("QA Black Archive failed to present the Curator's second judgment");
             }
+            if (exerciseSepulcher)
+            {
+                var sepulcherSucceeded = flow != null && flow.PhaseId == "SepulcherTrial" && flow.SepulchersCompleted == 1 && observedSepulcherChoice && observedSepulcherRuin;
+                Debug.Log($"QA Triune Sepulcher exercised: phase={flow?.PhaseId ?? "missing"}, completed={flow?.SepulchersCompleted ?? -1}, choice={observedSepulcherChoice}, ruin={observedSepulcherRuin}, success={sepulcherSucceeded}");
+                combatSucceeded &= sepulcherSucceeded;
+                if (!sepulcherSucceeded) Debug.LogError("QA Triune Sepulcher failed to present the alternate Ruin route");
+            }
             if (exerciseFullFlow || exerciseBoss || exerciseBossMechanics)
             {
                 var completingBoss = exerciseBoss || exerciseBossMechanics;
@@ -425,8 +448,8 @@ namespace Nightfall3.Presentation
                 var mechanicsObserved = !exerciseBossMechanics || observedDirectionalCleave && observedCenterRupture && observedConvergence;
                 var masteryApplied = player != null && player.MasteryName != "UNSHAPED";
                 var witnessChoiceApplied = player != null && player.WitnessChoice != "UNCHOSEN";
-                var flowSucceeded = flow != null && observedCovenantChoice && observedEchoHunt && observedMasteryChoice && masteryApplied && observedRunePuzzle && observedRuneReset && observedWardRitual && observedSanctumDefense && observedAshfall && observedWitnessDialogue && witnessChoiceApplied && observedEliteShield && observedEliteShieldBreak && observedEscort && observedEscortStage >= 3 && observedArchiveCipher && observedArchiveReset && observedArchivePurge && observedArchiveCurator && observedArchiveSecondJudgment && (completingBoss ? flow.IsComplete && observedBossPhase2 && observedBossPhase3 && observedRelicChoice && observedReturnPortal && rewardApplied && mechanicsObserved : flow.ReachedBossApproach);
-                Debug.Log($"QA flow exercised: phase={flow?.PhaseId ?? "missing"}, covenant={observedCovenantChoice}, echoes={observedEchoHunt}, mastery={observedMasteryChoice}/{masteryApplied}, runes={observedRunePuzzle}, runeReset={observedRuneReset}, ward={observedWardRitual}, defense={observedSanctumDefense}, ashfall={observedAshfall}, witness={observedWitnessDialogue}/{witnessChoiceApplied}, eliteShield={observedEliteShield}/{observedEliteShieldBreak}, escort={observedEscort}/{observedEscortStage}, archive={observedArchiveCipher}/{observedArchiveReset}/{observedArchivePurge}/{observedArchiveSecondJudgment}, bossII={observedBossPhase2}, bossIII={observedBossPhase3}, cleave={observedDirectionalCleave}, rupture={observedCenterRupture}, convergence={observedConvergence}, relic={observedRelicChoice}/{rewardApplied}, portal={observedReturnPortal}, success={flowSucceeded}");
+                var flowSucceeded = flow != null && observedCovenantChoice && observedEchoHunt && observedMasteryChoice && masteryApplied && observedRunePuzzle && observedRuneReset && observedWardRitual && observedSanctumDefense && observedAshfall && observedWitnessDialogue && witnessChoiceApplied && observedEliteShield && observedEliteShieldBreak && observedEscort && observedEscortStage >= 3 && observedSepulcherChoice && flow.SepulchersCompleted >= 2 && observedArchiveCipher && observedArchiveReset && observedArchivePurge && observedArchiveCurator && observedArchiveSecondJudgment && (completingBoss ? flow.IsComplete && observedBossPhase2 && observedBossPhase3 && observedRelicChoice && observedReturnPortal && rewardApplied && mechanicsObserved : flow.ReachedBossApproach);
+                Debug.Log($"QA flow exercised: phase={flow?.PhaseId ?? "missing"}, covenant={observedCovenantChoice}, echoes={observedEchoHunt}, mastery={observedMasteryChoice}/{masteryApplied}, runes={observedRunePuzzle}, runeReset={observedRuneReset}, ward={observedWardRitual}, defense={observedSanctumDefense}, ashfall={observedAshfall}, witness={observedWitnessDialogue}/{witnessChoiceApplied}, eliteShield={observedEliteShield}/{observedEliteShieldBreak}, escort={observedEscort}/{observedEscortStage}, sepulchers={flow?.SepulchersCompleted ?? -1}, archive={observedArchiveCipher}/{observedArchiveReset}/{observedArchivePurge}/{observedArchiveSecondJudgment}, bossII={observedBossPhase2}, bossIII={observedBossPhase3}, cleave={observedDirectionalCleave}, rupture={observedCenterRupture}, convergence={observedConvergence}, relic={observedRelicChoice}/{rewardApplied}, portal={observedReturnPortal}, success={flowSucceeded}");
                 combatSucceeded &= flowSucceeded;
                 if (!flowSucceeded) Debug.LogError(exerciseBoss ? "QA Boss failed to complete all three phases" : "QA flow failed to reach the Boss approach");
             }
