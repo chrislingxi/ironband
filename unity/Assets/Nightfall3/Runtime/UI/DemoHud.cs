@@ -23,6 +23,7 @@ namespace Nightfall3.UI
         private Text bossPhase;
         private Text heroName;
         private Text heroPower;
+        private RectTransform movementCore;
         private float nextObjectiveRefresh;
 
         public static DemoHud Create(PlayerController target, DemoFlowController demoFlow)
@@ -101,6 +102,15 @@ namespace Nightfall3.UI
                 CreateText((i + 1).ToString(), slot.transform, new Vector2(40f, -37f), new Vector2(14f, 16f), 10, new Color(0.95f, 0.8f, 0.45f), new Vector2(0f, 1f), TextAnchor.MiddleCenter);
                 var button = icon.gameObject.AddComponent<Button>();
                 button.targetGraphic = icon;
+                button.transition = Selectable.Transition.ColorTint;
+                var colors = button.colors;
+                colors.normalColor = Color.white;
+                colors.highlightedColor = new Color(1f, 0.92f, 0.72f);
+                colors.pressedColor = new Color(0.55f, 0.76f, 1f);
+                colors.selectedColor = colors.highlightedColor;
+                colors.colorMultiplier = 1.15f;
+                colors.fadeDuration = 0.06f;
+                button.colors = colors;
                 var skill = i;
                 button.onClick.AddListener(() => CastSkill(skill));
                 cooldownMasks[i] = CreateImage("Cooldown", icon.transform, Vector2.zero, new Vector2(48f, 48f), new Color(0.015f, 0.02f, 0.035f, 0.76f), new Vector2(0f, 1f));
@@ -129,7 +139,7 @@ namespace Nightfall3.UI
         private void BuildTouchStick()
         {
             var ring = CreateImage("Movement Ring", safeAreaRoot, new Vector2(28f, 22f), new Vector2(82f, 82f), new Color(0.6f, 0.62f, 0.64f, 0.22f), new Vector2(0f, 0f), "Art/UI/btn_frame");
-            CreateImage("Movement Core", ring.transform, new Vector2(22f, -22f), new Vector2(38f, 38f), new Color(0.64f, 0.72f, 0.78f, 0.34f), new Vector2(0f, 1f), "Art/UI/btn_frame");
+            movementCore = CreateImage("Movement Core", ring.transform, new Vector2(22f, -22f), new Vector2(38f, 38f), new Color(0.64f, 0.72f, 0.78f, 0.34f), new Vector2(0f, 1f), "Art/UI/btn_frame").rectTransform;
         }
 
         private void BuildContextAction()
@@ -146,6 +156,7 @@ namespace Nightfall3.UI
         {
             if (Screen.safeArea != lastSafeArea) ApplySafeArea();
             if (player == null || healthFill == null) return;
+            if (movementCore != null) movementCore.anchoredPosition = new Vector2(22f, -22f) + player.MovementInput * 12f;
             healthFill.fillAmount = player.Health.Current / player.Health.Maximum;
             if (Time.unscaledTime >= nextObjectiveRefresh)
             {
@@ -219,15 +230,22 @@ namespace Nightfall3.UI
             rect.sizeDelta = size;
             var image = go.GetComponent<Image>();
             image.color = color;
-            if (!string.IsNullOrEmpty(resource)) image.sprite = LoadSprite(resource);
+            if (!string.IsNullOrEmpty(resource))
+            {
+                var slicedPanel = resource == "Art/UI/panel" && !preserveAspect;
+                image.sprite = LoadSprite(resource, slicedPanel ? 72f : 0f);
+                if (slicedPanel) image.type = Image.Type.Sliced;
+            }
             image.preserveAspect = preserveAspect;
             return image;
         }
 
-        private static Sprite LoadSprite(string resource)
+        private static Sprite LoadSprite(string resource, float border = 0f)
         {
             var texture = Resources.Load<Texture2D>(resource);
-            return texture == null ? null : Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), 100f);
+            if (texture == null) return null;
+            var spriteBorder = border > 0f ? Vector4.one * border : Vector4.zero;
+            return Sprite.Create(texture, new Rect(0f, 0f, texture.width, texture.height), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect, spriteBorder);
         }
 
         private static Text CreateText(string value, Transform parent, Vector2 position, Vector2 size, int fontSize, Color color, Vector2 anchor, TextAnchor alignment = TextAnchor.UpperLeft)

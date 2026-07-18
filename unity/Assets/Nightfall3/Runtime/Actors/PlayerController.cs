@@ -39,6 +39,7 @@ namespace Nightfall3.Actors
         public int Level { get; private set; } = 1;
         public int Experience { get; private set; }
         public float SpellPower { get; private set; } = 1f;
+        public Vector2 MovementInput { get; private set; }
         public Vector3 RespawnPoint { get; set; }
         public event System.Action Respawned;
 
@@ -57,6 +58,7 @@ namespace Nightfall3.Actors
             ReadTouchInput();
             var input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
             if (touchMove.sqrMagnitude > input.sqrMagnitude) input = touchMove;
+            MovementInput = Vector2.ClampMagnitude(input, 1f);
             var move = new Vector3(input.x, 0f, input.y).normalized;
             if (move.sqrMagnitude > 0.01f) facing = move;
             if (!attacking) character.Move(move * (CombatTuning.PlayerMoveSpeed * Time.deltaTime));
@@ -71,6 +73,7 @@ namespace Nightfall3.Actors
         private void ReadTouchInput()
         {
             touchMove = Vector2.zero;
+            MovementInput = Vector2.zero;
             foreach (var touch in Input.touches)
             {
                 if (touch.phase == TouchPhase.Began && touch.position.x < Screen.width * 0.48f && movementFinger < 0)
@@ -278,6 +281,7 @@ namespace Nightfall3.Actors
             attacking = false;
             movementFinger = -1;
             touchMove = Vector2.zero;
+            MovementInput = Vector2.zero;
             AudioDirector.PlayDeath(true);
             var visual = GetComponentInChildren<SpriteRenderer>();
             var originalColor = visual != null ? visual.color : Color.white;
