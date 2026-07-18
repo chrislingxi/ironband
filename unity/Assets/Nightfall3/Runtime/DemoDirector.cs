@@ -29,6 +29,7 @@ namespace Nightfall3
             var warden = BuildCamp();
             var flow = new GameObject("Demo Flow", typeof(DemoFlowController)).GetComponent<DemoFlowController>();
             flow.Configure(player, warden);
+            DemoRunTelemetry.Create(flow, player.GetComponent<PlayerController>());
             new GameObject("Audio Director", typeof(AudioDirector)).GetComponent<AudioDirector>().Configure(flow);
             DemoHud.Create(player.GetComponent<PlayerController>(), flow);
             CinematicDirector.Create(flow);

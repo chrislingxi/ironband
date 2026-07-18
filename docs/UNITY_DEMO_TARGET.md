@@ -41,6 +41,7 @@ The legacy TypeScript game remains the authoritative source for validated balanc
 - Common enemies have distinct tactical roles; elite and Boss attacks always telegraph before damage.
 - HUD is safe-area aware in portrait and landscape and never covers mandatory encounter information.
 - The demo builds from a clean checkout through command-line entry points.
+- A completed run writes phase-by-phase wall-clock telemetry; the 15-20 minute gate passes only between 900 and 1200 real seconds.
 - Native and Web builds are tested on real iPhone-class dimensions; final native acceptance requires a physical device run.
 
 ## Production Phases
