@@ -24,6 +24,9 @@ Unity production assets are tracked separately from the legacy web asset contrac
 | `Art/UI/aether-orb-v2.png` | OpenAI built-in image generation plus local sheet crop and chroma-key removal, 2026-07-18 | Player aether HUD vessel | Authored v2 production vessel |
 | `Art/UI/joystick-v2.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and radial split, 2026-07-18 | Touch movement outer ring | Authored v2 production control |
 | `Art/UI/joystick-core-v2.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and radial split, 2026-07-18 | Touch movement responsive core | Authored v2 production control |
+| `Art/NPCs/mara-ash-warden-v2.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and normalized frame alignment, 2026-07-18 | Mara, Ash Warden camp quest NPC | Authored v2 production sprite |
+| `Art/NPCs/veyra-forgekeeper-v2.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and normalized frame alignment, 2026-07-18 | Veyra, Forgekeeper camp NPC | Authored v2 production sprite |
+| `Art/NPCs/sister-elowen-v2.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and normalized frame alignment, 2026-07-18 | Sister Elowen camp ritual NPC | Authored v2 production sprite |
 
 ## Ashen Courtyard Prompt Contract
 
@@ -103,3 +106,9 @@ Unity production assets are tracked separately from the legacy web asset contrac
 - Original Duskweaver portrait, crimson vitality vessel, cobalt aether vessel and split touch-control ring built as one coherent black-iron and antique-brass family.
 - The portrait derives only from the project's authored Duskweaver character; the vessels and control contain no copied skull, frame, symbol or recognizable existing-game HUD design.
 - Separate transparent joystick ring and center assets preserve live input motion instead of presenting a static decorative control.
+
+## Emberwatch NPC Prompt Contract
+
+- Original camp trio with distinct professions: Mara's ward spear and buckler, Veyra's forging hammer and ember tongs, and Elowen's blue-flame ashwood reliquary staff.
+- Shared isometric camera, grounded human scale, warm camp rim light and cool key light align the NPCs with the authored Duskweaver production set.
+- No old compatibility character appearance, copied costume, familiar franchise symbol or existing NPC silhouette was retained.

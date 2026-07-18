@@ -172,13 +172,13 @@ namespace Nightfall3
         private static Transform BuildCamp()
         {
             CreateWorldArt("Emberwatch Fire", "Art/Props/campfire", new Vector3(0f, 0.04f, -8.6f), 2.75f, Color.white);
-            CreateWorldArt("Mara, Ash Warden", "Art/NPCs/kashya", new Vector3(-3.2f, 0.04f, -9.6f), 2.85f, Color.white);
-            CreateWorldArt("Veyra, Forgekeeper", "Art/NPCs/charsi", new Vector3(3.4f, 0.04f, -9.5f), 2.9f, Color.white);
-            CreateWorldArt("Sister Elowen", "Art/NPCs/akara", new Vector3(5.5f, 0.04f, -5.6f), 2.75f, Color.white);
+            CreateWorldArt("Mara, Ash Warden", "Art/NPCs/mara-ash-warden-v2", new Vector3(-3.2f, 0.04f, -9.6f), 3.3f, Color.white);
+            CreateWorldArt("Veyra, Forgekeeper", "Art/NPCs/veyra-forgekeeper-v2", new Vector3(3.4f, 0.04f, -9.5f), 3.3f, Color.white);
+            CreateWorldArt("Sister Elowen", "Art/NPCs/sister-elowen-v2", new Vector3(5.45f, 0.04f, -7.2f), 3.3f, Color.white);
             CreateWorldArt("Forge Anvil", "Art/Props/blacksmith_anvil", new Vector3(5.2f, 0.04f, -8.7f), 1.75f, Color.white);
-            CreateWorldLabel("MARA  •  ASH WARDEN", new Vector3(-3.2f, 3f, -9.6f), new Color(0.95f, 0.76f, 0.38f));
-            CreateWorldLabel("VEYRA  •  FORGEKEEPER", new Vector3(3.4f, 3.05f, -9.5f), new Color(0.72f, 0.76f, 0.8f));
-            CreateWorldLabel("SISTER ELOWEN", new Vector3(5.5f, 2.9f, -5.6f), new Color(0.72f, 0.76f, 0.8f));
+            CreateWorldLabel("MARA  •  ASH WARDEN", new Vector3(-3.2f, 3.25f, -9.6f), new Color(0.95f, 0.76f, 0.38f));
+            CreateWorldLabel("VEYRA  •  FORGEKEEPER", new Vector3(3.4f, 3.25f, -9.5f), new Color(0.72f, 0.76f, 0.8f));
+            CreateWorldLabel("SISTER ELOWEN", new Vector3(5.45f, 3.35f, -7.2f), new Color(0.72f, 0.76f, 0.8f));
             CreateGroundRing(new Vector3(-3.2f, 0.04f, -9.6f), 1.15f, new Color(0.9f, 0.62f, 0.16f, 0.68f));
             return GameObject.Find("Mara, Ash Warden")?.transform;
         }
