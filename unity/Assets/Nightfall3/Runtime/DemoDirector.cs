@@ -267,6 +267,16 @@ namespace Nightfall3
                     "Art/Monsters/blood-ash-hound-hit-v3",
                     "Art/Monsters/blood-ash-hound-defeated-v3");
             }
+            else if (visual != null && archetype == EnemyArchetype.Brute)
+            {
+                var animator = visual.gameObject.AddComponent<EnemySpriteAnimator>();
+                animator.Configure(root.transform, height,
+                    "Art/Monsters/blue-ash-juggernaut-advance-v3",
+                    "Art/Monsters/blue-ash-juggernaut-advance-v3",
+                    "Art/Monsters/blue-ash-juggernaut-slam-v3",
+                    "Art/Monsters/blue-ash-juggernaut-hit-v3",
+                    "Art/Monsters/blue-ash-juggernaut-defeated-v3");
+            }
             return enemy;
         }
 

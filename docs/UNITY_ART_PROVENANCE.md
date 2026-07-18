@@ -17,6 +17,7 @@ Unity production assets are tracked separately from the legacy web asset contrac
 | `Art/Monsters/blood-ash-hound-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-18 | Blood-Ash Hound fast flanking enemy | Authored v2 key sprite; directional animation sheet pending |
 | `Art/Monsters/blood-ash-hound-*-v3.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal, component cleanup and normalized frame alignment, 2026-07-18 | Blood-Ash Hound run, pounce, hit and defeated state set | Authored v3 production action set |
 | `Art/Monsters/blue-ash-juggernaut-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-18 | Blue-Ash Juggernaut heavy and elite encounter anchor | Authored v2 key sprite; directional animation sheet pending |
+| `Art/Monsters/blue-ash-juggernaut-*-v3.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and normalized frame alignment, 2026-07-18 | Blue-Ash Juggernaut advance, overhead slam, hit and defeated state set | Authored v3 production action set |
 | `Art/UI/panel-v2.png` | OpenAI built-in image generation plus local chroma-key removal and alpha-bound crop, 2026-07-18 | Shared 9-slice HUD, objective, Boss and interaction panel | Authored v2 production frame |
 | `Art/Icons/skill-chain-arc-v2.png` | OpenAI built-in image generation plus local sheet crop and chroma-key removal, 2026-07-18 | Chain Arc skill icon | Authored v2 production icon |
 | `Art/Icons/skill-static-dominion-v2.png` | OpenAI built-in image generation plus local sheet crop and chroma-key removal, 2026-07-18 | Static Dominion skill icon | Authored v2 production icon |
@@ -109,6 +110,12 @@ Unity production assets are tracked separately from the legacy web asset contrac
 - Original fortress enforcer in layered pitted black-iron and basalt plate, oxblood bindings, restrained blue-ash ward seals and a caged helm.
 - Broad shoulder bastion, grounded stance and a practical two-handed maul-cleaver communicate slow overhead impact and elite mass at mobile scale.
 - Uses project character assets only as internal camera, lighting and material references; no recognizable franchise armor, weapon, insignia or silhouette was copied.
+
+## Blue-Ash Juggernaut Animation Prompt Contract
+
+- Four consistent full-body states preserve the authored caged helm, massive basalt plate, shoulder bastions, chains, oxblood bindings, cyan ward seals and two-handed maul-cleaver across advance, overhead slam, hit and defeated poses.
+- The vertical wind-up silhouette remains active through the long slam telegraph; local processing only removes chroma, normalizes the canvas and aligns the pivot.
+- No animation pose, armor treatment, weapon design or silhouette was copied from an existing franchise.
 
 ## Nightfall HUD Panel Prompt Contract
 
