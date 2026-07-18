@@ -13,6 +13,10 @@ Unity production assets are tracked separately from the legacy web asset contrac
 | `Art/Monsters/blood-ash-hound-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-18 | Blood-Ash Hound fast flanking enemy | Authored v2 key sprite; directional animation sheet pending |
 | `Art/Monsters/blue-ash-juggernaut-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-18 | Blue-Ash Juggernaut heavy and elite encounter anchor | Authored v2 key sprite; directional animation sheet pending |
 | `Art/UI/panel-v2.png` | OpenAI built-in image generation plus local chroma-key removal and alpha-bound crop, 2026-07-18 | Shared 9-slice HUD, objective, Boss and interaction panel | Authored v2 production frame |
+| `Art/Icons/skill-chain-arc-v2.png` | OpenAI built-in image generation plus local sheet crop and chroma-key removal, 2026-07-18 | Chain Arc skill icon | Authored v2 production icon |
+| `Art/Icons/skill-static-dominion-v2.png` | OpenAI built-in image generation plus local sheet crop and chroma-key removal, 2026-07-18 | Static Dominion skill icon | Authored v2 production icon |
+| `Art/Icons/skill-phase-step-v2.png` | OpenAI built-in image generation plus local sheet crop and chroma-key removal, 2026-07-18 | Phase Step skill icon | Authored v2 production icon |
+| `Art/Icons/skill-frozen-star-v2.png` | OpenAI built-in image generation plus local sheet crop and chroma-key removal, 2026-07-18 | Frozen Star skill icon | Authored v2 production icon |
 
 ## Ashen Courtyard Prompt Contract
 
@@ -68,3 +72,9 @@ Unity production assets are tracked separately from the legacy web asset contrac
 - Original front-facing nine-slice frame built from forged black iron, basalt, restrained antique brass, oxblood bindings and sparse cold-cyan ward lines.
 - Symmetric protected corners, quiet stretchable edges and a low-contrast charcoal center preserve readability across compact mobile HUD dimensions.
 - Contains no copied crest, skull, icon, text, layout or recognizable franchise ornament.
+
+## Duskweaver Skill Icon Prompt Contract
+
+- Original four-icon family: a chained storm arc, a concentric static dominion, a dissolving phase step and a crystalline frozen star.
+- Shared front-facing black-iron bevel, basalt field, antique-brass rim and cold emissive lighting preserve consistency and mobile readability.
+- Contains no text, copied ability symbol, recognizable franchise iconography or existing game UI layout.

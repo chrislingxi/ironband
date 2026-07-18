@@ -90,15 +90,15 @@ namespace Nightfall3.UI
 
             var icons = new[]
             {
-                "Art/Icons/skill-chain-lightning",
-                "Art/Icons/skill-static-field",
-                "Art/Icons/skill-teleport",
-                "Art/Icons/skill-frozen-orb"
+                "Art/Icons/skill-chain-arc-v2",
+                "Art/Icons/skill-static-dominion-v2",
+                "Art/Icons/skill-phase-step-v2",
+                "Art/Icons/skill-frozen-star-v2"
             };
             for (var i = 0; i < icons.Length; i++)
             {
-                var slot = CreateImage($"Skill {i + 1}", bar.transform, new Vector2(16f + i * 74f, -9f), new Vector2(58f, 58f), Color.white, new Vector2(0f, 1f), "Art/UI/item_slot");
-                var icon = CreateImage("Icon", slot.transform, new Vector2(5f, -5f), new Vector2(48f, 48f), new Color(0.73f, 0.78f, 0.86f, 0.94f), new Vector2(0f, 1f), icons[i]);
+                var slot = CreateImage($"Skill {i + 1}", bar.transform, new Vector2(16f + i * 74f, -9f), new Vector2(58f, 58f), Color.clear, new Vector2(0f, 1f));
+                var icon = CreateImage("Icon", slot.transform, Vector2.zero, new Vector2(58f, 58f), Color.white, new Vector2(0f, 1f), icons[i]);
                 CreateText((i + 1).ToString(), slot.transform, new Vector2(40f, -37f), new Vector2(14f, 16f), 10, new Color(0.95f, 0.8f, 0.45f), new Vector2(0f, 1f), TextAnchor.MiddleCenter);
                 var button = icon.gameObject.AddComponent<Button>();
                 button.targetGraphic = icon;
@@ -113,13 +113,13 @@ namespace Nightfall3.UI
                 button.colors = colors;
                 var skill = i;
                 button.onClick.AddListener(() => CastSkill(skill));
-                cooldownMasks[i] = CreateImage("Cooldown", icon.transform, Vector2.zero, new Vector2(48f, 48f), new Color(0.015f, 0.02f, 0.035f, 0.76f), new Vector2(0f, 1f));
+                cooldownMasks[i] = CreateImage("Cooldown", icon.transform, Vector2.zero, new Vector2(58f, 58f), new Color(0.015f, 0.02f, 0.035f, 0.76f), new Vector2(0f, 1f));
                 cooldownMasks[i].type = Image.Type.Filled;
                 cooldownMasks[i].fillMethod = Image.FillMethod.Radial360;
                 cooldownMasks[i].fillOrigin = (int)Image.Origin360.Top;
                 cooldownMasks[i].fillClockwise = false;
                 cooldownMasks[i].raycastTarget = false;
-                cooldownLabels[i] = CreateText(string.Empty, icon.transform, Vector2.zero, new Vector2(48f, 48f), 17, Color.white, new Vector2(0f, 1f), TextAnchor.MiddleCenter);
+                cooldownLabels[i] = CreateText(string.Empty, icon.transform, Vector2.zero, new Vector2(58f, 58f), 17, Color.white, new Vector2(0f, 1f), TextAnchor.MiddleCenter);
             }
         }
 
