@@ -104,8 +104,11 @@ namespace Nightfall3.Presentation
                 case "BossFight":
                     PlayCue("THE ASHEN CASTELLAN", "FIRST JUDGMENT: CLEAVING OATH", new Vector3(0f, 0f, 112f), 3.1f, 29f);
                     break;
-                case "ClaimReward":
-                    PlayCue("THE CASTELLAN FALLS", "AN EMBER-BOUND RELIC REMAINS", new Vector3(0f, 0f, 112f), 2.7f, 31f);
+                case "RelicChoice":
+                    PlayCue("THE CASTELLAN FALLS", "THREE LEGACIES REMAIN", new Vector3(0f, 0f, 112f), 2.7f, 31f);
+                    break;
+                case "ReturnPortal":
+                    PlayCue("LEGACY CLAIMED", "THE EMBERWATCH GATE ANSWERS", new Vector3(0f, 0f, 116f), 2.35f, 31f);
                     break;
                 case "Complete":
                     PlayCue("THE GATE REMEMBERS", "ASHEN APPROACH CLEARED", Camera.main != null ? Camera.main.transform.position + Camera.main.transform.forward * 8f : Vector3.zero, 3.5f, 34f);

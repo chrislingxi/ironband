@@ -34,14 +34,15 @@ namespace Nightfall3.Presentation
                 Array.IndexOf(args, "-qaAshfall") >= 0,
                 Array.IndexOf(args, "-qaWitness") >= 0,
                 Array.IndexOf(args, "-qaElite") >= 0,
-                Array.IndexOf(args, "-qaEscort") >= 0));
+                Array.IndexOf(args, "-qaEscort") >= 0,
+                Array.IndexOf(args, "-qaRelic") >= 0));
         }
 
-        private IEnumerator Capture(string path, bool exerciseCombat, bool exerciseFullFlow, bool exerciseBoss, bool exerciseRespawn, bool exerciseAnimation, bool exerciseEnemyAnimation, bool exerciseCovenant, bool exerciseBossMechanics, bool exerciseMastery, bool exerciseRune, bool exerciseAshfall, bool exerciseWitness, bool exerciseElite, bool exerciseEscort)
+        private IEnumerator Capture(string path, bool exerciseCombat, bool exerciseFullFlow, bool exerciseBoss, bool exerciseRespawn, bool exerciseAnimation, bool exerciseEnemyAnimation, bool exerciseCovenant, bool exerciseBossMechanics, bool exerciseMastery, bool exerciseRune, bool exerciseAshfall, bool exerciseWitness, bool exerciseElite, bool exerciseEscort, bool exerciseRelic)
         {
             var player = FindFirstObjectByType<PlayerController>();
             var flow = FindFirstObjectByType<DemoFlowController>();
-            if (exerciseCombat || exerciseFullFlow || exerciseBoss || exerciseRespawn || exerciseAnimation || exerciseEnemyAnimation || exerciseCovenant || exerciseBossMechanics || exerciseMastery || exerciseRune || exerciseAshfall || exerciseWitness || exerciseElite || exerciseEscort) flow?.Interact();
+            if (exerciseCombat || exerciseFullFlow || exerciseBoss || exerciseRespawn || exerciseAnimation || exerciseEnemyAnimation || exerciseCovenant || exerciseBossMechanics || exerciseMastery || exerciseRune || exerciseAshfall || exerciseWitness || exerciseElite || exerciseEscort || exerciseRelic) flow?.Interact();
             var startingEnemies = FindObjectsByType<EnemyController>(FindObjectsSortMode.None);
             var initialEnemies = startingEnemies.Length;
             var initialHealth = startingEnemies.Sum(enemy => enemy.GetComponent<Health>().Current);
@@ -66,6 +67,9 @@ namespace Nightfall3.Presentation
             var observedEscort = false;
             var observedEscortStage = 0;
             var escortCaptureFrames = 0;
+            var observedRelicChoice = false;
+            var observedReturnPortal = false;
+            var relicCaptureFrames = 0;
             var observedRespawn = false;
             if (player != null) player.Respawned += () => observedRespawn = true;
             var issuedPhaseOneDamage = false;
@@ -77,7 +81,7 @@ namespace Nightfall3.Presentation
             var animatedEnemies = startingEnemies.Where(enemy => enemy.GetComponentInChildren<EnemySpriteAnimator>() != null).ToArray();
             var animatedEnemyNames = animatedEnemies.Select(enemy => enemy.Archetype.ToString()).ToArray();
             var observedEnemyStates = new bool[animatedEnemies.Length, 5];
-            var frameBudget = exerciseBossMechanics ? 5000 : exerciseBoss ? 4200 : exerciseEscort ? 4300 : exerciseElite ? 3100 : exerciseWitness ? 2800 : exerciseAshfall ? 2200 : exerciseRune ? 760 : exerciseMastery ? 560 : exerciseCovenant ? 420 : exerciseFullFlow ? 3500 : exerciseEnemyAnimation ? 360 : exerciseAnimation ? 240 : 180;
+            var frameBudget = exerciseRelic ? 6200 : exerciseBossMechanics ? 5000 : exerciseBoss ? 4200 : exerciseEscort ? 4300 : exerciseElite ? 3100 : exerciseWitness ? 2800 : exerciseAshfall ? 2200 : exerciseRune ? 760 : exerciseMastery ? 560 : exerciseCovenant ? 420 : exerciseFullFlow ? 3500 : exerciseEnemyAnimation ? 360 : exerciseAnimation ? 240 : 180;
             for (var frame = 0; frame < frameBudget; frame++)
             {
                 if (exerciseAnimation && player != null)
@@ -128,7 +132,7 @@ namespace Nightfall3.Presentation
                     if (frame > 16 && frame % 12 == 0 && flow.PhaseId == "GateFight") KillAllTargets(player.transform.position);
                     if (flow.PhaseId == "CovenantChoice") player.transform.position = new Vector3(-3.6f, 0.05f, 7.2f);
                 }
-                if ((exerciseFullFlow || exerciseBoss || exerciseBossMechanics || exerciseMastery || exerciseRune || exerciseAshfall || exerciseWitness || exerciseElite || exerciseEscort) && player != null && flow != null)
+                if ((exerciseFullFlow || exerciseBoss || exerciseBossMechanics || exerciseMastery || exerciseRune || exerciseAshfall || exerciseWitness || exerciseElite || exerciseEscort || exerciseRelic) && player != null && flow != null)
                 {
                     if (flow.PhaseId == "WardRitual") observedWardRitual = true;
                     if (flow.PhaseId == "EchoHunt")
@@ -214,7 +218,7 @@ namespace Nightfall3.Presentation
                     if (flow.PhaseId == "AdvanceDefense") player.transform.position = new Vector3(0f, 0.05f, 55.5f);
                     if (flow.PhaseId == "AdvanceGauntlet") player.transform.position = new Vector3(0f, 0.05f, 62.5f);
                     if (flow.PhaseId == "AdvanceElite") player.transform.position = new Vector3(0f, 0.05f, 78.5f);
-                    if ((exerciseBoss || exerciseBossMechanics) && flow.PhaseId == "BossApproach") player.transform.position = new Vector3(0f, 0.05f, 109.5f);
+                    if ((exerciseBoss || exerciseBossMechanics || exerciseRelic) && flow.PhaseId == "BossApproach") player.transform.position = new Vector3(0f, 0.05f, 109.5f);
 
                     var boss = FindFirstObjectByType<BossController>();
                     if (exerciseBossMechanics && boss != null)
@@ -223,12 +227,12 @@ namespace Nightfall3.Presentation
                         observedCenterRupture |= boss.ObservedCenterRupture;
                         observedConvergence |= boss.ObservedConvergence;
                     }
-                    if ((exerciseBoss || exerciseBossMechanics && observedDirectionalCleave) && boss != null && boss.Phase == 1 && !issuedPhaseOneDamage)
+                    if ((exerciseBoss || exerciseRelic || exerciseBossMechanics && observedDirectionalCleave) && boss != null && boss.Phase == 1 && !issuedPhaseOneDamage)
                     {
                         boss.ReceiveHit(720f, player.transform.position, true);
                         issuedPhaseOneDamage = true;
                     }
-                    if ((exerciseBoss || exerciseBossMechanics) && boss != null && boss.Phase == 2)
+                    if ((exerciseBoss || exerciseBossMechanics || exerciseRelic) && boss != null && boss.Phase == 2)
                     {
                         observedBossPhase2 = true;
                         if (!issuedPhaseTwoDamage && (!exerciseBossMechanics || observedCenterRupture))
@@ -237,7 +241,7 @@ namespace Nightfall3.Presentation
                             issuedPhaseTwoDamage = true;
                         }
                     }
-                    if ((exerciseBoss || exerciseBossMechanics) && boss != null && boss.Phase == 3)
+                    if ((exerciseBoss || exerciseBossMechanics || exerciseRelic) && boss != null && boss.Phase == 3)
                     {
                         observedBossPhase3 = true;
                         if (!issuedKillingDamage && (!exerciseBossMechanics || observedConvergence))
@@ -246,10 +250,24 @@ namespace Nightfall3.Presentation
                             issuedKillingDamage = true;
                         }
                     }
-                    if ((exerciseBoss || exerciseBossMechanics) && flow.PhaseId == "ClaimReward")
+                    if (flow.PhaseId == "RelicChoice")
                     {
-                        var reward = FindObjectsByType<LootPickup>(FindObjectsSortMode.None).FirstOrDefault(pickup => pickup.IsLegendary);
-                        if (reward != null) player.transform.position = reward.transform.position;
+                        observedRelicChoice = true;
+                        if (exerciseRelic)
+                        {
+                            if (++relicCaptureFrames >= 190) frame = frameBudget;
+                        }
+                        else if (exerciseBoss || exerciseBossMechanics)
+                        {
+                            player.transform.position = flow.InteractionTargetPosition;
+                            flow.Interact();
+                        }
+                    }
+                    if ((exerciseBoss || exerciseBossMechanics) && flow.PhaseId == "ReturnPortal")
+                    {
+                        observedReturnPortal = true;
+                        player.transform.position = flow.InteractionTargetPosition;
+                        flow.Interact();
                     }
                 }
                 yield return new WaitForEndOfFrame();
@@ -344,15 +362,22 @@ namespace Nightfall3.Presentation
                 combatSucceeded &= escortSucceeded;
                 if (!escortSucceeded) Debug.LogError("QA ward-flame escort failed to present the first ambush state");
             }
+            if (exerciseRelic)
+            {
+                var relicSucceeded = flow != null && flow.PhaseId == "RelicChoice" && observedRelicChoice && player != null && player.FinalRelicName == "UNCLAIMED";
+                Debug.Log($"QA relic choice exercised: phase={flow?.PhaseId ?? "missing"}, unresolved={player?.FinalRelicName == "UNCLAIMED"}, success={relicSucceeded}");
+                combatSucceeded &= relicSucceeded;
+                if (!relicSucceeded) Debug.LogError("QA relic choice failed to present the three unresolved legendary altars");
+            }
             if (exerciseFullFlow || exerciseBoss || exerciseBossMechanics)
             {
                 var completingBoss = exerciseBoss || exerciseBossMechanics;
-                var rewardApplied = !completingBoss || player != null && player.SpellPower > initialPower;
+                var rewardApplied = !completingBoss || player != null && player.SpellPower > initialPower && player.FinalRelicName != "UNCLAIMED";
                 var mechanicsObserved = !exerciseBossMechanics || observedDirectionalCleave && observedCenterRupture && observedConvergence;
                 var masteryApplied = player != null && player.MasteryName != "UNSHAPED";
                 var witnessChoiceApplied = player != null && player.WitnessChoice != "UNCHOSEN";
-                var flowSucceeded = flow != null && observedCovenantChoice && observedEchoHunt && observedMasteryChoice && masteryApplied && observedRunePuzzle && observedRuneReset && observedWardRitual && observedSanctumDefense && observedAshfall && observedWitnessDialogue && witnessChoiceApplied && observedEliteShield && observedEliteShieldBreak && observedEscort && observedEscortStage >= 3 && (completingBoss ? flow.IsComplete && observedBossPhase2 && observedBossPhase3 && rewardApplied && mechanicsObserved : flow.ReachedBossApproach);
-                Debug.Log($"QA flow exercised: phase={flow?.PhaseId ?? "missing"}, covenant={observedCovenantChoice}, echoes={observedEchoHunt}, mastery={observedMasteryChoice}/{masteryApplied}, runes={observedRunePuzzle}, runeReset={observedRuneReset}, ward={observedWardRitual}, defense={observedSanctumDefense}, ashfall={observedAshfall}, witness={observedWitnessDialogue}/{witnessChoiceApplied}, eliteShield={observedEliteShield}/{observedEliteShieldBreak}, escort={observedEscort}/{observedEscortStage}, bossII={observedBossPhase2}, bossIII={observedBossPhase3}, cleave={observedDirectionalCleave}, rupture={observedCenterRupture}, convergence={observedConvergence}, reward={rewardApplied}, success={flowSucceeded}");
+                var flowSucceeded = flow != null && observedCovenantChoice && observedEchoHunt && observedMasteryChoice && masteryApplied && observedRunePuzzle && observedRuneReset && observedWardRitual && observedSanctumDefense && observedAshfall && observedWitnessDialogue && witnessChoiceApplied && observedEliteShield && observedEliteShieldBreak && observedEscort && observedEscortStage >= 3 && (completingBoss ? flow.IsComplete && observedBossPhase2 && observedBossPhase3 && observedRelicChoice && observedReturnPortal && rewardApplied && mechanicsObserved : flow.ReachedBossApproach);
+                Debug.Log($"QA flow exercised: phase={flow?.PhaseId ?? "missing"}, covenant={observedCovenantChoice}, echoes={observedEchoHunt}, mastery={observedMasteryChoice}/{masteryApplied}, runes={observedRunePuzzle}, runeReset={observedRuneReset}, ward={observedWardRitual}, defense={observedSanctumDefense}, ashfall={observedAshfall}, witness={observedWitnessDialogue}/{witnessChoiceApplied}, eliteShield={observedEliteShield}/{observedEliteShieldBreak}, escort={observedEscort}/{observedEscortStage}, bossII={observedBossPhase2}, bossIII={observedBossPhase3}, cleave={observedDirectionalCleave}, rupture={observedCenterRupture}, convergence={observedConvergence}, relic={observedRelicChoice}/{rewardApplied}, portal={observedReturnPortal}, success={flowSucceeded}");
                 combatSucceeded &= flowSucceeded;
                 if (!flowSucceeded) Debug.LogError(exerciseBoss ? "QA Boss failed to complete all three phases" : "QA flow failed to reach the Boss approach");
             }

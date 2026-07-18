@@ -171,7 +171,7 @@ namespace Nightfall3
             return visual.transform;
         }
 
-        public static Transform CreateCovenantShrine(string name, string resource, Vector3 position, float height, Color aura, string label)
+        public static Transform CreateCovenantShrine(string name, string resource, Vector3 position, float height, Color aura, string label, float labelHeight = 4.15f)
         {
             var root = new GameObject(name).transform;
             root.position = position;
@@ -186,7 +186,7 @@ namespace Nightfall3
             light.color = aura;
             light.range = 6.5f;
             light.intensity = 3.4f;
-            CreateWorldLabel(label, position + Vector3.up * 4.15f, aura)?.SetParent(root, true);
+            CreateWorldLabel(label, position + Vector3.up * labelHeight, aura)?.SetParent(root, true);
             return root;
         }
 

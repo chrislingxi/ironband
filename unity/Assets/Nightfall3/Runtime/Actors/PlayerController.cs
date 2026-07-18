@@ -52,6 +52,7 @@ namespace Nightfall3.Actors
         public string CovenantName { get; private set; } = "UNBOUND";
         public string MasteryName { get; private set; } = "UNSHAPED";
         public string WitnessChoice { get; private set; } = "UNCHOSEN";
+        public string FinalRelicName { get; private set; } = "UNCLAIMED";
         public Vector2 MovementInput { get; private set; }
         public Vector3 RespawnPoint { get; set; }
         public event System.Action Respawned;
@@ -333,6 +334,38 @@ namespace Nightfall3.Actors
                 WitnessChoice = "OATH RELEASED";
                 Health.IncreaseMaximum(22f, true);
             }
+        }
+
+        public void ApplyFinalRelic(int relic)
+        {
+            if (FinalRelicName != "UNCLAIMED") return;
+            GrantRelic(0.25f, 300);
+            if (relic == 0)
+            {
+                FinalRelicName = "STORM CROWN";
+                arcDamageMultiplier *= 1.28f;
+                staticDamageMultiplier *= 1.16f;
+            }
+            else if (relic == 1)
+            {
+                FinalRelicName = "FROSTHEART";
+                frozenDamageMultiplier *= 1.34f;
+                frozenCooldownMultiplier *= 0.82f;
+            }
+            else
+            {
+                FinalRelicName = "EMBER AEGIS";
+                basicDamageMultiplier *= 1.18f;
+                Health.IncreaseMaximum(42f, true);
+            }
+        }
+
+        public void TeleportTo(Vector3 destination)
+        {
+            if (character == null) return;
+            character.enabled = false;
+            transform.position = destination;
+            character.enabled = true;
         }
 
         public GrowthSnapshot CaptureGrowth() => new(Level, Experience, SpellPower, Health.Maximum);

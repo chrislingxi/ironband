@@ -34,7 +34,8 @@ namespace Nightfall3.Flow
             WardflameEscort,
             BossApproach,
             BossFight,
-            ClaimReward,
+            RelicChoice,
+            ReturnPortal,
             Complete
         }
 
@@ -72,6 +73,8 @@ namespace Nightfall3.Flow
         private Transform oathLantern;
         private int escortStage;
         private float escortCheckpointZ;
+        private readonly List<Transform> relicAltars = new();
+        private Transform returnPortal;
         private bool stormglassCovenant;
 
         public string ZoneName { get; private set; } = "EMBERWATCH CAMP";
@@ -81,8 +84,10 @@ namespace Nightfall3.Flow
             || phase == Phase.CovenantChoice && NearestCovenantDistance <= 2.6f
             || phase == Phase.EchoHunt && !echoWaveActive && CurrentEcho != null && Vector3.Distance(player.position, CurrentEcho.position) <= 2.6f
             || phase == Phase.RunePuzzle && NearestRuneDistance <= 1.65f
-            || phase == Phase.WitnessApproach && witnessEcho != null && Vector3.Distance(player.position, witnessEcho.position) <= 2.6f;
-        public string InteractionLabel => phase == Phase.CovenantChoice ? "ATTUNE" : phase == Phase.EchoHunt ? "RECALL" : phase == Phase.RunePuzzle ? "ACTIVATE" : phase == Phase.WitnessApproach ? "LISTEN" : "SPEAK";
+            || phase == Phase.WitnessApproach && witnessEcho != null && Vector3.Distance(player.position, witnessEcho.position) <= 2.6f
+            || phase == Phase.RelicChoice && NearestRelicDistance <= 2.35f
+            || phase == Phase.ReturnPortal && returnPortal != null && Vector3.Distance(player.position, returnPortal.position) <= 2.8f;
+        public string InteractionLabel => phase == Phase.CovenantChoice ? "ATTUNE" : phase == Phase.EchoHunt ? "RECALL" : phase == Phase.RunePuzzle ? "ACTIVATE" : phase == Phase.WitnessApproach ? "LISTEN" : phase == Phase.RelicChoice ? "CLAIM" : phase == Phase.ReturnPortal ? "RETURN" : "SPEAK";
         public string CovenantName => playerController != null ? playerController.CovenantName : "UNBOUND";
         public bool CanChooseMastery => phase == Phase.MasteryChoice;
         public int RuneProgress => runeProgress;
@@ -101,6 +106,8 @@ namespace Nightfall3.Flow
             Phase.EchoHunt when CurrentEcho != null => CurrentEcho.position,
             Phase.RunePuzzle when NearestRune != null => NearestRune.position,
             Phase.WitnessApproach when witnessEcho != null => witnessEcho.position,
+            Phase.RelicChoice when NearestRelic != null => NearestRelic.position,
+            Phase.ReturnPortal when returnPortal != null => returnPortal.position,
             _ when warden != null => warden.position,
             _ => player != null ? player.position : Vector3.zero
         };
@@ -138,6 +145,16 @@ namespace Nightfall3.Flow
             if (phase == Phase.WitnessApproach)
             {
                 if (CanInteract) BeginWitnessDialogue();
+                return;
+            }
+            if (phase == Phase.RelicChoice)
+            {
+                if (CanInteract) ChooseRelic(relicAltars.IndexOf(NearestRelic));
+                return;
+            }
+            if (phase == Phase.ReturnPortal)
+            {
+                if (CanInteract) CompleteDemo();
                 return;
             }
             if (phase != Phase.CovenantChoice || NearestCovenantDistance > 2.6f) return;
@@ -183,6 +200,11 @@ namespace Nightfall3.Flow
             {
                 if (Input.GetKeyDown(KeyCode.Alpha1)) ChooseDialogue(0);
                 else if (Input.GetKeyDown(KeyCode.Alpha2)) ChooseDialogue(1);
+                return;
+            }
+            if (phase == Phase.RelicChoice || phase == Phase.ReturnPortal)
+            {
+                if (CanInteract && Input.GetKeyDown(KeyCode.E)) Interact();
                 return;
             }
 
@@ -788,18 +810,45 @@ namespace Nightfall3.Flow
 
         private void OfferBossReward()
         {
-            phase = Phase.ClaimReward;
-            ObjectiveTitle = "THE CASTELLAN'S RELIC";
-            ObjectiveDetail = "Claim the ember-bound wardstone";
-            var position = boss != null ? boss.transform.position : player.position + Vector3.forward;
-            DemoDirector.SpawnLootPickup(position, player.GetComponent<PlayerController>(), true, CompleteDemo);
+            phase = Phase.RelicChoice;
+            ZoneName = "CASTELLAN'S FALL";
+            ObjectiveTitle = "THREE RELICS REMAIN";
+            ObjectiveDetail = "Choose one legacy to carry beyond Act I";
+            relicAltars.Clear();
+            relicAltars.Add(DemoDirector.CreateCovenantShrine("Storm Crown", "Art/Relics/storm-crown-v1", new Vector3(-4.3f, 0.04f, 112f), 2.75f, new Color(0.22f, 0.78f, 1f), "STORM CROWN", 3.65f));
+            relicAltars.Add(DemoDirector.CreateCovenantShrine("Frostheart", "Art/Relics/frostheart-v1", new Vector3(0f, 0.04f, 114f), 3.15f, new Color(0.48f, 0.58f, 1f), "FROSTHEART", 3.65f));
+            relicAltars.Add(DemoDirector.CreateCovenantShrine("Ember Aegis", "Art/Relics/ember-aegis-v1", new Vector3(4.3f, 0.04f, 112f), 3.2f, new Color(1f, 0.3f, 0.06f), "EMBER AEGIS", 3.65f));
+        }
+
+        private Transform NearestRelic => relicAltars.Where(relic => relic != null).OrderBy(relic => Vector3.Distance(player.position, relic.position)).FirstOrDefault();
+        private float NearestRelicDistance => NearestRelic != null ? Vector3.Distance(player.position, NearestRelic.position) : float.MaxValue;
+
+        private void ChooseRelic(int relic)
+        {
+            if (phase != Phase.RelicChoice || relic < 0) return;
+            playerController?.ApplyFinalRelic(relic);
+            AudioDirector.PlayPickup(true);
+            var selectedPosition = relicAltars[relic].position;
+            DemoDirector.SpawnShockwave(selectedPosition, relic == 2 ? new Color(1f, 0.3f, 0.06f) : new Color(0.3f, 0.78f, 1f));
+            foreach (var altar in relicAltars)
+            {
+                if (altar != null) Destroy(altar.gameObject, 0.35f);
+            }
+            phase = Phase.ReturnPortal;
+            ObjectiveTitle = $"{playerController?.FinalRelicName ?? "RELIC"} CLAIMED";
+            ObjectiveDetail = "Enter the Emberwatch return gate";
+            returnPortal = DemoDirector.CreateCovenantShrine("Emberwatch Return Gate", "Art/Props/exit_gate", new Vector3(0f, 0.04f, 116f), 4.6f, new Color(0.35f, 0.82f, 1f), "RETURN TO EMBERWATCH");
         }
 
         private void CompleteDemo()
         {
+            if (phase != Phase.ReturnPortal) return;
+            if (returnPortal != null) Destroy(returnPortal.gameObject, 0.2f);
+            playerController?.TeleportTo(new Vector3(0f, 0.05f, -8.6f));
             phase = Phase.Complete;
-            ObjectiveTitle = "THE GATE REMEMBERS";
-            ObjectiveDetail = "Demo complete  •  Return to Emberwatch in Act I";
+            ZoneName = "EMBERWATCH CAMP";
+            ObjectiveTitle = "ACT I  •  THE GATE REMEMBERS";
+            ObjectiveDetail = "The Ashen Approach is reclaimed";
         }
 
         private void SetCheckpoint(Vector3 position)
@@ -846,7 +895,7 @@ namespace Nightfall3.Flow
                 case Phase.BossFight:
                     BeginBossFight();
                     break;
-                case Phase.ClaimReward:
+                case Phase.RelicChoice:
                     OfferBossReward();
                     break;
             }
