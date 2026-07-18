@@ -39,7 +39,12 @@ namespace Nightfall3.Editor
             "Assets/Resources/Art/NPCs/kashya.png",
             "Assets/Resources/Art/NPCs/charsi.png",
             "Assets/Resources/Art/NPCs/akara.png",
-            "Assets/Resources/Art/Bosses/ashen-castellan-v1.png",
+            "Assets/Resources/Art/Bosses/castellan-phase-1-v2.png",
+            "Assets/Resources/Art/Bosses/castellan-phase-2-v2.png",
+            "Assets/Resources/Art/Bosses/castellan-phase-3-v2.png",
+            "Assets/Resources/Art/Bosses/castellan-cleave-v2.png",
+            "Assets/Resources/Art/Bosses/castellan-rupture-v2.png",
+            "Assets/Resources/Art/Bosses/castellan-convergence-v2.png",
             "Assets/Resources/Art/Environment/ashen-courtyard-albedo-v1.png",
             "Assets/Resources/Art/Environment/ashen-gate-facade-v1.png"
         };

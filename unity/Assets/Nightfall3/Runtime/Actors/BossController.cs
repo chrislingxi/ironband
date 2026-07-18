@@ -19,6 +19,7 @@ namespace Nightfall3.Actors
         private float nextAttack;
         private Coroutine attackRoutine;
         private readonly List<GameObject> activeTelegraphs = new();
+        private BossSpriteAnimator spriteAnimator;
 
         public event Action Defeated;
         public Transform TargetTransform => transform;
@@ -56,6 +57,7 @@ namespace Nightfall3.Actors
         private IEnumerator AttackRoutine()
         {
             attacking = true;
+            SpriteAnimator?.PlayAttack(Phase);
             if (Phase == 1) yield return CleavingJudgment();
             else if (Phase == 2) yield return WardRupture();
             else yield return FinalConvergence();
@@ -158,17 +160,14 @@ namespace Nightfall3.Actors
             attackRoutine = null;
             ClearTelegraphs();
             Phase = phase;
+            SpriteAnimator?.SetPhase(phase);
             AudioDirector.PlaySkill(phase == 2 ? 0.62f : 0.48f);
-            var visual = GetComponentInChildren<SpriteRenderer>();
-            var targetScale = phase == 2 ? Vector3.one * 1.1f : Vector3.one * 1.22f;
             var color = phase == 2 ? new Color(0.68f, 0.9f, 1f) : new Color(1f, 0.58f, 0.72f);
             for (var i = 0; i < 4; i++)
             {
                 DemoDirector.SpawnShockwave(transform.position, color);
                 yield return new WaitForSecondsRealtime(0.1f);
             }
-            transform.localScale = targetScale;
-            if (visual != null) visual.color = color;
             Camera.main?.GetComponent<CameraRig>()?.AddTrauma(0.8f);
             nextAttack = Time.time + 0.35f;
             transitioning = false;
@@ -183,6 +182,8 @@ namespace Nightfall3.Actors
             yield return new WaitForSecondsRealtime(critical ? 0.1f : 0.065f);
             if (visual != null) visual.color = original;
         }
+
+        private BossSpriteAnimator SpriteAnimator => spriteAnimator != null ? spriteAnimator : spriteAnimator = GetComponentInChildren<BossSpriteAnimator>();
 
         private void OnDied()
         {

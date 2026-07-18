@@ -246,7 +246,8 @@ namespace Nightfall3
             root.transform.position = position;
             var boss = root.GetComponent<BossController>();
             boss.Configure(target, 1800f);
-            CreateActorVisual(root.transform, "Art/Bosses/ashen-castellan-v1", 5.8f, Color.white);
+            var visual = CreateActorVisual(root.transform, "Art/Bosses/castellan-phase-1-v2", 5.8f, Color.white);
+            visual.gameObject.AddComponent<BossSpriteAnimator>().Configure(5.8f);
             return boss;
         }
 
