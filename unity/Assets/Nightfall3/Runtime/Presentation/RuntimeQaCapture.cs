@@ -29,14 +29,15 @@ namespace Nightfall3.Presentation
                 Array.IndexOf(args, "-qaEnemyAnimation") >= 0,
                 Array.IndexOf(args, "-qaCovenant") >= 0,
                 Array.IndexOf(args, "-qaBossMechanics") >= 0,
-                Array.IndexOf(args, "-qaMastery") >= 0));
+                Array.IndexOf(args, "-qaMastery") >= 0,
+                Array.IndexOf(args, "-qaRune") >= 0));
         }
 
-        private IEnumerator Capture(string path, bool exerciseCombat, bool exerciseFullFlow, bool exerciseBoss, bool exerciseRespawn, bool exerciseAnimation, bool exerciseEnemyAnimation, bool exerciseCovenant, bool exerciseBossMechanics, bool exerciseMastery)
+        private IEnumerator Capture(string path, bool exerciseCombat, bool exerciseFullFlow, bool exerciseBoss, bool exerciseRespawn, bool exerciseAnimation, bool exerciseEnemyAnimation, bool exerciseCovenant, bool exerciseBossMechanics, bool exerciseMastery, bool exerciseRune)
         {
             var player = FindFirstObjectByType<PlayerController>();
             var flow = FindFirstObjectByType<DemoFlowController>();
-            if (exerciseCombat || exerciseFullFlow || exerciseBoss || exerciseRespawn || exerciseAnimation || exerciseEnemyAnimation || exerciseCovenant || exerciseBossMechanics || exerciseMastery) flow?.Interact();
+            if (exerciseCombat || exerciseFullFlow || exerciseBoss || exerciseRespawn || exerciseAnimation || exerciseEnemyAnimation || exerciseCovenant || exerciseBossMechanics || exerciseMastery || exerciseRune) flow?.Interact();
             var startingEnemies = FindObjectsByType<EnemyController>(FindObjectsSortMode.None);
             var initialEnemies = startingEnemies.Length;
             var initialHealth = startingEnemies.Sum(enemy => enemy.GetComponent<Health>().Current);
@@ -48,6 +49,9 @@ namespace Nightfall3.Presentation
             var observedCovenantChoice = false;
             var observedEchoHunt = false;
             var observedMasteryChoice = false;
+            var observedRunePuzzle = false;
+            var observedRuneReset = false;
+            var attemptedWrongRune = false;
             var observedSanctumDefense = false;
             var observedRespawn = false;
             if (player != null) player.Respawned += () => observedRespawn = true;
@@ -60,7 +64,7 @@ namespace Nightfall3.Presentation
             var animatedEnemies = startingEnemies.Where(enemy => enemy.GetComponentInChildren<EnemySpriteAnimator>() != null).ToArray();
             var animatedEnemyNames = animatedEnemies.Select(enemy => enemy.Archetype.ToString()).ToArray();
             var observedEnemyStates = new bool[animatedEnemies.Length, 5];
-            var frameBudget = exerciseBossMechanics ? 1600 : exerciseBoss ? 900 : exerciseMastery ? 560 : exerciseCovenant ? 420 : exerciseFullFlow ? 720 : exerciseEnemyAnimation ? 360 : exerciseAnimation ? 240 : 180;
+            var frameBudget = exerciseBossMechanics ? 1600 : exerciseBoss ? 900 : exerciseRune ? 760 : exerciseMastery ? 560 : exerciseCovenant ? 420 : exerciseFullFlow ? 720 : exerciseEnemyAnimation ? 360 : exerciseAnimation ? 240 : 180;
             for (var frame = 0; frame < frameBudget; frame++)
             {
                 if (exerciseAnimation && player != null)
@@ -111,7 +115,7 @@ namespace Nightfall3.Presentation
                     if (frame > 16 && frame % 12 == 0 && flow.PhaseId == "GateFight") KillAllTargets(player.transform.position);
                     if (flow.PhaseId == "CovenantChoice") player.transform.position = new Vector3(-3.6f, 0.05f, 7.2f);
                 }
-                if ((exerciseFullFlow || exerciseBoss || exerciseBossMechanics || exerciseMastery) && player != null && flow != null)
+                if ((exerciseFullFlow || exerciseBoss || exerciseBossMechanics || exerciseMastery || exerciseRune) && player != null && flow != null)
                 {
                     if (flow.PhaseId == "WardRitual") observedWardRitual = true;
                     if (flow.PhaseId == "EchoHunt")
@@ -128,6 +132,26 @@ namespace Nightfall3.Presentation
                     {
                         observedMasteryChoice = true;
                         if (!exerciseMastery) flow.SelectMastery(0);
+                    }
+                    if (flow.PhaseId == "RunePuzzle")
+                    {
+                        observedRunePuzzle = true;
+                        if (!exerciseRune && !attemptedWrongRune)
+                        {
+                            attemptedWrongRune = true;
+                            player.transform.position = new Vector3(-4.25f, 0.05f, 45f);
+                            flow.Interact();
+                            observedRuneReset = flow.RuneFailures == 1 && flow.RuneProgress == 0;
+                        }
+                        var solution = new[]
+                        {
+                            new Vector3(0f, 0.05f, 46.2f),
+                            new Vector3(-4.25f, 0.05f, 45f),
+                            new Vector3(4.25f, 0.05f, 45f)
+                        };
+                        var progress = Mathf.Clamp(flow.RuneProgress, 0, 2);
+                        player.transform.position = solution[progress];
+                        if (!exerciseRune) flow.Interact();
                     }
                     if (flow.PhaseId == "CovenantChoice")
                     {
@@ -237,14 +261,21 @@ namespace Nightfall3.Presentation
                 combatSucceeded &= masterySucceeded;
                 if (!masterySucceeded) Debug.LogError("QA mastery choice failed to present the uncommitted mastery screen");
             }
+            if (exerciseRune)
+            {
+                var runeSucceeded = flow != null && observedRunePuzzle && flow.PhaseId == "RunePuzzle" && flow.RuneProgress == 0;
+                Debug.Log($"QA rune puzzle exercised: phase={flow?.PhaseId ?? "missing"}, progress={flow?.RuneProgress ?? -1}, success={runeSucceeded}");
+                combatSucceeded &= runeSucceeded;
+                if (!runeSucceeded) Debug.LogError("QA rune puzzle failed to present the playable constellation state");
+            }
             if (exerciseFullFlow || exerciseBoss || exerciseBossMechanics)
             {
                 var completingBoss = exerciseBoss || exerciseBossMechanics;
                 var rewardApplied = !completingBoss || player != null && player.SpellPower > initialPower;
                 var mechanicsObserved = !exerciseBossMechanics || observedDirectionalCleave && observedCenterRupture && observedConvergence;
                 var masteryApplied = player != null && player.MasteryName != "UNSHAPED";
-                var flowSucceeded = flow != null && observedCovenantChoice && observedEchoHunt && observedMasteryChoice && masteryApplied && observedWardRitual && observedSanctumDefense && (completingBoss ? flow.IsComplete && observedBossPhase2 && observedBossPhase3 && rewardApplied && mechanicsObserved : flow.ReachedBossApproach);
-                Debug.Log($"QA flow exercised: phase={flow?.PhaseId ?? "missing"}, covenant={observedCovenantChoice}, echoes={observedEchoHunt}, mastery={observedMasteryChoice}/{masteryApplied}, ward={observedWardRitual}, defense={observedSanctumDefense}, bossII={observedBossPhase2}, bossIII={observedBossPhase3}, cleave={observedDirectionalCleave}, rupture={observedCenterRupture}, convergence={observedConvergence}, reward={rewardApplied}, success={flowSucceeded}");
+                var flowSucceeded = flow != null && observedCovenantChoice && observedEchoHunt && observedMasteryChoice && masteryApplied && observedRunePuzzle && observedRuneReset && observedWardRitual && observedSanctumDefense && (completingBoss ? flow.IsComplete && observedBossPhase2 && observedBossPhase3 && rewardApplied && mechanicsObserved : flow.ReachedBossApproach);
+                Debug.Log($"QA flow exercised: phase={flow?.PhaseId ?? "missing"}, covenant={observedCovenantChoice}, echoes={observedEchoHunt}, mastery={observedMasteryChoice}/{masteryApplied}, runes={observedRunePuzzle}, runeReset={observedRuneReset}, ward={observedWardRitual}, defense={observedSanctumDefense}, bossII={observedBossPhase2}, bossIII={observedBossPhase3}, cleave={observedDirectionalCleave}, rupture={observedCenterRupture}, convergence={observedConvergence}, reward={rewardApplied}, success={flowSucceeded}");
                 combatSucceeded &= flowSucceeded;
                 if (!flowSucceeded) Debug.LogError(exerciseBoss ? "QA Boss failed to complete all three phases" : "QA flow failed to reach the Boss approach");
             }

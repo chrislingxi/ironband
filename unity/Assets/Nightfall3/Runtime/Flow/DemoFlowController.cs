@@ -19,6 +19,8 @@ namespace Nightfall3.Flow
             AdvanceEchoHunt,
             EchoHunt,
             MasteryChoice,
+            RunePattern,
+            RunePuzzle,
             AdvanceWard,
             WardRitual,
             AdvanceDefense,
@@ -47,6 +49,11 @@ namespace Nightfall3.Flow
         private readonly List<Transform> echoMonoliths = new();
         private int echoIndex;
         private bool echoWaveActive;
+        private readonly List<Transform> memoryRunes = new();
+        private readonly int[] runeSequence = { 1, 0, 2 };
+        private int runeProgress;
+        private int runeFailures;
+        private bool runePlaybackActive;
         private Transform defenseBeacon;
         private int defenseWave;
         private bool stormglassCovenant;
@@ -56,14 +63,18 @@ namespace Nightfall3.Flow
         public string ObjectiveDetail { get; private set; } = "Speak with Mara, Ash Warden";
         public bool CanInteract => phase == Phase.Briefing && player != null && warden != null && Vector3.Distance(player.position, warden.position) <= 3.6f
             || phase == Phase.CovenantChoice && NearestCovenantDistance <= 2.6f
-            || phase == Phase.EchoHunt && !echoWaveActive && CurrentEcho != null && Vector3.Distance(player.position, CurrentEcho.position) <= 2.6f;
-        public string InteractionLabel => phase == Phase.CovenantChoice ? "ATTUNE" : phase == Phase.EchoHunt ? "RECALL" : "SPEAK";
+            || phase == Phase.EchoHunt && !echoWaveActive && CurrentEcho != null && Vector3.Distance(player.position, CurrentEcho.position) <= 2.6f
+            || phase == Phase.RunePuzzle && NearestRuneDistance <= 2.6f;
+        public string InteractionLabel => phase == Phase.CovenantChoice ? "ATTUNE" : phase == Phase.EchoHunt ? "RECALL" : phase == Phase.RunePuzzle ? "ACTIVATE" : "SPEAK";
         public string CovenantName => playerController != null ? playerController.CovenantName : "UNBOUND";
         public bool CanChooseMastery => phase == Phase.MasteryChoice;
+        public int RuneProgress => runeProgress;
+        public int RuneFailures => runeFailures;
         public Vector3 InteractionTargetPosition => phase switch
         {
             Phase.CovenantChoice when stormglassShrine != null => stormglassShrine.position,
             Phase.EchoHunt when CurrentEcho != null => CurrentEcho.position,
+            Phase.RunePuzzle when NearestRune != null => NearestRune.position,
             _ when warden != null => warden.position,
             _ => player != null ? player.position : Vector3.zero
         };
@@ -93,6 +104,11 @@ namespace Nightfall3.Flow
                 InteractWithEcho();
                 return;
             }
+            if (phase == Phase.RunePuzzle)
+            {
+                ActivateNearestRune();
+                return;
+            }
             if (phase != Phase.CovenantChoice || NearestCovenantDistance > 2.6f) return;
             ChooseCovenant(stormglassShrine != null && Vector3.Distance(player.position, stormglassShrine.position) <= Vector3.Distance(player.position, emberheartShrine.position));
         }
@@ -119,6 +135,12 @@ namespace Nightfall3.Flow
             {
                 if (Input.GetKeyDown(KeyCode.Alpha1)) SelectMastery(0);
                 else if (Input.GetKeyDown(KeyCode.Alpha2)) SelectMastery(1);
+                return;
+            }
+            if (phase == Phase.RunePattern) return;
+            if (phase == Phase.RunePuzzle)
+            {
+                if (CanInteract && Input.GetKeyDown(KeyCode.E)) ActivateNearestRune();
                 return;
             }
 
@@ -359,11 +381,79 @@ namespace Nightfall3.Flow
             playerController?.ApplyMastery(mastery);
             AudioDirector.PlaySelect();
             DemoDirector.SpawnShockwave(player.position, mastery == 0 ? new Color(0.2f, 0.8f, 1f) : new Color(0.58f, 0.38f, 1f));
+            SetCheckpoint(new Vector3(0f, 0.05f, 42.5f));
+            StartCoroutine(BeginRunePattern(mastery == 0 ? "STORM LATTICE FORGED" : "FROZEN WAKE FORGED"));
+        }
+
+        private System.Collections.IEnumerator BeginRunePattern(string masteryTitle)
+        {
+            phase = Phase.RunePattern;
+            ZoneName = "THE ECHO CONSTELLATION";
+            ObjectiveTitle = masteryTitle;
+            ObjectiveDetail = "Watch the three-sign memory";
+            runeProgress = 0;
+            runePlaybackActive = true;
+            if (memoryRunes.Count == 0)
+            {
+                memoryRunes.Add(DemoDirector.CreateCovenantShrine("Crown Memory Rune", "Art/Props/ashen-echo-monolith-v1", new Vector3(-4.25f, 0.04f, 45f), 3.25f, new Color(0.28f, 0.76f, 1f), "CROWN"));
+                memoryRunes.Add(DemoDirector.CreateCovenantShrine("Eye Memory Rune", "Art/Props/ashen-echo-monolith-v1", new Vector3(0f, 0.04f, 46.2f), 3.25f, new Color(0.58f, 0.36f, 1f), "EYE"));
+                memoryRunes.Add(DemoDirector.CreateCovenantShrine("Flame Memory Rune", "Art/Props/ashen-echo-monolith-v1", new Vector3(4.25f, 0.04f, 45f), 3.25f, new Color(1f, 0.34f, 0.08f), "FLAME"));
+            }
+            yield return new WaitForSecondsRealtime(0.85f);
+            ObjectiveTitle = "REMEMBER THE STAR-SEQUENCE";
+            foreach (var runeIndex in runeSequence)
+            {
+                PulseRune(runeIndex);
+                yield return new WaitForSecondsRealtime(0.72f);
+            }
+            runePlaybackActive = false;
+            phase = Phase.RunePuzzle;
+            ObjectiveTitle = "ECHO CONSTELLATION";
+            ObjectiveDetail = "Repeat the three-sign memory  •  0/3";
+        }
+
+        private Transform NearestRune => memoryRunes.Where(rune => rune != null).OrderBy(rune => Vector3.Distance(player.position, rune.position)).FirstOrDefault();
+        private float NearestRuneDistance => NearestRune != null ? Vector3.Distance(player.position, NearestRune.position) : float.MaxValue;
+
+        private void ActivateNearestRune()
+        {
+            if (phase != Phase.RunePuzzle || runePlaybackActive || NearestRuneDistance > 2.6f) return;
+            var selected = memoryRunes.IndexOf(NearestRune);
+            if (selected == runeSequence[runeProgress])
+            {
+                PulseRune(selected);
+                runeProgress++;
+                ObjectiveDetail = $"Repeat the three-sign memory  •  {runeProgress}/3";
+                if (runeProgress == runeSequence.Length) CompleteRunePuzzle();
+                return;
+            }
+            runeProgress = 0;
+            runeFailures++;
+            ObjectiveTitle = "THE MEMORY FRACTURES";
+            ObjectiveDetail = "The sequence resets  •  watch again";
+            DemoDirector.SpawnShockwave(NearestRune.position, new Color(0.9f, 0.08f, 0.12f));
+            StartCoroutine(BeginRunePattern("THE MEMORY REFORMS"));
+        }
+
+        private void PulseRune(int index)
+        {
+            if (index < 0 || index >= memoryRunes.Count || memoryRunes[index] == null) return;
+            AudioDirector.PlaySelect();
+            DemoDirector.SpawnShockwave(memoryRunes[index].position, index == 0 ? new Color(0.28f, 0.76f, 1f) : index == 1 ? new Color(0.58f, 0.36f, 1f) : new Color(1f, 0.34f, 0.08f));
+        }
+
+        private void CompleteRunePuzzle()
+        {
+            AudioDirector.PlaySelect();
+            foreach (var rune in memoryRunes)
+            {
+                if (rune != null) Destroy(rune.gameObject, 0.4f);
+            }
             phase = Phase.AdvanceWard;
             ZoneName = "THE COLD WARD";
-            ObjectiveTitle = mastery == 0 ? "STORM LATTICE FORGED" : "FROZEN WAKE FORGED";
+            ObjectiveTitle = "THE CONSTELLATION OPENS";
             ObjectiveDetail = "Follow the recalled path to the blue seals";
-            SetCheckpoint(new Vector3(0f, 0.05f, 42.5f));
+            SetCheckpoint(new Vector3(0f, 0.05f, 45.5f));
         }
 
         private void BeginSanctumDefense()

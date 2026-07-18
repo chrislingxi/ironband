@@ -39,6 +39,7 @@ namespace Nightfall3.Presentation
             var lastPhase = flow.PhaseId;
             var nextStatus = startedAt + 15f;
             var deaths = 0;
+            var runeProgress = 0;
             player.Respawned += () =>
             {
                 deaths++;
@@ -56,7 +57,7 @@ namespace Nightfall3.Presentation
 
                 if (!CinematicDirector.CombatSuppressed)
                 {
-                    GuideMovement(player, flow);
+                    GuideMovement(player, flow, ref runeProgress);
                     if (Time.realtimeSinceStartup >= nextDecision)
                     {
                         CastNextUsefulSkill(player, ref skillCursor);
@@ -83,13 +84,30 @@ namespace Nightfall3.Presentation
             Application.Quit(completed && targetPassed ? 0 : 3);
         }
 
-        private static void GuideMovement(PlayerController player, DemoFlowController flow)
+        private static void GuideMovement(PlayerController player, DemoFlowController flow, ref int runeProgress)
         {
             Vector3 destination;
             switch (flow.PhaseId)
             {
                 case "MasteryChoice":
                     flow.SelectMastery(0);
+                    return;
+                case "RunePattern":
+                    return;
+                case "RunePuzzle":
+                    var runes = new[]
+                    {
+                        new Vector3(0f, 0.05f, 46.2f),
+                        new Vector3(-4.25f, 0.05f, 45f),
+                        new Vector3(4.25f, 0.05f, 45f)
+                    };
+                    var runeTarget = runes[Mathf.Clamp(runeProgress, 0, 2)];
+                    if (Vector3.Distance(player.transform.position, runeTarget) <= 2.5f)
+                    {
+                        flow.Interact();
+                        runeProgress++;
+                    }
+                    MoveToward(player, runeTarget);
                     return;
                 case "CovenantChoice":
                     destination = flow.InteractionTargetPosition;

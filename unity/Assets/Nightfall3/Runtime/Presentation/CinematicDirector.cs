@@ -84,7 +84,7 @@ namespace Nightfall3.Presentation
                     PlayCue("THE SUNKEN PROCESSION", "THREE MEMORIES REMAIN", new Vector3(0f, 0f, 35f), 2.45f, 32f);
                     break;
                 case "AdvanceWard":
-                    PlayCue("MASTERY FORGED", "THE RECALLED POWER HAS TAKEN SHAPE", new Vector3(0f, 0f, 43f), 2.15f, 31f);
+                    PlayCue("THE CONSTELLATION OPENS", "THE COLD WARD LIES BEYOND", new Vector3(0f, 0f, 47f), 2.15f, 31f);
                     break;
                 case "EliteFight":
                     PlayCue("WARDEN OF BLUE ASH", "AN ELITE HUNT BEGINS", new Vector3(0f, 0f, 65f), 2.35f, 31f);
