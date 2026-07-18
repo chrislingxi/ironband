@@ -32,6 +32,10 @@ namespace Nightfall3.Flow
             AdvanceElite,
             EliteFight,
             WardflameEscort,
+            ArchiveApproach,
+            ArchiveCipher,
+            ArchivePurge,
+            ArchiveCurator,
             BossApproach,
             BossFight,
             RelicChoice,
@@ -73,6 +77,14 @@ namespace Nightfall3.Flow
         private Transform oathLantern;
         private int escortStage;
         private float escortCheckpointZ;
+        private readonly List<Transform> archiveRecords = new();
+        private int archiveCorrectRecord;
+        private int archiveFailures;
+        private bool archivePunishmentActive;
+        private int archivePurgeWave;
+        private int archiveCollapseRunId;
+        private EnemyController archiveCurator;
+        private bool curatorSecondJudgment;
         private readonly List<Transform> relicAltars = new();
         private Transform returnPortal;
         private bool stormglassCovenant;
@@ -85,13 +97,15 @@ namespace Nightfall3.Flow
             || phase == Phase.EchoHunt && !echoWaveActive && CurrentEcho != null && Vector3.Distance(player.position, CurrentEcho.position) <= 2.6f
             || phase == Phase.RunePuzzle && NearestRuneDistance <= 1.65f
             || phase == Phase.WitnessApproach && witnessEcho != null && Vector3.Distance(player.position, witnessEcho.position) <= 2.6f
+            || phase == Phase.ArchiveCipher && !archivePunishmentActive && NearestArchiveRecordDistance <= 2.35f
             || phase == Phase.RelicChoice && NearestRelicDistance <= 2.35f
             || phase == Phase.ReturnPortal && returnPortal != null && Vector3.Distance(player.position, returnPortal.position) <= 2.8f;
-        public string InteractionLabel => phase == Phase.CovenantChoice ? "ATTUNE" : phase == Phase.EchoHunt ? "RECALL" : phase == Phase.RunePuzzle ? "ACTIVATE" : phase == Phase.WitnessApproach ? "LISTEN" : phase == Phase.RelicChoice ? "CLAIM" : phase == Phase.ReturnPortal ? "RETURN" : "SPEAK";
+        public string InteractionLabel => phase == Phase.CovenantChoice ? "ATTUNE" : phase == Phase.EchoHunt ? "RECALL" : phase == Phase.RunePuzzle ? "ACTIVATE" : phase == Phase.WitnessApproach ? "LISTEN" : phase == Phase.ArchiveCipher ? "READ" : phase == Phase.RelicChoice ? "CLAIM" : phase == Phase.ReturnPortal ? "RETURN" : "SPEAK";
         public string CovenantName => playerController != null ? playerController.CovenantName : "UNBOUND";
         public bool CanChooseMastery => phase == Phase.MasteryChoice;
         public int RuneProgress => runeProgress;
         public int RuneFailures => runeFailures;
+        public int ArchiveFailures => archiveFailures;
         public Vector3 GauntletSafePosition => new(gauntletSafeX, 0.05f, 74f);
         public bool HasDialogue => phase == Phase.WitnessDialogue;
         public string DialogueSpeaker => "ELOWEN'S ECHO  •  LAST WARDEN";
@@ -106,6 +120,7 @@ namespace Nightfall3.Flow
             Phase.EchoHunt when CurrentEcho != null => CurrentEcho.position,
             Phase.RunePuzzle when NearestRune != null => NearestRune.position,
             Phase.WitnessApproach when witnessEcho != null => witnessEcho.position,
+            Phase.ArchiveCipher when NearestArchiveRecord != null => NearestArchiveRecord.position,
             Phase.RelicChoice when NearestRelic != null => NearestRelic.position,
             Phase.ReturnPortal when returnPortal != null => returnPortal.position,
             _ when warden != null => warden.position,
@@ -145,6 +160,11 @@ namespace Nightfall3.Flow
             if (phase == Phase.WitnessApproach)
             {
                 if (CanInteract) BeginWitnessDialogue();
+                return;
+            }
+            if (phase == Phase.ArchiveCipher)
+            {
+                if (CanInteract) ReadArchiveRecord(archiveRecords.IndexOf(NearestArchiveRecord));
                 return;
             }
             if (phase == Phase.RelicChoice)
@@ -194,6 +214,11 @@ namespace Nightfall3.Flow
             if (phase == Phase.WitnessApproach)
             {
                 if (CanInteract && Input.GetKeyDown(KeyCode.E)) BeginWitnessDialogue();
+                return;
+            }
+            if (phase == Phase.ArchiveCipher && !archivePunishmentActive)
+            {
+                if (CanInteract && Input.GetKeyDown(KeyCode.E)) Interact();
                 return;
             }
             if (phase == Phase.WitnessDialogue)
@@ -272,7 +297,20 @@ namespace Nightfall3.Flow
                 case Phase.WardflameEscort:
                     UpdateWardflameEscort();
                     break;
-                case Phase.BossApproach when player.position.z >= 109f:
+                case Phase.ArchiveApproach when player.position.z >= 110f:
+                    BeginArchiveCipher();
+                    break;
+                case Phase.ArchiveCipher when archivePunishmentActive && activeEnemies.Count == 0:
+                    RestoreArchiveCipher();
+                    break;
+                case Phase.ArchivePurge when activeEnemies.Count == 0:
+                    if (archivePurgeWave < 3) SpawnArchivePurgeWave(++archivePurgeWave);
+                    else BeginArchiveCurator();
+                    break;
+                case Phase.ArchiveCurator:
+                    UpdateArchiveCurator();
+                    break;
+                case Phase.BossApproach when player.position.z >= 143f:
                     BeginBossFight();
                     break;
             }
@@ -752,11 +790,179 @@ namespace Nightfall3.Flow
             DemoDirector.SpawnShockwave(oathLantern.position, new Color(0.35f, 0.9f, 1f));
             Destroy(oathLantern.gameObject, 0.35f);
             oathLantern = null;
+            phase = Phase.ArchiveApproach;
+            ZoneName = "THE BLACK ARCHIVE";
+            ObjectiveTitle = "THE FORBIDDEN INDEX";
+            ObjectiveDetail = "Follow the ward-flame into the buried archive";
+            SetCheckpoint(new Vector3(0f, 0.05f, 107f));
+        }
+
+        private Transform NearestArchiveRecord => archiveRecords.Where(record => record != null).OrderBy(record => Vector3.Distance(player.position, record.position)).FirstOrDefault();
+        private float NearestArchiveRecordDistance => NearestArchiveRecord != null ? Vector3.Distance(player.position, NearestArchiveRecord.position) : float.MaxValue;
+
+        private void BeginArchiveCipher()
+        {
+            phase = Phase.ArchiveCipher;
+            ZoneName = "THE BLACK ARCHIVE";
+            archiveCorrectRecord = stormglassCovenant ? 0 : 2;
+            archiveFailures = 0;
+            archivePunishmentActive = false;
+            archiveRecords.Clear();
+            ObjectiveTitle = "THE INDEX LIES";
+            ObjectiveDetail = stormglassCovenant ? "Read the record where the first storm sleeps" : "Read the record where the last ember endures";
+            archiveRecords.Add(DemoDirector.CreateCovenantShrine("Record of First Storm", "Art/Props/ashen-echo-monolith-v1", new Vector3(-5f, 0.04f, 114f), 3.45f, new Color(0.24f, 0.76f, 1f), "FIRST STORM"));
+            archiveRecords.Add(DemoDirector.CreateCovenantShrine("Record of Hollow Crown", "Art/Props/ashen-echo-monolith-v1", new Vector3(0f, 0.04f, 117f), 3.45f, new Color(0.62f, 0.32f, 1f), "HOLLOW CROWN"));
+            archiveRecords.Add(DemoDirector.CreateCovenantShrine("Record of Last Ember", "Art/Props/ashen-echo-monolith-v1", new Vector3(5f, 0.04f, 114f), 3.45f, new Color(1f, 0.3f, 0.06f), "LAST EMBER"));
+            SetCheckpoint(new Vector3(0f, 0.05f, 110f));
+        }
+
+        private void ReadArchiveRecord(int recordIndex)
+        {
+            if (phase != Phase.ArchiveCipher || archivePunishmentActive || recordIndex < 0) return;
+            AudioDirector.PlaySelect();
+            var selected = archiveRecords[recordIndex];
+            DemoDirector.SpawnShockwave(selected.position, recordIndex == archiveCorrectRecord ? new Color(0.3f, 0.82f, 1f) : new Color(0.88f, 0.08f, 0.16f));
+            if (recordIndex == archiveCorrectRecord)
+            {
+                foreach (var record in archiveRecords)
+                {
+                    if (record != null) Destroy(record.gameObject, 0.35f);
+                }
+                archiveRecords.Clear();
+                CaptureEncounterGrowth();
+                phase = Phase.ArchivePurge;
+                archivePurgeWave = 1;
+                SpawnArchivePurgeWave(archivePurgeWave);
+                return;
+            }
+
+            archiveFailures++;
+            archivePunishmentActive = true;
+            ObjectiveTitle = "A FALSE HISTORY AWAKENS";
+            ObjectiveDetail = $"Erase the archive's lie  •  false records {archiveFailures}";
+            var center = selected.position;
+            Spawn("Art/Monsters/bloodbound-fallen-v2", center + new Vector3(-2.8f, 0f, 1.8f), 150f, 2.9f, 1.95f);
+            Spawn("Art/Monsters/bloodbound-fallen-v2", center + new Vector3(2.8f, 0f, 1.8f), 150f, 2.9f, 1.95f);
+            Spawn("Art/Monsters/blood-ash-hound-v2", center + new Vector3(0f, 0f, 3.8f), 145f, 3.55f, 1.95f);
+        }
+
+        private void RestoreArchiveCipher()
+        {
+            archivePunishmentActive = false;
+            ObjectiveTitle = "THE INDEX LIES";
+            ObjectiveDetail = stormglassCovenant ? "Read the record where the first storm sleeps" : "Read the record where the last ember endures";
+        }
+
+        private void SpawnArchivePurgeWave(int wave)
+        {
+            ObjectiveTitle = $"PURGE THE BLACK INDEX  •  {wave}/3";
+            ObjectiveDetail = wave == 1 ? "Hold the western catalogue under collapse" : wave == 2 ? "Break the advancing censor line" : "Survive the archive's final redaction";
+            SetCheckpoint(new Vector3(0f, 0.05f, 119f + wave * 2f));
+            var center = new Vector3(0f, 0.05f, 120f + wave * 3f);
+            if (wave == 1)
+            {
+                Spawn("Art/Monsters/blood-ash-hound-v2", center + new Vector3(-4.4f, 0f, 0f), 155f, 3.6f, 1.95f);
+                Spawn("Art/Monsters/blood-ash-hound-v2", center + new Vector3(4.4f, 0f, 0f), 155f, 3.6f, 1.95f);
+                Spawn("Art/Monsters/bloodbound-fallen-v2", center + new Vector3(0f, 0f, 3.2f), 175f, 2.95f, 2f);
+            }
+            else if (wave == 2)
+            {
+                Spawn("Art/Monsters/coldbone-shieldguard-v2", center + new Vector3(-3.6f, 0f, 1f), 225f, 2.2f, 2.3f);
+                Spawn("Art/Monsters/coldbone-shieldguard-v2", center + new Vector3(3.6f, 0f, 1f), 225f, 2.2f, 2.3f);
+                Spawn("Art/Monsters/bloodbound-fallen-v2", center + new Vector3(-1.6f, 0f, 4f), 185f, 3f, 2f);
+                Spawn("Art/Monsters/bloodbound-fallen-v2", center + new Vector3(1.6f, 0f, 4f), 185f, 3f, 2f);
+            }
+            else
+            {
+                Spawn("Art/Monsters/blue-ash-juggernaut-v2", center + new Vector3(0f, 0f, 3.2f), 590f, 1.68f, 3.9f);
+                Spawn("Art/Monsters/blood-ash-hound-v2", center + new Vector3(-4.6f, 0f, 0.5f), 175f, 3.65f, 2f);
+                Spawn("Art/Monsters/blood-ash-hound-v2", center + new Vector3(4.6f, 0f, 0.5f), 175f, 3.65f, 2f);
+            }
+            StartCoroutine(ArchiveCollapseRoutine(++archiveCollapseRunId, wave));
+        }
+
+        private System.Collections.IEnumerator ArchiveCollapseRoutine(int runId, int wave)
+        {
+            yield return new WaitForSecondsRealtime(1.1f);
+            var safeLanes = wave == 1 ? new[] { 1, 2 } : wave == 2 ? new[] { 0, 2, 1 } : new[] { 2, 0, 1, 0 };
+            foreach (var safeLane in safeLanes)
+            {
+                if (phase != Phase.ArchivePurge || runId != archiveCollapseRunId) yield break;
+                var impactZ = Mathf.Clamp(player.position.z, 119f, 132f);
+                for (var lane = 0; lane < 3; lane++)
+                {
+                    if (lane == safeLane) continue;
+                    var hazard = new GameObject($"Archive Collapse {wave} Lane {lane}", typeof(AshfallHazard)).GetComponent<AshfallHazard>();
+                    hazard.Configure(new Vector3((lane - 1) * 4f, 0.05f, impactZ), playerController);
+                }
+                yield return new WaitForSecondsRealtime(2.25f);
+            }
+        }
+
+        private void BeginArchiveCurator()
+        {
+            CaptureEncounterGrowth();
+            ++archiveCollapseRunId;
+            phase = Phase.ArchiveCurator;
+            ZoneName = "THE REDACTED CHAMBER";
+            ObjectiveTitle = "THE BLACK ARCHIVE CURATOR";
+            ObjectiveDetail = "Force the keeper to reveal its forbidden judgment";
+            curatorSecondJudgment = false;
+            activeAnchors.Clear();
+            archiveCurator = Spawn("Art/Monsters/black-archive-curator-v1", new Vector3(0f, 0.05f, 136f), 1120f, 1.72f, 4.8f);
+            Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(-4.4f, 0.05f, 133f), 205f, 2.2f, 2.3f);
+            Spawn("Art/Monsters/coldbone-shieldguard-v2", new Vector3(4.4f, 0.05f, 133f), 205f, 2.2f, 2.3f);
+            SetCheckpoint(new Vector3(0f, 0.05f, 131f));
+        }
+
+        private void UpdateArchiveCurator()
+        {
+            if (archiveCurator != null && !curatorSecondJudgment)
+            {
+                var health = archiveCurator.GetComponent<Nightfall3.Combat.Health>();
+                if (health != null && health.Current <= health.Maximum * 0.52f)
+                {
+                    curatorSecondJudgment = true;
+                    archiveCurator.EnableWardShield();
+                    ObjectiveTitle = "SECOND JUDGMENT  •  SEALED IN INK";
+                    ObjectiveDetail = "Shatter three living annotations";
+                    SpawnArchiveAnnotation(new Vector3(-4.8f, 0.05f, 136f));
+                    SpawnArchiveAnnotation(new Vector3(4.8f, 0.05f, 136f));
+                    SpawnArchiveAnnotation(new Vector3(0f, 0.05f, 139.5f));
+                    Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(-3.2f, 0.05f, 134f), 190f, 3f, 2f);
+                    Spawn("Art/Monsters/bloodbound-fallen-v2", new Vector3(3.2f, 0.05f, 134f), 190f, 3f, 2f);
+                }
+                return;
+            }
+            if (archiveCurator == null && activeEnemies.Count == 0 && activeAnchors.All(anchor => anchor == null)) CompleteArchiveCurator();
+        }
+
+        private void SpawnArchiveAnnotation(Vector3 position)
+        {
+            activeAnchors.Add(DemoDirector.CreateWardAnchor(position, OnArchiveAnnotationDestroyed));
+        }
+
+        private void OnArchiveAnnotationDestroyed(WardAnchor anchor)
+        {
+            activeAnchors.Remove(anchor);
+            var remaining = activeAnchors.Count(active => active != null);
+            if (remaining > 0)
+            {
+                ObjectiveDetail = $"Shatter the remaining annotations  •  {remaining}";
+                return;
+            }
+            archiveCurator?.BreakWardShield();
+            ObjectiveTitle = "THE CURATOR IS UNWRITTEN";
+            ObjectiveDetail = "End the forbidden record";
+        }
+
+        private void CompleteArchiveCurator()
+        {
             phase = Phase.BossApproach;
             ZoneName = "THRONE ANTECHAMBER";
             ObjectiveTitle = "HEART OF THE SIEGE";
-            ObjectiveDetail = "Enter the antechamber and confront its master";
-            SetCheckpoint(new Vector3(0f, 0.05f, 107f));
+            ObjectiveDetail = "Enter the throne court and confront its master";
+            SetCheckpoint(new Vector3(0f, 0.05f, 141f));
         }
 
         private void BeginWardRitual()
@@ -804,7 +1010,7 @@ namespace Nightfall3.Flow
             ZoneName = "CASTELLAN'S COURT";
             ObjectiveTitle = "THE ASHEN CASTELLAN";
             ObjectiveDetail = "Survive the three judgments";
-            boss = DemoDirector.CreateBoss(player, new Vector3(0f, 0.05f, 112f));
+            boss = DemoDirector.CreateBoss(player, new Vector3(0f, 0.05f, 146f));
             boss.Defeated += OfferBossReward;
         }
 
@@ -815,9 +1021,9 @@ namespace Nightfall3.Flow
             ObjectiveTitle = "THREE RELICS REMAIN";
             ObjectiveDetail = "Choose one legacy to carry beyond Act I";
             relicAltars.Clear();
-            relicAltars.Add(DemoDirector.CreateCovenantShrine("Storm Crown", "Art/Relics/storm-crown-v1", new Vector3(-4.3f, 0.04f, 112f), 2.75f, new Color(0.22f, 0.78f, 1f), "STORM CROWN", 3.65f));
-            relicAltars.Add(DemoDirector.CreateCovenantShrine("Frostheart", "Art/Relics/frostheart-v1", new Vector3(0f, 0.04f, 114f), 3.15f, new Color(0.48f, 0.58f, 1f), "FROSTHEART", 3.65f));
-            relicAltars.Add(DemoDirector.CreateCovenantShrine("Ember Aegis", "Art/Relics/ember-aegis-v1", new Vector3(4.3f, 0.04f, 112f), 3.2f, new Color(1f, 0.3f, 0.06f), "EMBER AEGIS", 3.65f));
+            relicAltars.Add(DemoDirector.CreateCovenantShrine("Storm Crown", "Art/Relics/storm-crown-v1", new Vector3(-4.3f, 0.04f, 146f), 2.75f, new Color(0.22f, 0.78f, 1f), "STORM CROWN", 3.65f));
+            relicAltars.Add(DemoDirector.CreateCovenantShrine("Frostheart", "Art/Relics/frostheart-v1", new Vector3(0f, 0.04f, 148f), 3.15f, new Color(0.48f, 0.58f, 1f), "FROSTHEART", 3.65f));
+            relicAltars.Add(DemoDirector.CreateCovenantShrine("Ember Aegis", "Art/Relics/ember-aegis-v1", new Vector3(4.3f, 0.04f, 146f), 3.2f, new Color(1f, 0.3f, 0.06f), "EMBER AEGIS", 3.65f));
         }
 
         private Transform NearestRelic => relicAltars.Where(relic => relic != null).OrderBy(relic => Vector3.Distance(player.position, relic.position)).FirstOrDefault();
@@ -837,7 +1043,7 @@ namespace Nightfall3.Flow
             phase = Phase.ReturnPortal;
             ObjectiveTitle = $"{playerController?.FinalRelicName ?? "RELIC"} CLAIMED";
             ObjectiveDetail = "Enter the Emberwatch return gate";
-            returnPortal = DemoDirector.CreateCovenantShrine("Emberwatch Return Gate", "Art/Props/exit_gate", new Vector3(0f, 0.04f, 116f), 4.6f, new Color(0.35f, 0.82f, 1f), "RETURN TO EMBERWATCH");
+            returnPortal = DemoDirector.CreateCovenantShrine("Emberwatch Return Gate", "Art/Props/exit_gate", new Vector3(0f, 0.04f, 150f), 4.6f, new Color(0.35f, 0.82f, 1f), "RETURN TO EMBERWATCH");
         }
 
         private void CompleteDemo()
@@ -891,6 +1097,19 @@ namespace Nightfall3.Flow
                 case Phase.WardflameEscort:
                     if (oathLantern != null) oathLantern.position = new Vector3(0f, 0.04f, escortCheckpointZ);
                     if (escortStage > 0) SpawnEscortWave(escortStage);
+                    break;
+                case Phase.ArchiveCipher:
+                    foreach (var record in archiveRecords)
+                    {
+                        if (record != null) Destroy(record.gameObject);
+                    }
+                    BeginArchiveCipher();
+                    break;
+                case Phase.ArchivePurge:
+                    SpawnArchivePurgeWave(archivePurgeWave);
+                    break;
+                case Phase.ArchiveCurator:
+                    BeginArchiveCurator();
                     break;
                 case Phase.BossFight:
                     BeginBossFight();

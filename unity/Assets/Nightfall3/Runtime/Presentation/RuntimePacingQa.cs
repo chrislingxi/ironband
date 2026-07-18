@@ -130,7 +130,13 @@ namespace Nightfall3.Presentation
                     return;
                 case "AdvanceElite": destination = new Vector3(0f, 0.05f, 78.5f); break;
                 case "WardflameEscort" when flow.RemainingEnemies == 0: destination = flow.EscortTargetPosition; break;
-                case "BossApproach": destination = new Vector3(0f, 0.05f, 109.5f); break;
+                case "ArchiveApproach": destination = new Vector3(0f, 0.05f, 110.5f); break;
+                case "ArchiveCipher":
+                    destination = flow.InteractionTargetPosition;
+                    if (flow.RemainingEnemies == 0 && Vector3.Distance(player.transform.position, destination) <= 2.2f) flow.Interact();
+                    MoveToward(player, destination);
+                    return;
+                case "BossApproach": destination = new Vector3(0f, 0.05f, 143.5f); break;
                 case "RelicChoice":
                 case "ReturnPortal":
                     destination = flow.InteractionTargetPosition;
@@ -141,7 +147,8 @@ namespace Nightfall3.Presentation
                     var target = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None)
                         .OfType<ICombatTarget>()
                         .Where(candidate => !candidate.IsDead)
-                        .OrderBy(candidate => (candidate.TargetTransform.position - player.transform.position).sqrMagnitude)
+                        .OrderBy(candidate => candidate is WardAnchor ? 0 : 1)
+                        .ThenBy(candidate => (candidate.TargetTransform.position - player.transform.position).sqrMagnitude)
                         .FirstOrDefault();
                     if (target == null) return;
                     var delta = target.TargetTransform.position - player.transform.position;
