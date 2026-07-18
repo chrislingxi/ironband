@@ -12,6 +12,7 @@ Unity production assets are tracked separately from the legacy web asset contrac
 | `Art/Monsters/coldbone-shieldguard-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Coldbone Shieldguard defensive line enemy | Authored v2 key sprite; directional animation sheet pending |
 | `Art/Monsters/blood-ash-hound-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-18 | Blood-Ash Hound fast flanking enemy | Authored v2 key sprite; directional animation sheet pending |
 | `Art/Monsters/blue-ash-juggernaut-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-18 | Blue-Ash Juggernaut heavy and elite encounter anchor | Authored v2 key sprite; directional animation sheet pending |
+| `Art/UI/panel-v2.png` | OpenAI built-in image generation plus local chroma-key removal and alpha-bound crop, 2026-07-18 | Shared 9-slice HUD, objective, Boss and interaction panel | Authored v2 production frame |
 
 ## Ashen Courtyard Prompt Contract
 
@@ -61,3 +62,9 @@ Unity production assets are tracked separately from the legacy web asset contrac
 - Original fortress enforcer in layered pitted black-iron and basalt plate, oxblood bindings, restrained blue-ash ward seals and a caged helm.
 - Broad shoulder bastion, grounded stance and a practical two-handed maul-cleaver communicate slow overhead impact and elite mass at mobile scale.
 - Uses project character assets only as internal camera, lighting and material references; no recognizable franchise armor, weapon, insignia or silhouette was copied.
+
+## Nightfall HUD Panel Prompt Contract
+
+- Original front-facing nine-slice frame built from forged black iron, basalt, restrained antique brass, oxblood bindings and sparse cold-cyan ward lines.
+- Symmetric protected corners, quiet stretchable edges and a low-contrast charcoal center preserve readability across compact mobile HUD dimensions.
+- Contains no copied crest, skull, icon, text, layout or recognizable franchise ornament.

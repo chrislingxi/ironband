@@ -20,6 +20,7 @@ namespace Nightfall3.Editor
             "Assets/Resources/Art/UI/hp_orb.png",
             "Assets/Resources/Art/UI/mana_orb.png",
             "Assets/Resources/Art/UI/item_slot.png",
+            "Assets/Resources/Art/UI/panel-v2.png",
             "Assets/Resources/Art/Icons/skill-chain-lightning.png",
             "Assets/Resources/Art/Props/ritual_altar.png",
             "Assets/Resources/Art/Props/blacksmith_anvil.png",

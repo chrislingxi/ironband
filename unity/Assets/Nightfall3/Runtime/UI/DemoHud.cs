@@ -61,7 +61,7 @@ namespace Nightfall3.UI
 
         private void BuildVitals()
         {
-            var plate = CreateImage("Hero Plate", safeAreaRoot, new Vector2(18f, -14f), new Vector2(218f, 62f), new Color(0.82f, 0.76f, 0.62f, 0.96f), new Vector2(0f, 1f), "Art/UI/panel", false);
+            var plate = CreateImage("Hero Plate", safeAreaRoot, new Vector2(18f, -14f), new Vector2(218f, 62f), new Color(0.82f, 0.76f, 0.62f, 0.96f), new Vector2(0f, 1f), "Art/UI/panel-v2", false);
             heroName = CreateText("DUSKWEAVER  LV 1", plate.transform, new Vector2(62f, -10f), new Vector2(142f, 20f), 13, new Color(0.96f, 0.81f, 0.47f), new Vector2(0f, 1f));
             heroPower = CreateText("SPELL POWER  1.00", plate.transform, new Vector2(62f, -32f), new Vector2(142f, 18f), 11, new Color(0.68f, 0.72f, 0.76f), new Vector2(0f, 1f));
 
@@ -74,17 +74,17 @@ namespace Nightfall3.UI
 
         private void BuildObjective()
         {
-            var region = CreateImage("Region", safeAreaRoot, new Vector2(0f, -11f), new Vector2(250f, 40f), new Color(0.72f, 0.67f, 0.56f, 0.86f), new Vector2(0.5f, 1f), "Art/UI/panel", false);
+            var region = CreateImage("Region", safeAreaRoot, new Vector2(0f, -11f), new Vector2(250f, 40f), new Color(0.72f, 0.67f, 0.56f, 0.86f), new Vector2(0.5f, 1f), "Art/UI/panel-v2", false);
             regionTitle = CreateText("EMBERWATCH CAMP", region.transform, new Vector2(0f, -7f), new Vector2(226f, 22f), 16, new Color(0.98f, 0.83f, 0.48f), new Vector2(0.5f, 1f), TextAnchor.UpperCenter);
 
-            var quest = CreateImage("Quest", safeAreaRoot, new Vector2(-18f, -14f), new Vector2(228f, 58f), new Color(0.75f, 0.7f, 0.59f, 0.9f), new Vector2(1f, 1f), "Art/UI/panel", false);
+            var quest = CreateImage("Quest", safeAreaRoot, new Vector2(-18f, -14f), new Vector2(228f, 58f), new Color(0.75f, 0.7f, 0.59f, 0.9f), new Vector2(1f, 1f), "Art/UI/panel-v2", false);
             objectiveTitle = CreateText("THE SEALED APPROACH", quest.transform, new Vector2(12f, -9f), new Vector2(202f, 19f), 13, new Color(0.96f, 0.79f, 0.43f), new Vector2(0f, 1f));
             objectiveProgress = CreateText("Speak with Mara, Ash Warden", quest.transform, new Vector2(12f, -31f), new Vector2(202f, 18f), 11, new Color(0.78f, 0.78f, 0.74f), new Vector2(0f, 1f));
         }
 
         private void BuildActionBar()
         {
-            var bar = CreateImage("Action Bar", safeAreaRoot, new Vector2(0f, 8f), new Vector2(320f, 75f), new Color(0.78f, 0.72f, 0.6f, 0.98f), new Vector2(0.5f, 0f), "Art/UI/panel", false);
+            var bar = CreateImage("Action Bar", safeAreaRoot, new Vector2(0f, 8f), new Vector2(320f, 75f), new Color(0.78f, 0.72f, 0.6f, 0.98f), new Vector2(0.5f, 0f), "Art/UI/panel-v2", false);
             CreateImage("Blood Orb", safeAreaRoot, new Vector2(-214f, 5f), new Vector2(92f, 92f), Color.white, new Vector2(0.5f, 0f), "Art/UI/hp_orb");
             CreateImage("Aether Orb", safeAreaRoot, new Vector2(214f, 5f), new Vector2(92f, 92f), Color.white, new Vector2(0.5f, 0f), "Art/UI/mana_orb");
 
@@ -125,7 +125,7 @@ namespace Nightfall3.UI
 
         private void BuildBossBar()
         {
-            var panel = CreateImage("Boss Bar", safeAreaRoot, new Vector2(0f, -58f), new Vector2(410f, 42f), new Color(0.58f, 0.5f, 0.42f, 0.96f), new Vector2(0.5f, 1f), "Art/UI/panel", false);
+            var panel = CreateImage("Boss Bar", safeAreaRoot, new Vector2(0f, -58f), new Vector2(410f, 42f), new Color(0.58f, 0.5f, 0.42f, 0.96f), new Vector2(0.5f, 1f), "Art/UI/panel-v2", false);
             CreateText("THE ASHEN CASTELLAN", panel.transform, new Vector2(14f, -6f), new Vector2(270f, 18f), 13, new Color(1f, 0.78f, 0.42f), new Vector2(0f, 1f));
             bossPhase = CreateText("JUDGMENT I", panel.transform, new Vector2(292f, -6f), new Vector2(102f, 18f), 11, new Color(0.62f, 0.84f, 1f), new Vector2(0f, 1f), TextAnchor.UpperRight);
             var track = CreateImage("Boss Health Track", panel.transform, new Vector2(14f, -27f), new Vector2(380f, 6f), new Color(0.08f, 0.008f, 0.008f, 1f), new Vector2(0f, 1f));
@@ -144,7 +144,7 @@ namespace Nightfall3.UI
 
         private void BuildContextAction()
         {
-            var action = CreateImage("Context Action", safeAreaRoot, new Vector2(-28f, 112f), new Vector2(92f, 48f), new Color(0.92f, 0.7f, 0.32f, 0.98f), new Vector2(1f, 0f), "Art/UI/panel", false);
+            var action = CreateImage("Context Action", safeAreaRoot, new Vector2(-28f, 112f), new Vector2(92f, 48f), new Color(0.92f, 0.7f, 0.32f, 0.98f), new Vector2(1f, 0f), "Art/UI/panel-v2", false);
             CreateText("SPEAK", action.transform, Vector2.zero, new Vector2(92f, 48f), 14, new Color(1f, 0.84f, 0.46f), new Vector2(0.5f, 0.5f), TextAnchor.MiddleCenter);
             var button = action.gameObject.AddComponent<Button>();
             button.targetGraphic = action;
@@ -232,8 +232,8 @@ namespace Nightfall3.UI
             image.color = color;
             if (!string.IsNullOrEmpty(resource))
             {
-                var slicedPanel = resource == "Art/UI/panel" && !preserveAspect;
-                image.sprite = LoadSprite(resource, slicedPanel ? 72f : 0f);
+                var slicedPanel = resource == "Art/UI/panel-v2" && !preserveAspect;
+                image.sprite = LoadSprite(resource, slicedPanel ? 128f : 0f);
                 if (slicedPanel) image.type = Image.Type.Sliced;
             }
             image.preserveAspect = preserveAspect;
