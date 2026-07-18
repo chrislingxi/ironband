@@ -51,12 +51,9 @@ namespace Nightfall3.Presentation
             var observedDirectionalCleave = false;
             var observedCenterRupture = false;
             var observedConvergence = false;
-            var observedEnemyIdle = false;
-            var observedEnemyMove = false;
-            var observedEnemyAttack = false;
-            var observedEnemyHit = false;
-            var observedEnemyDeath = false;
-            EnemyController animatedEnemy = null;
+            var animatedEnemies = startingEnemies.Where(enemy => enemy.GetComponentInChildren<EnemySpriteAnimator>() != null).ToArray();
+            var animatedEnemyNames = animatedEnemies.Select(enemy => enemy.Archetype.ToString()).ToArray();
+            var observedEnemyStates = new bool[animatedEnemies.Length, 5];
             var frameBudget = exerciseBossMechanics ? 1200 : exerciseBoss ? 620 : exerciseFullFlow || exerciseEnemyAnimation ? 360 : exerciseAnimation ? 240 : 180;
             for (var frame = 0; frame < frameBudget; frame++)
             {
@@ -69,22 +66,25 @@ namespace Nightfall3.Presentation
                 }
                 if (exerciseEnemyAnimation && player != null)
                 {
-                    if (animatedEnemy == null)
+                    for (var i = 0; i < animatedEnemies.Length; i++)
                     {
-                        animatedEnemy = FindObjectsByType<EnemyController>(FindObjectsSortMode.None)
-                            .FirstOrDefault(enemy => enemy.GetComponentInChildren<EnemySpriteAnimator>() != null);
-                    }
-                    var enemyAnimator = animatedEnemy != null ? animatedEnemy.GetComponentInChildren<EnemySpriteAnimator>() : null;
-                    if (enemyAnimator != null)
-                    {
-                        observedEnemyIdle |= enemyAnimator.ObservedIdle;
-                        observedEnemyMove |= enemyAnimator.ObservedMove;
-                        observedEnemyAttack |= enemyAnimator.ObservedAttack;
-                        observedEnemyHit |= enemyAnimator.ObservedHit;
-                        observedEnemyDeath |= enemyAnimator.ObservedDeath;
-                        if (frame == 210) player.transform.position = animatedEnemy.transform.position + Vector3.back * 0.8f;
-                        if (frame == 250) animatedEnemy.ReceiveHit(1f, player.transform.position, false);
-                        if (frame == 286) animatedEnemy.ReceiveHit(99999f, player.transform.position, true);
+                        var animatedEnemy = animatedEnemies[i];
+                        if (animatedEnemy == null) continue;
+                        var enemyAnimator = animatedEnemy.GetComponentInChildren<EnemySpriteAnimator>();
+                        if (enemyAnimator == null) continue;
+                        observedEnemyStates[i, 0] |= enemyAnimator.ObservedIdle;
+                        observedEnemyStates[i, 1] |= enemyAnimator.ObservedMove;
+                        observedEnemyStates[i, 2] |= enemyAnimator.ObservedAttack;
+                        observedEnemyStates[i, 3] |= enemyAnimator.ObservedHit;
+                        observedEnemyStates[i, 4] |= enemyAnimator.ObservedDeath;
+                        if (frame == 210)
+                        {
+                            var angle = i * Mathf.PI * 2f / Mathf.Max(1, animatedEnemies.Length);
+                            animatedEnemy.transform.position = player.transform.position + new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)) * 0.8f;
+                        }
+                        var rearOrigin = animatedEnemy.transform.position + (animatedEnemy.transform.position - player.transform.position).normalized * 2f;
+                        if (frame == 250) animatedEnemy.ReceiveHit(1f, rearOrigin, false);
+                        if (frame == 286) animatedEnemy.ReceiveHit(99999f, rearOrigin, true);
                     }
                 }
                 if (exerciseRespawn && frame == 12 && player != null)
@@ -177,10 +177,17 @@ namespace Nightfall3.Presentation
             }
             if (exerciseEnemyAnimation)
             {
-                var animationSucceeded = observedEnemyIdle && observedEnemyMove && observedEnemyAttack && observedEnemyHit && observedEnemyDeath;
-                Debug.Log($"QA enemy animation exercised: idle={observedEnemyIdle}, move={observedEnemyMove}, attack={observedEnemyAttack}, hit={observedEnemyHit}, death={observedEnemyDeath}, success={animationSucceeded}");
+                var animationSucceeded = animatedEnemies.Length > 0;
+                var summaries = new string[animatedEnemies.Length];
+                for (var i = 0; i < animatedEnemies.Length; i++)
+                {
+                    var stateSucceeded = observedEnemyStates[i, 0] && observedEnemyStates[i, 1] && observedEnemyStates[i, 2] && observedEnemyStates[i, 3] && observedEnemyStates[i, 4];
+                    animationSucceeded &= stateSucceeded;
+                    summaries[i] = $"{animatedEnemyNames[i]}[idle={observedEnemyStates[i, 0]}, move={observedEnemyStates[i, 1]}, attack={observedEnemyStates[i, 2]}, hit={observedEnemyStates[i, 3]}, death={observedEnemyStates[i, 4]}]";
+                }
+                Debug.Log($"QA enemy animation exercised: {string.Join(", ", summaries)}, success={animationSucceeded}");
                 combatSucceeded &= animationSucceeded;
-                if (!animationSucceeded) Debug.LogError("QA enemy animation failed to observe the complete Bloodbound Fallen state set");
+                if (!animationSucceeded) Debug.LogError("QA enemy animation failed to observe every configured enemy state set");
             }
             if (exerciseFullFlow || exerciseBoss || exerciseBossMechanics)
             {

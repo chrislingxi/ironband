@@ -31,6 +31,7 @@ namespace Nightfall3.Actors
 
         public Transform TargetTransform => transform;
         public bool IsDead => health == null || health.IsDead;
+        public EnemyArchetype Archetype => archetype;
 
         public void Configure(Transform target, float healthValue, float speed, EnemyArchetype enemyArchetype)
         {
@@ -151,7 +152,8 @@ namespace Nightfall3.Actors
             var blocked = archetype == EnemyArchetype.Shieldguard && incoming.sqrMagnitude > 0.01f && Vector3.Dot(incoming.normalized, facing) > 0.15f;
             var appliedDamage = blocked ? damage * 0.42f : damage;
             if (!health.TakeDamage(appliedDamage)) return;
-            SpriteAnimator?.PlayHit();
+            if (blocked) SpriteAnimator?.PlayAttack(0.16f);
+            else SpriteAnimator?.PlayHit();
             var away = (transform.position - origin).normalized;
             var knockback = archetype == EnemyArchetype.Brute ? 0.08f : blocked ? 0.12f : critical ? 0.55f : 0.24f;
             transform.position += away * knockback;

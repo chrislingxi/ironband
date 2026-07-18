@@ -239,14 +239,23 @@ namespace Nightfall3
             var visual = CreateActorVisual(root.transform, resource, height, Color.white);
             if (visual != null && archetype == EnemyArchetype.Raider)
             {
-                visual.gameObject.AddComponent<EnemySpriteAnimator>().Configure(
-                    root.transform,
-                    height,
+                var animator = visual.gameObject.AddComponent<EnemySpriteAnimator>();
+                animator.Configure(root.transform, height,
                     "Art/Monsters/bloodbound-advance-v3",
                     "Art/Monsters/bloodbound-advance-v3",
                     "Art/Monsters/bloodbound-cleave-v3",
                     "Art/Monsters/bloodbound-hit-v3",
                     "Art/Monsters/bloodbound-defeated-v3");
+            }
+            else if (visual != null && archetype == EnemyArchetype.Shieldguard)
+            {
+                var animator = visual.gameObject.AddComponent<EnemySpriteAnimator>();
+                animator.Configure(root.transform, height,
+                    "Art/Monsters/coldbone-advance-v3",
+                    "Art/Monsters/coldbone-advance-v3",
+                    "Art/Monsters/coldbone-strike-v3",
+                    "Art/Monsters/coldbone-hit-v3",
+                    "Art/Monsters/coldbone-defeated-v3");
             }
             return enemy;
         }

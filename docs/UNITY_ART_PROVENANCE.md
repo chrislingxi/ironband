@@ -13,6 +13,7 @@ Unity production assets are tracked separately from the legacy web asset contrac
 | `Art/Monsters/bloodbound-fallen-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Bloodbound Fallen ordinary melee enemy | Authored v2 key sprite; directional animation sheet pending |
 | `Art/Monsters/bloodbound-*-v3.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal and normalized frame alignment, 2026-07-18 | Bloodbound Fallen advance, cleave, hit and defeated state set | Authored v3 production action set |
 | `Art/Monsters/coldbone-shieldguard-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-17 | Coldbone Shieldguard defensive line enemy | Authored v2 key sprite; directional animation sheet pending |
+| `Art/Monsters/coldbone-*-v3.png` | OpenAI built-in image generation plus local sheet crop, chroma-key removal, component cleanup and normalized frame alignment, 2026-07-18 | Coldbone Shieldguard advance, guarded strike, hit and defeated state set | Authored v3 production action set |
 | `Art/Monsters/blood-ash-hound-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-18 | Blood-Ash Hound fast flanking enemy | Authored v2 key sprite; directional animation sheet pending |
 | `Art/Monsters/blue-ash-juggernaut-v2.png` | OpenAI built-in image generation plus local chroma-key removal, 2026-07-18 | Blue-Ash Juggernaut heavy and elite encounter anchor | Authored v2 key sprite; directional animation sheet pending |
 | `Art/UI/panel-v2.png` | OpenAI built-in image generation plus local chroma-key removal and alpha-bound crop, 2026-07-18 | Shared 9-slice HUD, objective, Boss and interaction panel | Authored v2 production frame |
@@ -83,6 +84,12 @@ Unity production assets are tracked separately from the legacy web asset contrac
 - Original skeletal line fighter in pitted black plate with a battered broad shield, restrained cyan ward marks and a rusted sword.
 - Its shield-first silhouette communicates defensive pressure at mobile scale while remaining smaller and less ornate than elites and the Boss.
 - Uses the Duskweaver production asset only as the internal lighting, material and camera consistency reference; no franchise emblems or recognizable equipment were copied.
+
+## Coldbone Shieldguard Animation Prompt Contract
+
+- Four consistent full-body states preserve the authored skull, cyan eyes, pitted black plate, broad ward-marked shield and rusted sword across advance, guarded strike, hit and defeated poses.
+- The shield remains the dominant readable silhouette during movement and frontal mitigation; local processing only removes chroma, clears disconnected sheet spill, normalizes the canvas and aligns the pivot.
+- No animation pose, equipment design, emblem or silhouette was copied from an existing franchise.
 
 ## Blood-Ash Hound Prompt Contract
 
