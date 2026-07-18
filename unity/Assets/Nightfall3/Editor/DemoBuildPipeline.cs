@@ -10,6 +10,8 @@ namespace Nightfall3.Editor
 {
     public static class DemoBuildPipeline
     {
+        private const string AppIconPath = "Assets/Resources/Art/UI/nightfall3-app-icon-v1.png";
+
         public static void BuildMac() => Build(BuildTarget.StandaloneOSX, "Builds/macOS/Nightfall3.app");
         public static void BuildWeb() => Build(BuildTarget.WebGL, "Builds/Web");
         public static void BuildIOS() => Build(BuildTarget.iOS, "Builds/iOS");
@@ -36,6 +38,9 @@ namespace Nightfall3.Editor
             PlayerSettings.companyName = "Nightfall Forge";
             PlayerSettings.productName = "Nightfall 3 Demo";
             PlayerSettings.bundleVersion = "0.1.0";
+            var appIcon = AssetDatabase.LoadAssetAtPath<Texture2D>(AppIconPath);
+            if (appIcon == null) throw new InvalidOperationException($"Missing app icon: {AppIconPath}");
+            PlayerSettings.SetIcons(NamedBuildTarget.Unknown, new[] { appIcon }, IconKind.Any);
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.iOS, "com.nightfallforge.nightfall3.demo");
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.LandscapeLeft;
             PlayerSettings.allowedAutorotateToLandscapeLeft = true;

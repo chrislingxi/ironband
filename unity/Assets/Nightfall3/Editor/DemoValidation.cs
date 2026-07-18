@@ -46,6 +46,7 @@ namespace Nightfall3.Editor
             "Assets/Resources/Art/UI/aether-orb-v2.png",
             "Assets/Resources/Art/UI/joystick-v2.png",
             "Assets/Resources/Art/UI/joystick-core-v2.png",
+            "Assets/Resources/Art/UI/nightfall3-app-icon-v1.png",
             "Assets/Resources/Art/Icons/skill-chain-arc-v2.png",
             "Assets/Resources/Art/Icons/skill-static-dominion-v2.png",
             "Assets/Resources/Art/Icons/skill-phase-step-v2.png",
