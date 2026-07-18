@@ -43,7 +43,7 @@ namespace Nightfall3.Actors
 
         private void Update()
         {
-            if (health == null || health.IsDead || player == null) return;
+            if (health == null || health.IsDead || player == null || CinematicDirector.CombatSuppressed) return;
             var delta = player.position - transform.position;
             delta.y = 0f;
             var distance = delta.magnitude;
@@ -96,7 +96,7 @@ namespace Nightfall3.Actors
             var warning = DemoDirector.CreateGroundRing(transform.position, radius, new Color(0.9f, 0.18f, 0.08f, 0.52f));
             yield return new WaitForSeconds(telegraphSeconds);
             Destroy(warning);
-            if (player == null || Vector3.Distance(transform.position, player.position) > radius + 0.32f) yield break;
+            if (CinematicDirector.CombatSuppressed || player == null || Vector3.Distance(transform.position, player.position) > radius + 0.32f) yield break;
             DamagePlayer(damage, trauma);
         }
 
@@ -116,7 +116,7 @@ namespace Nightfall3.Actors
                 yield return null;
             }
             transform.position = targetPosition;
-            if (player != null && Vector3.Distance(transform.position, player.position) <= 1.45f)
+            if (!CinematicDirector.CombatSuppressed && player != null && Vector3.Distance(transform.position, player.position) <= 1.45f)
                 DamagePlayer(12f, 0.28f);
             yield return new WaitForSeconds(0.58f);
         }
@@ -126,7 +126,7 @@ namespace Nightfall3.Actors
             var warning = DemoDirector.CreateGroundRing(transform.position, 1.9f, new Color(1f, 0.34f, 0.05f, 0.68f));
             yield return new WaitForSeconds(0.88f);
             Destroy(warning);
-            if (player == null || Vector3.Distance(transform.position, player.position) > 2.15f) yield break;
+            if (CinematicDirector.CombatSuppressed || player == null || Vector3.Distance(transform.position, player.position) > 2.15f) yield break;
             DamagePlayer(18f, 0.42f);
             var away = player.position - transform.position;
             away.y = 0f;

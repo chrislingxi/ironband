@@ -25,6 +25,9 @@ namespace Nightfall3.Actors
         public bool IsDead => health == null || health.IsDead;
         public int Phase { get; private set; } = 1;
         public float HealthNormalized => health == null ? 0f : health.Current / health.Maximum;
+        public bool ObservedDirectionalCleave { get; private set; }
+        public bool ObservedCenterRupture { get; private set; }
+        public bool ObservedConvergence { get; private set; }
 
         public void Configure(Transform target, float maximumHealth)
         {
@@ -38,7 +41,7 @@ namespace Nightfall3.Actors
 
         private void Update()
         {
-            if (IsDead || player == null || transitioning) return;
+            if (IsDead || player == null || transitioning || CinematicDirector.CombatSuppressed) return;
             var delta = player.position - transform.position;
             delta.y = 0f;
             var desiredRange = Phase == 1 ? 2.4f : Phase == 2 ? 4.3f : 3.2f;
@@ -55,7 +58,7 @@ namespace Nightfall3.Actors
             attacking = true;
             if (Phase == 1) yield return CleavingJudgment();
             else if (Phase == 2) yield return WardRupture();
-            else yield return LastCitadelPulse();
+            else yield return FinalConvergence();
             nextAttack = Time.time + (Phase == 3 ? 0.62f : 0.9f);
             attacking = false;
             attackRoutine = null;
@@ -63,9 +66,15 @@ namespace Nightfall3.Actors
 
         private IEnumerator CleavingJudgment()
         {
-            var warning = Track(DemoDirector.CreateGroundRing(transform.position, 2.8f, new Color(1f, 0.28f, 0.08f, 0.76f)));
+            ObservedDirectionalCleave = true;
+            var direction = player != null ? player.position - transform.position : Vector3.forward;
+            direction.y = 0f;
+            direction = direction.sqrMagnitude > 0.01f ? direction.normalized : Vector3.forward;
+            var warning = Track(DemoDirector.CreateGroundSector(transform.position, direction, 3.5f, 43f, new Color(1f, 0.28f, 0.08f, 0.82f)));
             yield return new WaitForSeconds(0.62f);
-            if (player != null && Vector3.Distance(transform.position, player.position) <= 3f)
+            var toPlayer = player != null ? player.position - transform.position : Vector3.zero;
+            toPlayer.y = 0f;
+            if (!CinematicDirector.CombatSuppressed && player != null && toPlayer.magnitude <= 3.65f && Vector3.Angle(direction, toPlayer) <= 46f)
             {
                 playerHealth?.TakeDamage(18f);
                 DemoDirector.SpawnImpact(player.position + Vector3.up * 0.8f, true);
@@ -79,18 +88,19 @@ namespace Nightfall3.Actors
 
         private IEnumerator WardRupture()
         {
+            ObservedCenterRupture = true;
             var center = player != null ? player.position : transform.position;
-            var rings = new GameObject[3];
+            var rings = new GameObject[4];
             for (var i = 0; i < rings.Length; i++)
             {
-                var offset = Quaternion.Euler(0f, i * 120f, 0f) * Vector3.forward * 1.65f;
-                rings[i] = Track(DemoDirector.CreateGroundRing(center + offset, 1.35f, new Color(0.22f, 0.72f, 1f, 0.8f)));
+                var offset = i == 0 ? Vector3.zero : Quaternion.Euler(0f, (i - 1) * 120f, 0f) * Vector3.forward * 2.35f;
+                rings[i] = Track(DemoDirector.CreateGroundRing(center + offset, i == 0 ? 1.5f : 1.25f, new Color(0.22f, 0.72f, 1f, 0.82f)));
             }
             yield return new WaitForSeconds(0.72f);
             foreach (var ring in rings)
             {
                 if (ring == null) continue;
-                if (player != null && Vector3.Distance(ring.transform.position, player.position) <= 1.45f)
+                if (!CinematicDirector.CombatSuppressed && player != null && Vector3.Distance(ring.transform.position, player.position) <= (ring == rings[0] ? 1.6f : 1.35f))
                     playerHealth?.TakeDamage(14f);
                 DemoDirector.SpawnShockwave(ring.transform.position, new Color(0.18f, 0.66f, 1f));
                 Destroy(ring);
@@ -99,19 +109,25 @@ namespace Nightfall3.Actors
             yield return new WaitForSeconds(0.2f);
         }
 
-        private IEnumerator LastCitadelPulse()
+        private IEnumerator FinalConvergence()
         {
-            var warning = Track(DemoDirector.CreateGroundRing(transform.position, 4.6f, new Color(0.78f, 0.12f, 0.95f, 0.88f)));
-            yield return new WaitForSeconds(0.44f);
-            if (player != null && Vector3.Distance(transform.position, player.position) <= 4.8f)
+            ObservedConvergence = true;
+            yield return CleavingJudgment();
+            var inner = Track(DemoDirector.CreateGroundRing(transform.position, 2.15f, new Color(1f, 0.18f, 0.42f, 0.9f)));
+            var outer = Track(DemoDirector.CreateGroundRing(transform.position, 4.55f, new Color(0.42f, 0.18f, 1f, 0.9f)));
+            yield return new WaitForSeconds(0.5f);
+            var distance = player != null ? Vector3.Distance(transform.position, player.position) : 0f;
+            if (!CinematicDirector.CombatSuppressed && player != null && (distance < 2.05f || distance > 4.7f))
                 playerHealth?.TakeDamage(22f);
             for (var i = 0; i < 3; i++)
             {
                 DemoDirector.SpawnShockwave(transform.position, new Color(0.72f, 0.12f + i * 0.08f, 1f));
                 yield return new WaitForSeconds(0.08f);
             }
-            Destroy(warning);
-            activeTelegraphs.Remove(warning);
+            Destroy(inner);
+            Destroy(outer);
+            activeTelegraphs.Remove(inner);
+            activeTelegraphs.Remove(outer);
         }
 
         public void ReceiveHit(float damage, Vector3 origin, bool critical)

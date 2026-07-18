@@ -7,6 +7,8 @@ namespace Nightfall3.Presentation
 {
     public sealed class CinematicDirector : MonoBehaviour
     {
+        public static bool CombatSuppressed { get; private set; }
+
         private DemoFlowController flow;
         private CanvasGroup overlay;
         private RectTransform topBar;
@@ -90,6 +92,7 @@ namespace Nightfall3.Presentation
         private void PlayCue(string heading, string detail, Vector3 focus, float duration, float fieldOfView)
         {
             if (activeCue != null) StopCoroutine(activeCue);
+            CombatSuppressed = true;
             activeCue = StartCoroutine(CueRoutine(heading, detail, duration));
             Camera.main?.GetComponent<CameraRig>()?.Focus(focus, duration, fieldOfView);
         }
@@ -115,7 +118,13 @@ namespace Nightfall3.Presentation
             }
             overlay.alpha = 0f;
             SetBarHeight(0f);
+            CombatSuppressed = false;
             activeCue = null;
+        }
+
+        private void OnDestroy()
+        {
+            CombatSuppressed = false;
         }
 
         private void SetBarHeight(float height)

@@ -60,6 +60,11 @@ namespace Nightfall3.Actors
         private void Update()
         {
             if (defeated) return;
+            if (CinematicDirector.CombatSuppressed)
+            {
+                MovementInput = Vector2.zero;
+                return;
+            }
             ReadTouchInput();
             var input = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical"));
             if (touchMove.sqrMagnitude > input.sqrMagnitude) input = touchMove;

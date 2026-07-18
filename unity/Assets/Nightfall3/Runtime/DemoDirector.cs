@@ -317,6 +317,29 @@ namespace Nightfall3
             return ring;
         }
 
+        public static GameObject CreateGroundSector(Vector3 position, Vector3 direction, float radius, float halfAngle, Color color)
+        {
+            var sector = new GameObject("Directional Telegraph", typeof(LineRenderer));
+            sector.transform.position = position + Vector3.up * 0.04f;
+            var line = sector.GetComponent<LineRenderer>();
+            line.useWorldSpace = false;
+            line.loop = true;
+            line.positionCount = 20;
+            line.startWidth = line.endWidth = 0.075f;
+            line.material = Resources.Load<Material>("Materials/RuntimeUnlit");
+            line.startColor = line.endColor = color;
+            line.SetPosition(0, Vector3.zero);
+            var heading = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
+            for (var i = 0; i < 18; i++)
+            {
+                var angle = heading - halfAngle + halfAngle * 2f * (i / 17f);
+                var radians = angle * Mathf.Deg2Rad;
+                line.SetPosition(i + 1, new Vector3(Mathf.Sin(radians) * radius, 0f, Mathf.Cos(radians) * radius));
+            }
+            line.SetPosition(19, Vector3.zero);
+            return sector;
+        }
+
         public static void SpawnImpact(Vector3 position, bool critical)
         {
             var impact = GameObject.CreatePrimitive(PrimitiveType.Sphere);
