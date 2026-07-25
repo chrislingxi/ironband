@@ -39,3 +39,18 @@
 源文件 `dungeon002.ogg` 经 ffmpeg 转为 mp3，以兼容 iOS Safari。
 
 缺任一文件时该音效自动回退合成,见 `src/engine/audio/samples.ts`。
+
+## Unity Demo 音乐 — OpenGameArt (CC0 1.0)
+
+`unity/Assets/Resources/Audio/Music/` 使用两条作者页面明确标记为 **CC0 1.0** 的无缝氛围曲：
+
+| Unity 文件 | 原曲 / 作者 | 来源 |
+| --- | --- | --- |
+| `emberwatch-cathedral.mp3` | `Cathedral in the forest (ambient loop)` / congusbongus | https://opengameart.org/content/cathedral-in-the-forest-ambient-loop |
+| `ashen-approach-atmosphere.mp3` | `Horror Atmosphere` / SubspaceAudio (Juhani Junkala) | https://opengameart.org/content/horror-atmosphere |
+
+原 Ogg 文件经 ffmpeg 转为 160 kbps / 44.1 kHz MP3，以兼容 iPhone Safari 并控制 Web 包体。CC0 无需署名，本节用于资产追溯。
+
+## Unity Demo 短音效 — Kenney (CC0 1.0)
+
+`unity/Assets/Resources/Audio/SFX/{hit,skill,pickup,death,select}.mp3` 复用上表已登记的 Kenney CC0 音效，并在 Unity 内按命中、技能、拾取、死亡和交互分层混音。

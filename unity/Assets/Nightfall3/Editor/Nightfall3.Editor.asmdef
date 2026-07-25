@@ -1,0 +1,18 @@
+{
+  "name": "Nightfall3.Editor",
+  "rootNamespace": "Nightfall3.Editor",
+  "references": [
+    "Nightfall3.Runtime"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

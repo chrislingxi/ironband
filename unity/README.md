@@ -1,0 +1,50 @@
+# Nightfall 3 Unity Demo
+
+This folder is the authored Unity 6000.3 project for the 2.5D demo. The existing web game remains available outside this folder while migration continues.
+
+## Local gates
+
+```bash
+UNITY="/Applications/Unity/Hub/Editor/6000.3.18f1/Unity.app/Contents/MacOS/Unity"
+
+"$UNITY" -batchmode -nographics -quit -projectPath "$PWD/unity" \
+  -executeMethod Nightfall3.Editor.DemoSceneBuilder.BuildScene -logFile unity-scene-build.log
+
+"$UNITY" -batchmode -nographics -quit -projectPath "$PWD/unity" \
+  -executeMethod Nightfall3.Editor.DemoValidation.ValidateFoundation -logFile unity-validation.log
+
+"$UNITY" -batchmode -nographics -quit -projectPath "$PWD/unity" \
+  -executeMethod Nightfall3.Editor.DemoBuildPipeline.BuildMac -logFile unity-mac-build.log
+
+"unity/Builds/macOS/Nightfall3.app/Contents/MacOS/Nightfall 3 Demo" \
+  -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -qaCombat \
+  -qaCapture /tmp/nightfall3-combat.png -logFile /tmp/nightfall3-combat.log
+```
+
+The runtime gate executes all four skills and fails if the authored four-enemy encounter takes no damage or the screenshot cannot be produced.
+
+The progression gate clears the gate pack, causeway ambush and elite ward, then fails unless the flow reaches the Boss approach:
+
+```bash
+"unity/Builds/macOS/Nightfall3.app/Contents/MacOS/Nightfall 3 Demo" \
+  -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -qaFlow \
+  -qaCapture /tmp/nightfall3-flow.png -logFile /tmp/nightfall3-flow.log
+```
+
+The Boss gate additionally proves both health-threshold transitions, defeat, reward pickup and player power growth:
+
+```bash
+"unity/Builds/macOS/Nightfall3.app/Contents/MacOS/Nightfall 3 Demo" \
+  -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -qaBoss \
+  -qaCapture /tmp/nightfall3-boss.png -logFile /tmp/nightfall3-boss.log
+```
+
+Checkpoint recovery is a separate gate that kills the hero during the opening encounter and verifies full-health respawn plus encounter reset:
+
+```bash
+"unity/Builds/macOS/Nightfall3.app/Contents/MacOS/Nightfall 3 Demo" \
+  -screen-fullscreen 0 -screen-width 1280 -screen-height 720 -qaRespawn \
+  -qaCapture /tmp/nightfall3-respawn.png -logFile /tmp/nightfall3-respawn.log
+```
+
+The foundation is intentionally not the visual-target milestone. Bridge sprites and procedural geometry must be replaced or materially upgraded before visual acceptance.
