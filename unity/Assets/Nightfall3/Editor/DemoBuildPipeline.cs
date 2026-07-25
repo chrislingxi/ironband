@@ -54,6 +54,10 @@ namespace Nightfall3.Editor
             PlayerSettings.iOS.targetOSVersionString = "15.0";
             PlayerSettings.iOS.sdkVersion = iOSSdkVersion.DeviceSDK;
             PlayerSettings.iOS.requiresPersistentWiFi = false;
+            PlayerSettings.WebGL.template = "PROJECT:Nightfall3";
+            PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
+            PlayerSettings.WebGL.decompressionFallback = true;
+            PlayerSettings.WebGL.dataCaching = true;
         }
     }
 }

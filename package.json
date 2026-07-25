@@ -21,6 +21,7 @@
     "selftest:lint": "node scripts/selftest-lint.mjs",
     "selftest:ui": "node scripts/selftest-ui.mjs",
     "selftest:mobile-zoom": "node scripts/selftest-mobile-zoom.mjs",
+    "qa:unity-web": "node scripts/qa-unity-web.mjs",
     "selftest": "npm run selftest:lint && npm run typecheck && npm test && npm run build && npm run selftest:mobile-zoom && npm run selftest:ui",
     "loop:check": "npm run selftest:lint && npm run typecheck && npm test && npm run build && npm run selftest:mobile-zoom"
   },

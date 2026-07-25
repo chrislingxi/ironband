@@ -40,6 +40,8 @@ namespace Nightfall3.Editor
             "Assets/Resources/Art/Monsters/blue-ash-juggernaut-slam-v3.png",
             "Assets/Resources/Art/Monsters/blue-ash-juggernaut-hit-v3.png",
             "Assets/Resources/Art/Monsters/blue-ash-juggernaut-defeated-v3.png",
+            "Assets/Resources/Art/Monsters/black-archive-curator-v1.png",
+            "Assets/Resources/Art/Monsters/oath-engine-v1.png",
             "Assets/Resources/Art/UI/panel-v2.png",
             "Assets/Resources/Art/UI/hero-portrait-v2.png",
             "Assets/Resources/Art/UI/vitality-orb-v2.png",
@@ -67,7 +69,9 @@ namespace Nightfall3.Editor
             "Assets/Resources/Art/Bosses/castellan-rupture-v2.png",
             "Assets/Resources/Art/Bosses/castellan-convergence-v2.png",
             "Assets/Resources/Art/Environment/ashen-courtyard-albedo-v1.png",
-            "Assets/Resources/Art/Environment/ashen-gate-facade-v1.png"
+            "Assets/Resources/Art/Environment/ashen-gate-facade-v1.png",
+            "Assets/Resources/Art/Environment/black-archive-facade-v1.png",
+            "Assets/Resources/Art/Environment/triune-sepulcher-facade-v1.png"
         };
 
         private static readonly string[] RequiredAudio =
@@ -105,11 +109,17 @@ namespace Nightfall3.Editor
             if (!sceneEnabled) failures.Add("Demo scene is not enabled in build settings");
             if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Standalone, BuildTarget.StandaloneOSX))
                 failures.Add("macOS build support is unavailable");
+            if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.WebGL, BuildTarget.WebGL))
+                failures.Add("WebGL build support is unavailable");
+            if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.iOS, BuildTarget.iOS))
+                failures.Add("iOS build support is unavailable");
             if (PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.iOS) != "com.nightfallforge.nightfall3.demo")
                 failures.Add("iOS bundle identifier is not configured");
+            if (!File.Exists("Assets/WebGLTemplates/Nightfall3/index.html"))
+                failures.Add("Nightfall 3 mobile WebGL template is unavailable");
 
             if (failures.Count > 0) throw new InvalidOperationException(string.Join(Environment.NewLine, failures));
-            Debug.Log($"NIGHTFALL FOUNDATION VALID: {RequiredTextures.Length} textures, {RequiredAudio.Length} audio clips, scene enabled, macOS target available");
+            Debug.Log($"NIGHTFALL FOUNDATION VALID: {RequiredTextures.Length} textures, {RequiredAudio.Length} audio clips, scene enabled, macOS/WebGL/iOS targets available");
         }
     }
 }
